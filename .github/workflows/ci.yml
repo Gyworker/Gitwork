@@ -1,5 +1,5 @@
 # =============================================================================
-# GitHub Actions CI - 市场咨询任务跟踪工具 V2.0
+# GitHub Actions CI - 市场咨询任务跟踪工具 V2.1
 # =============================================================================
 
 name: CI
@@ -21,6 +21,10 @@ on:
           - syntax
           - test
           - build
+
+env:
+  # 设置工作目录路径（兼容Linux和Windows）
+  WORK_DIR: ${{ github.workspace }}
 
 jobs:
   syntax-check:
@@ -85,42 +89,41 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov PyQt5 pandas openpyxl Pillow pytesseract colorlog PyYAML python-dateutil psutil numpy
+          pip install pytest pytest-cov pandas openpyxl Pillow pytesseract colorlog PyYAML python-dateutil psutil numpy
+      
+      - name: Install Tesseract OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-chi-sim
       
       - name: Run Core Tests
         run: |
           echo "=== Running Core Module Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_core.py -v --tb=short || true
           
       - name: Run Database Tests
         run: |
           echo "=== Running Database Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_database.py -v --tb=short || true
 
       - name: Run Excel Import Tests (V2.0)
         run: |
           echo "=== Running Excel Import Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_excel_import.py -v --tb=short || true
 
       - name: Run OCR Handler Tests (V2.0)
         run: |
           echo "=== Running OCR Handler Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_ocr_handler.py -v --tb=short -m "not integration" || true
 
       - name: Run Mapping Tests (V2.0)
         run: |
           echo "=== Running Enhanced Mapping Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_enhanced_mapping.py -v --tb=short || true
           
       - name: Run Performance Tests
         run: |
           echo "=== Running Performance Tests ==="
-          cd D:/GITwork
           python -m pytest src/tests/test_performance.py -v --tb=short -m "not slow" || true
           
       - name: Generate Coverage Report
@@ -167,7 +170,6 @@ jobs:
       - name: Build executable
         run: |
           echo "=== Building Executable ==="
-          cd D:/GITwork
           pyinstaller --version || echo "PyInstaller installed"
           
           # Create build directory
