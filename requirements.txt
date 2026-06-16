@@ -1,7 +1,7 @@
 # 市场咨询任务跟踪工具 - 依赖清单
-# 版本：V1.1
+# 版本：V2.0
 # 日期：2026-06-16
-# CI优化：使用更宽松的版本约束
+# 新增：OCR、Tesseract支持
 
 # GUI框架 - 使用预编译wheel避免编译问题
 PyQt5>=5.15.0
@@ -12,15 +12,23 @@ PyQt5>=5.15.0
 # 数据处理
 pandas>=2.0.0
 openpyxl>=3.1.0
+numpy>=1.24.0
 
-# OCR识别（可选依赖，CI中可能跳过）
+# OCR识别
 Pillow>=10.0.0
+pytesseract>=0.3.10
 
 # 日志
 colorlog>=6.7.0
 
 # 配置管理
 PyYAML>=6.0.1
+
+# 日期时间
+python-dateutil>=2.8.2
+
+# 系统监控
+psutil>=5.9.0
 
 # 单元测试
 pytest>=7.4.0
@@ -29,5 +37,5 @@ pytest-cov>=4.1.0
 # 代码检查
 pylint>=3.0.0
 
-# 日期时间
-python-dateutil>=2.8.2
+# 打包工具
+pyinstaller>=6.0.0
