@@ -163,6 +163,146 @@ class TestBackupManager:
         assert stats['total_size'] == 1024 * 6  # 1+2+3 KB
 
 
+class TestBackupSecurityChecks:
+    """备份安全检查测试"""
+    
+    def test_validate_path_safe(self):
+        """测试安全路径验证"""
+        manager = BackupManager()
+        
+        safe_paths = [
+            'backup.zip',
+            'backups/backup.zip',
+            'data/files/backup.zip',
+            'test_file_123.txt',
+            '备份文件.zip',
+        ]
+        
+        for path in safe_paths:
+            assert manager._validate_path(path) == True, f"路径应该安全: {path}"
+    
+    def test_validate_path_traversal(self):
+        """测试路径遍历攻击检测"""
+        manager = BackupManager()
+        
+        unsafe_paths = [
+            '../etc/passwd',
+            'backups/../../etc/passwd',
+            '..\\Windows\\System32\\config',
+            './../secret.txt',
+            'a/../../../b',
+        ]
+        
+        for path in unsafe_paths:
+            assert manager._validate_path(path) == False, f"路径应该不安全: {path}"
+    
+    def test_validate_path_absolute(self):
+        """测试绝对路径检查"""
+        manager = BackupManager()
+        
+        # 默认不允许绝对路径
+        assert manager._validate_path('/tmp/backup.zip') == False
+        assert manager._validate_path('C:\\Windows\\backup.zip') == False
+        
+        # 允许时应该通过
+        assert manager._validate_path('/tmp/backup.zip', allow_absolute=True) == True
+    
+    def test_validate_path_special_chars(self):
+        """测试特殊字符检查"""
+        manager = BackupManager()
+        
+        unsafe_paths = [
+            'file<name>.txt',
+            'file>name.txt',
+            'file:name.txt',
+            'file|name.txt',
+            'file?name.txt',
+            'file*name.txt',
+            'file"name.txt',
+        ]
+        
+        for path in unsafe_paths:
+            assert manager._validate_path(path) == False, f"路径应该不安全: {path}"
+    
+    def test_validate_restore_path_critical(self):
+        """测试还原到关键目录的检查"""
+        manager = BackupManager()
+        
+        critical_paths = [
+            '/',
+            '/bin',
+            '/etc',
+            '/usr',
+            'C:\\',
+            'C:\\Windows',
+            'C:\\Program Files',
+        ]
+        
+        for path in critical_paths:
+            assert manager._validate_restore_path(path) == False, f"路径应该不安全: {path}"
+    
+    def test_sanitize_filename(self):
+        """测试文件名清理"""
+        manager = BackupManager()
+        
+        # 测试清理特殊字符
+        assert manager._sanitize_filename('file<name>.txt') == 'file_name_.txt'
+        assert manager._sanitize_filename('normal_file.txt') == 'normal_file.txt'
+        
+        # 测试清理路径遍历
+        assert '..' not in manager._sanitize_filename('../file.txt')
+        assert '..' not in manager._sanitize_filename('..\\file.txt')
+    
+    def test_verify_backup_invalid_path(self):
+        """测试验证不安全路径的备份"""
+        manager = BackupManager()
+        
+        result = manager.verify_backup('../dangerous/backup.zip')
+        
+        assert result['valid'] == False
+        assert any('不安全' in err for err in result['errors'])
+    
+    def test_restore_backup_invalid_path(self):
+        """测试还原不安全路径的备份"""
+        manager = BackupManager()
+        
+        result = manager.restore_backup(
+            '../dangerous/backup.zip',
+            restore_dir='./restore'
+        )
+        
+        assert result == False
+    
+    def test_restore_to_critical_path(self):
+        """测试还原到系统关键目录"""
+        manager = BackupManager()
+        
+        result = manager.restore_backup(
+            'backup.zip',
+            restore_dir='C:\\Windows\\System32'
+        )
+        
+        assert result == False
+    
+    def test_verify_backup_valid(self, tmp_path):
+        """测试验证有效的备份"""
+        # 创建有效的备份文件
+        backup_file = tmp_path / 'test_backup.zip'
+        
+        import zipfile
+        with zipfile.ZipFile(backup_file, 'w') as zf:
+            zf.writestr('test.txt', 'test content')
+        
+        manager = BackupManager({
+            'backup_path': str(tmp_path)
+        })
+        
+        result = manager.verify_backup(str(backup_file))
+        
+        assert result['valid'] == True
+        assert result['file_size'] > 0
+
+
 class TestBackupRetryManager:
     """备份重试管理器测试"""
     
