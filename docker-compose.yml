@@ -1,0 +1,80 @@
+version: '3.8'
+
+# =============================================================================
+# 市场咨询任务跟踪工具 - Docker Compose 配置
+# =============================================================================
+# 使用方法：
+# 1. 确保已安装 Docker Desktop
+# 2. 在项目目录运行：docker-compose up ci
+# =============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # CI 测试服务
+  # --------------------------------------------------------------------------
+  ci:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: market-task-tracker-ci
+    environment:
+      - CI=true
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./src:/app/src:ro
+      - ./test-results:/app/test-results
+    command: >
+      sh -c "
+        echo '🚀 开始CI检查...' &&
+        echo '' &&
+        echo '## 1. 语法检查' &&
+        python -m py_compile src/config.py src/utils/*.py src/database/*.py src/ui/*.py src/ui/widgets/*.py &&
+        echo '✅ 语法检查通过' &&
+        echo '' &&
+        echo '## 2. 代码导入测试' &&
+        python -c 'import sys; sys.path.insert(0, \"src\"); from config import *; from utils.logger import *; from database.connection import *; from database.models import *; print(\"✅ 模块导入成功\")' &&
+        echo '' &&
+        echo '## 3. 运行单元测试' &&
+        python -m pytest src/tests/ -v --tb=short &&
+        echo '' &&
+        echo '🎉 所有CI检查通过！'
+      "
+
+  # --------------------------------------------------------------------------
+  # 开发环境服务
+  # --------------------------------------------------------------------------
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: market-task-tracker-dev
+    environment:
+      - DISPLAY=host.docker.internal:0
+    volumes:
+      - ./src:/app/src
+    stdin_open: true
+    tty: true
+    command: python src/main.py
+    profiles:
+      - development
+
+  # --------------------------------------------------------------------------
+  # 代码质量检查服务（不运行测试）
+  # --------------------------------------------------------------------------
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: market-task-tracker-lint
+    environment:
+      - CI=true
+    volumes:
+      - ./src:/app/src
+    command: >
+      sh -c "
+        echo '🔍 代码质量检查...' &&
+        pylint src/config.py src/utils/*.py src/database/*.py \
+          --disable=C0114,C0115,C0116,R0903,R0913 \
+          --max-line-length=120 \
+          || true
+      "
