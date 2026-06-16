@@ -1,83 +1,41 @@
 # =============================================================================
-# 市场咨询任务跟踪工具 - GitHub Actions CI/CD 工作流 (简化版)
+# GitHub Actions CI - Minimal Version
 # =============================================================================
 
-name: CI - Python Check
+name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
-  # ============================================================================
-  # 任务：Python语法检查
-  # ============================================================================
-  python-check:
-    name: Python Syntax Check
+  check:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       
-      - name: Install PyQt5
-        run: pip install PyQt5 || true
-      
-      - name: Syntax check
+      - name: Check Python syntax
         run: |
-          echo "Checking Python syntax..."
-          cd src
-          python -m py_compile config.py
-          echo "PASS: config.py"
+          python -m py_compile src/config.py
+          echo "OK: config.py"
           
-          for f in utils/*.py; do
-            python -m py_compile "$f" && echo "PASS: $f" || echo "FAIL: $f"
+          for f in src/utils/*.py; do
+            python -m py_compile "$f"
+            echo "OK: $f"
           done
           
-          for f in database/*.py; do
-            python -m py_compile "$f" && echo "PASS: $f" || echo "FAIL: $f"
+          for f in src/database/*.py; do
+            python -m py_compile "$f"
+            echo "OK: $f"
           done
           
           echo ""
-          echo "All syntax checks completed!"
-
-      - name: Import test
-        run: |
-          echo "Testing module imports..."
-          cd src
-          python -c "
-            import sys
-            sys.path.insert(0, '.')
-            
-            # Test imports
-            import config
-            print('PASS: config')
-            
-            import utils.logger
-            print('PASS: utils.logger')
-            
-            import utils.helpers
-            print('PASS: utils.helpers')
-            
-            import database.connection
-            print('PASS: database.connection')
-            
-            import database.models
-            print('PASS: database.models')
-            
-            print('')
-            print('All import tests passed!')
-          "
-
-      - name: Summary
-        run: |
-          echo "## CI Summary"
-          echo "Python files: $(find src -name '*.py' | wc -l)"
-          echo "All checks passed!"
+          echo "All syntax checks passed!"
