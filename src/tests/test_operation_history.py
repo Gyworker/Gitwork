@@ -233,6 +233,69 @@ class TestSensitiveDataMasker:
         assert masked['email'] == 'zha***@example.com'
 
 
+class TestOperationHistoryMemoryLimit:
+    """操作历史内存限制测试"""
+    
+    def test_init_with_memory_limit(self):
+        """测试带内存限制的初始化"""
+        history = OperationHistory(memory_limit_kb=5)
+        
+        assert history._memory_limit == 5 * 1024
+        assert history._current_memory_size == 0
+        assert history._archive_dir == './data/history_archive'
+    
+    def test_get_memory_usage(self):
+        """测试内存使用量计算"""
+        history = OperationHistory()
+        
+        # 初始状态
+        assert history._get_memory_usage() == 0
+        
+        # 添加记录后
+        history.log_operation(
+            module='task',
+            action='CREATE',
+            target_name='测试任务'
+        )
+        
+        assert history._get_memory_usage() > 0
+    
+    def test_get_memory_status(self):
+        """测试获取内存状态"""
+        history = OperationHistory(memory_limit_kb=10)
+        
+        status = history.get_memory_status()
+        
+        assert 'current_records' in status
+        assert 'memory_usage_bytes' in status
+        assert 'memory_limit_bytes' in status
+        assert 'usage_percent' in status
+        assert 'archive_files' in status
+        assert status['memory_limit_kb'] == 10
+    
+    def test_auto_archive_when_limit_exceeded(self, tmp_path):
+        """测试超过限制时自动归档"""
+        # 使用较小的限制测试归档
+        history = OperationHistory(
+            memory_limit_kb=1,  # 1KB限制
+            archive_dir=str(tmp_path / 'archive')
+        )
+        
+        # 添加多条记录直到触发归档
+        for i in range(20):
+            history.log_operation(
+                module='task',
+                action='CREATE',
+                target_name=f'测试任务{i}' * 100  # 大记录
+            )
+        
+        # 检查归档文件是否创建
+        archive_files = list(tmp_path.glob('archive/*.json.gz'))
+        
+        # 内存记录应该被清空或减少
+        assert len(history._records) < 20 or len(archive_files) > 0
+
+
 class TestBatchOperationRecorder:
     """批量操作记录器测试"""
     

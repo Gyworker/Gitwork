@@ -5,8 +5,11 @@
 """
 
 import json
+import os
 import re
+import gzip
 from datetime import datetime
+from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Optional, List, Dict, Any
 
@@ -42,6 +45,10 @@ class HistoryRecord:
         data['timestamp'] = self.timestamp.isoformat() if self.timestamp else None
         return data
     
+    def get_size(self) -> int:
+        """获取记录大小（字节）"""
+        return len(json.dumps(self.to_dict(), ensure_ascii=False))
+    
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'HistoryRecord':
         """从字典创建"""
@@ -59,6 +66,7 @@ class OperationHistory:
     - 查询历史记录
     - 导出历史记录
     - 清理过期记录
+    - 内存限制保护（自动保存到本地文件）
     """
     
     # 操作类型定义
@@ -78,15 +86,142 @@ class OperationHistory:
     MODULE_RECOMMENDATION = 'recommendation'
     MODULE_SYSTEM = 'system'
     
-    def __init__(self, db_connection=None):
+    # 内存限制配置
+    DEFAULT_MEMORY_LIMIT = 10 * 1024  # 默认10KB
+    DEFAULT_ARCHIVE_DIR = './data/history_archive'
+    
+    def __init__(
+        self,
+        db_connection=None,
+        memory_limit_kb: int = None,
+        archive_dir: str = None
+    ):
         """
         初始化操作历史记录器
         
         Args:
             db_connection: 数据库连接对象
+            memory_limit_kb: 内存限制（KB），超过此限制自动保存到文件
+            archive_dir: 历史归档目录路径
         """
         self.db = db_connection
         self._records = []  # 内存存储（无数据库时使用）
+        
+        # 内存限制配置
+        self._memory_limit = (memory_limit_kb or self.DEFAULT_MEMORY_LIMIT) * 1024
+        self._archive_dir = archive_dir or self.DEFAULT_ARCHIVE_DIR
+        
+        # 初始化归档目录
+        Path(self._archive_dir).mkdir(parents=True, exist_ok=True)
+        
+        # 当前内存使用量
+        self._current_memory_size = 0
+        
+        # 归档文件列表
+        self._archive_files: List[str] = []
+    
+    def _get_record_size(self, record: HistoryRecord) -> int:
+        """计算单条记录大小"""
+        return record.get_size()
+    
+    def _get_memory_usage(self) -> int:
+        """计算当前内存使用量"""
+        total_size = self._current_memory_size
+        # 加上_records列表中所有记录的大小
+        for record in self._records:
+            total_size += self._get_record_size(record)
+        return total_size
+    
+    def _save_to_archive_file(self, records: List[HistoryRecord]) -> str:
+        """
+        将记录保存到归档文件
+        
+        Args:
+            records: 要保存的记录列表
+            
+        Returns:
+            str: 归档文件路径
+        """
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        archive_file = Path(self._archive_dir) / f'history_archive_{timestamp}.json.gz'
+        
+        data = [r.to_dict() for r in records]
+        
+        # 使用gzip压缩保存
+        with gzip.open(archive_file, 'wt', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # 更新归档文件列表
+        self._archive_files.append(str(archive_file))
+        
+        # 清理超过30天的归档文件
+        self._cleanup_archive_files()
+        
+        return str(archive_file)
+    
+    def _cleanup_archive_files(self, days: int = 30) -> int:
+        """清理过期的归档文件"""
+        from datetime import timedelta
+        
+        cutoff_time = datetime.now() - timedelta(days=days)
+        deleted_count = 0
+        
+        for archive_file in self._archive_files[:]:
+            try:
+                file_path = Path(archive_file)
+                if file_path.exists():
+                    # 获取文件修改时间
+                    mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    if mtime < cutoff_time:
+                        file_path.unlink()
+                        self._archive_files.remove(archive_file)
+                        deleted_count += 1
+            except Exception:
+                pass
+        
+        return deleted_count
+    
+    def _load_from_archive_file(self, archive_file: str) -> List[HistoryRecord]:
+        """
+        从归档文件加载记录
+        
+        Args:
+            archive_file: 归档文件路径
+            
+        Returns:
+            List[HistoryRecord]: 记录列表
+        """
+        try:
+            with gzip.open(archive_file, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+                return [HistoryRecord.from_dict(item) for item in data]
+        except Exception as e:
+            print(f"加载归档文件失败: {e}")
+            return []
+    
+    def _check_and_archive_if_needed(self) -> Optional[str]:
+        """
+        检查内存使用量，超过限制则保存到归档文件
+        
+        Returns:
+            str: 归档文件路径，如果没有触发归档则返回None
+        """
+        current_usage = self._get_memory_usage()
+        
+        if current_usage >= self._memory_limit and self._records:
+            # 保存当前内存中的所有记录到归档文件
+            archive_file = self._save_to_archive_file(self._records)
+            
+            # 清空内存记录
+            self._records.clear()
+            self._current_memory_size = 0
+            
+            print(f"历史记录已自动归档到: {archive_file}")
+            print(f"归档记录数: {len(self._records) if not archive_file else '已清空'}")
+            
+            return archive_file
+        
+        return None
     
     def log_operation(
         self,
@@ -133,7 +268,13 @@ class OperationHistory:
         else:
             # 保存到内存
             record.id = len(self._records) + 1
+            
+            # 更新内存使用量
+            self._current_memory_size += self._get_record_size(record)
             self._records.append(record)
+            
+            # 检查是否需要归档
+            self._check_and_archive_if_needed()
         
         return record
     
@@ -304,6 +445,35 @@ class OperationHistory:
             'total_pages': (total + page_size - 1) // page_size
         }
     
+    def get_all_records(self) -> List[HistoryRecord]:
+        """获取所有记录（包含归档文件）"""
+        all_records = self._records.copy()
+        
+        # 从归档文件加载记录
+        for archive_file in self._archive_files:
+            if Path(archive_file).exists():
+                archived_records = self._load_from_archive_file(archive_file)
+                all_records.extend(archived_records)
+        
+        # 按时间排序
+        all_records.sort(key=lambda x: x.timestamp, reverse=True)
+        return all_records
+    
+    def get_memory_status(self) -> Dict[str, Any]:
+        """获取内存使用状态"""
+        memory_usage = self._get_memory_usage()
+        
+        return {
+            'current_records': len(self._records),
+            'memory_usage_bytes': memory_usage,
+            'memory_usage_kb': memory_usage / 1024,
+            'memory_limit_bytes': self._memory_limit,
+            'memory_limit_kb': self._memory_limit / 1024,
+            'usage_percent': (memory_usage / self._memory_limit) * 100 if self._memory_limit > 0 else 0,
+            'archive_files': len(self._archive_files),
+            'archive_dir': self._archive_dir
+        }
+    
     def get_target_history(
         self, 
         target_type: str, 
@@ -417,6 +587,9 @@ class OperationHistory:
             old_count = len(self._records)
             self._records = [r for r in self._records if r.timestamp >= cutoff_date]
             deleted_count = old_count - len(self._records)
+            
+            # 清理归档文件
+            deleted_count += self._cleanup_archive_files(days)
         
         return deleted_count
     
@@ -468,7 +641,8 @@ class OperationHistory:
             'total_count': len(self._records),
             'by_module': {},
             'by_action': {},
-            'recent_days': {}
+            'recent_days': {},
+            'memory_status': self.get_memory_status()
         }
         
         for r in self._records:
