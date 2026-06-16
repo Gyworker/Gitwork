@@ -1,0 +1,347 @@
+{
+  "test_version": "V2.1",
+  "timestamp": "2026-06-16T15:41:00",
+  "project": "市场咨询任务跟踪工具",
+  "test_summary": {
+    "total_test_cases": 49,
+    "unit_tests": 49,
+    "system_tests": 13,
+    "integration_tests": 4,
+    "target_coverage": 85
+  },
+  "modules": {
+    "excel_import": {
+      "test_file": "src/tests/test_excel_import.py",
+      "test_count": 17,
+      "test_cases": [
+        {
+          "id": "UT-EXCEL-01",
+          "name": "test_find_header_mapping_standard",
+          "status": "ready",
+          "validation": "验证标准中文表头正确映射到字段"
+        },
+        {
+          "id": "UT-EXCEL-02",
+          "name": "test_find_header_mapping_english",
+          "status": "ready",
+          "validation": "验证英文表头(name/phone/email)正确映射"
+        },
+        {
+          "id": "UT-EXCEL-03",
+          "name": "test_find_header_mapping_mixed",
+          "status": "ready",
+          "validation": "验证混合表头(中英文混合)正确匹配"
+        },
+        {
+          "id": "UT-EXCEL-04",
+          "name": "test_find_header_mapping_partial",
+          "status": "ready",
+          "validation": "验证部分表头时仅识别存在的字段"
+        },
+        {
+          "id": "UT-EXCEL-05",
+          "name": "test_find_header_mapping_empty",
+          "status": "ready",
+          "validation": "验证空表头返回空字典"
+        },
+        {
+          "id": "UT-EXCEL-06",
+          "name": "test_create_contact",
+          "status": "ready",
+          "validation": "验证ExcelContact dataclass正确创建"
+        },
+        {
+          "id": "UT-EXCEL-07",
+          "name": "test_to_dict",
+          "status": "ready",
+          "validation": "验证asdict()方法正确转换"
+        },
+        {
+          "id": "UT-EXCEL-08",
+          "name": "test_from_dict",
+          "status": "ready",
+          "validation": "验证from_dict()类方法正确还原"
+        },
+        {
+          "id": "UT-EXCEL-09",
+          "name": "test_import_from_file_success",
+          "status": "ready",
+          "validation": "验证成功导入3条记录"
+        },
+        {
+          "id": "UT-EXCEL-10",
+          "name": "test_import_from_file_empty",
+          "status": "ready",
+          "validation": "验证空文件导入处理"
+        },
+        {
+          "id": "UT-EXCEL-11",
+          "name": "test_import_duplicate_detection",
+          "status": "ready",
+          "validation": "验证重复数据检测正确"
+        },
+        {
+          "id": "UT-EXCEL-12",
+          "name": "test_save_to_database",
+          "status": "ready",
+          "validation": "验证数据库保存方法调用"
+        },
+        {
+          "id": "UT-EXCEL-13",
+          "name": "test_save_to_excel",
+          "status": "ready",
+          "validation": "验证Excel文件生成"
+        },
+        {
+          "id": "UT-EXCEL-14",
+          "name": "test_import_unsupported_format",
+          "status": "ready",
+          "validation": "验证不支持格式检测"
+        },
+        {
+          "id": "UT-EXCEL-15",
+          "name": "test_export_all",
+          "status": "ready",
+          "validation": "验证导出全部联系人"
+        },
+        {
+          "id": "UT-EXCEL-16",
+          "name": "test_export_filtered",
+          "status": "ready",
+          "validation": "验证筛选条件导出"
+        },
+        {
+          "id": "UT-EXCEL-17",
+          "name": "test_create_template",
+          "status": "ready",
+          "validation": "验证导入模板创建"
+        }
+      ]
+    },
+    "ocr_handler": {
+      "test_file": "src/tests/test_ocr_handler.py",
+      "test_count": 20,
+      "test_cases": [
+        {
+          "id": "UT-OCR-01",
+          "name": "test_create_result",
+          "status": "ready",
+          "validation": "验证OCRResult dataclass正确创建"
+        },
+        {
+          "id": "UT-OCR-02",
+          "name": "test_to_dict",
+          "status": "ready",
+          "validation": "验证结果字典转换"
+        },
+        {
+          "id": "UT-OCR-03",
+          "name": "test_from_dict",
+          "status": "ready",
+          "validation": "验证字典反解析"
+        },
+        {
+          "id": "UT-OCR-04",
+          "name": "test_preprocess_returns_image",
+          "status": "ready",
+          "validation": "验证图像预处理返回PIL.Image"
+        },
+        {
+          "id": "UT-OCR-05",
+          "name": "test_get_supported_formats",
+          "status": "ready",
+          "validation": "验证支持格式列表"
+        },
+        {
+          "id": "UT-OCR-06",
+          "name": "test_is_supported_format",
+          "status": "ready",
+          "validation": "验证格式判断逻辑"
+        },
+        {
+          "id": "UT-OCR-07",
+          "name": "test_parse_chinese_card",
+          "status": "ready",
+          "validation": "验证中文名片解析:张三/13800138000/test@example.com"
+        },
+        {
+          "id": "UT-OCR-08",
+          "name": "test_parse_phone_patterns",
+          "status": "ready",
+          "validation": "验证电话号码正则匹配"
+        },
+        {
+          "id": "UT-OCR-09",
+          "name": "test_parse_email",
+          "status": "ready",
+          "validation": "验证邮箱正则匹配"
+        },
+        {
+          "id": "UT-OCR-10",
+          "name": "test_parse_company",
+          "status": "ready",
+          "validation": "验证公司名称提取"
+        },
+        {
+          "id": "UT-OCR-11",
+          "name": "test_parse_empty_text",
+          "status": "ready",
+          "validation": "验证空文本处理"
+        },
+        {
+          "id": "UT-OCR-12",
+          "name": "test_clean_phone",
+          "status": "ready",
+          "validation": "验证电话标准化"
+        },
+        {
+          "id": "UT-OCR-13",
+          "name": "test_extract_name_from_email",
+          "status": "ready",
+          "validation": "验证从邮箱提取姓名"
+        },
+        {
+          "id": "UT-OCR-14",
+          "name": "test_extract_name_with_prefix",
+          "status": "ready",
+          "validation": "验证邮箱前缀移除"
+        },
+        {
+          "id": "UT-OCR-15",
+          "name": "test_init_default",
+          "status": "ready",
+          "validation": "验证默认初始化"
+        },
+        {
+          "id": "UT-OCR-16",
+          "name": "test_init_custom_tesseract_path",
+          "status": "ready",
+          "validation": "验证自定义Tesseract路径"
+        },
+        {
+          "id": "UT-OCR-17",
+          "name": "test_recognize_image_mock",
+          "status": "ready",
+          "validation": "验证图像识别模拟"
+        },
+        {
+          "id": "UT-OCR-18",
+          "name": "test_recognize_batch_empty",
+          "status": "ready",
+          "validation": "验证批量识别空列表"
+        },
+        {
+          "id": "UT-OCR-19",
+          "name": "test_recognize_batch_multiple",
+          "status": "ready",
+          "validation": "验证批量识别多图"
+        },
+        {
+          "id": "UT-OCR-20",
+          "name": "test_ocr_processor_can_be_instantiated",
+          "status": "ready",
+          "validation": "验证处理器实例化"
+        }
+      ]
+    },
+    "enhanced_mapping": {
+      "test_file": "src/tests/test_enhanced_mapping.py",
+      "test_count": 12,
+      "test_cases": [
+        {
+          "id": "UT-MAP-01",
+          "name": "test_create_rule",
+          "status": "ready",
+          "validation": "验证MappingRule dataclass正确创建"
+        },
+        {
+          "id": "UT-MAP-02",
+          "name": "test_to_dict",
+          "status": "ready",
+          "validation": "验证规则字典转换"
+        },
+        {
+          "id": "UT-MAP-03",
+          "name": "test_from_dict",
+          "status": "ready",
+          "validation": "验证字典反解析"
+        },
+        {
+          "id": "UT-MAP-04",
+          "name": "test_init",
+          "status": "ready",
+          "validation": "验证学习器初始化"
+        },
+        {
+          "id": "UT-MAP-05",
+          "name": "test_learn_from_excel",
+          "status": "ready",
+          "validation": "验证从Excel文件学习"
+        },
+        {
+          "id": "UT-MAP-06",
+          "name": "test_learn_from_text",
+          "status": "ready",
+          "validation": "验证从文本学习"
+        },
+        {
+          "id": "UT-MAP-07",
+          "name": "test_learn_from_history",
+          "status": "ready",
+          "validation": "验证从历史数据学习"
+        },
+        {
+          "id": "UT-MAP-08",
+          "name": "test_recommend_exact_match",
+          "status": "ready",
+          "validation": "验证精确匹配推荐"
+        },
+        {
+          "id": "UT-MAP-09",
+          "name": "test_recommend_no_match",
+          "status": "ready",
+          "validation": "验证无匹配返回"
+        },
+        {
+          "id": "UT-MAP-10",
+          "name": "test_export_to_excel",
+          "status": "ready",
+          "validation": "验证导出到Excel"
+        },
+        {
+          "id": "UT-MAP-11",
+          "name": "test_delete_rule",
+          "status": "ready",
+          "validation": "验证规则删除"
+        },
+        {
+          "id": "UT-MAP-12",
+          "name": "test_extract_keywords",
+          "status": "ready",
+          "validation": "验证关键词提取"
+        }
+      ]
+    }
+  },
+  "execution_instructions": {
+    "prerequisites": [
+      "Python 3.8+ installed",
+      "Dependencies: pip install pytest pytest-cov pandas openpyxl Pillow pytesseract",
+      "Tesseract OCR installed"
+    ],
+    "commands": [
+      "cd D:\\GITwork",
+      "python -m pytest src/tests/test_excel_import.py -v",
+      "python -m pytest src/tests/test_ocr_handler.py -v",
+      "python -m pytest src/tests/test_enhanced_mapping.py -v",
+      "python -m pytest src/tests/ -v --cov=src --cov-report=html"
+    ],
+    "expected_results": {
+      "excel_import": "17/17 passed",
+      "ocr_handler": "20/20 passed",
+      "enhanced_mapping": "12/12 passed",
+      "total": "49/49 passed (100%)"
+    }
+  },
+  "validation_status": "pending_local_execution"
+}
