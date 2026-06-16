@@ -1,6 +1,6 @@
 """
 核心业务模块
-包含：数据导入导出、统计分析、推荐服务、性能优化、用户体验等
+包含：数据导入导出、统计分析、推荐服务、性能优化、用户体验、验收测试等
 """
 
 from .data_export import (
@@ -26,6 +26,11 @@ from .usability import (
     StatusBarManager,
     ProgressManager,
 )
+from .acceptance import (
+    AcceptanceTestRunner,
+    AcceptanceCriteria,
+    AcceptanceReport,
+)
 
 __all__ = [
     # 数据导入导出
@@ -50,4 +55,8 @@ __all__ = [
     'NotificationManager',
     'StatusBarManager',
     'ProgressManager',
+    # 验收测试
+    'AcceptanceTestRunner',
+    'AcceptanceCriteria',
+    'AcceptanceReport',
 ]
