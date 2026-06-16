@@ -1,251 +1,301 @@
-# -*- coding: utf-8 -*-
 """
-数据库模块单元测试
-Database Module Unit Tests
+数据库模块测试
+测试数据库连接、CRUD操作、事务处理等
 """
 
 import pytest
-import tempfile
-import os
+import sqlite3
+import threading
+import time
 from pathlib import Path
-from datetime import datetime
+from contextlib import contextmanager
 
-# 设置项目根目录
-# 方法1：使用相对路径（推荐用于包内导入）
-import sys
-project_root = str(Path(__file__).parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-# 方法2：直接导入src包（需要src目录下有__init__.py）
-# 这确保了无论从哪个目录运行测试，都能正确导入模块
-os.chdir(project_root)  # 切换到项目根目录
-
-from src.database.connection import DatabaseConnection
-from src.database.models import Task, init_database
+from src.database.connection import DatabaseManager
+from src.database.models import Task, Contact, Recommendation
 
 
-class TestDatabaseConnection:
-    """数据库连接测试类"""
-
-    def setup_method(self):
-        """测试前设置"""
-        # 创建临时数据库
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_db = os.path.join(self.temp_dir, "test.db")
-
-        # 创建一个独立的数据库连接实例进行测试
-        self.db = DatabaseConnection()
-        # 使用临时数据库
-        self.db._connection = None
-        self.db._config._config["database"]["path"] = self.temp_db
-
-    def teardown_method(self):
-        """测试后清理"""
-        if self.db._connection:
-            self.db.disconnect()
-        # 清理临时文件
-        if os.path.exists(self.temp_db):
-            os.remove(self.temp_db)
-        os.rmdir(self.temp_dir)
-
-    def test_singleton_pattern(self):
-        """测试单例模式"""
-        db1 = DatabaseConnection()
-        db2 = DatabaseConnection()
-        assert db1 is db2
-
-    def test_connect(self):
+class TestDatabase:
+    """数据库测试类"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self, temp_db):
+        """设置测试环境"""
+        self.db_path = temp_db
+        self.db = DatabaseManager(self.db_path)
+        self.conn = self.db.get_connection()
+        yield
+        self.db.close()
+    
+    def test_connection(self):
         """测试数据库连接"""
-        conn = self.db.connect()
-        assert conn is not None
-
-    def test_execute_query(self):
-        """测试执行查询"""
-        self.db.connect()
-        cursor = self.db.execute("SELECT 1 as test")
+        assert self.conn is not None
+        assert isinstance(self.conn, sqlite3.Connection)
+        
+        # 测试连接是否正常
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT 1")
         result = cursor.fetchone()
         assert result[0] == 1
-
-    def test_insert_and_fetch(self):
-        """测试插入和查询"""
-        self.db.connect()
-        self.db.execute(
-            "CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)",
-            commit=True,
-        )
-
-        # 插入数据
-        self.db.execute(
-            "INSERT INTO test_table (name) VALUES (?)",
-            ("test_name",),
-            commit=True,
-        )
-
-        # 查询数据
-        result = self.db.fetchone("SELECT * FROM test_table WHERE name = ?", ("test_name",))
-        assert result is not None
-        assert result[1] == "test_name"
-
-    def test_fetchall(self):
-        """测试查询所有"""
-        self.db.connect()
-        self.db.execute(
-            "CREATE TABLE test_table2 (id INTEGER PRIMARY KEY, value INTEGER)",
-            commit=True,
-        )
-
-        # 插入多条数据
-        for i in range(5):
-            self.db.execute(
-                "INSERT INTO test_table2 (value) VALUES (?)",
-                (i,),
-                commit=True,
-            )
-
-        results = self.db.fetchall("SELECT * FROM test_table2")
-        assert len(results) == 5
-
-    def test_table_exists(self):
-        """测试表是否存在"""
-        self.db.connect()
-        self.db.execute(
-            "CREATE TABLE existing_table (id INTEGER PRIMARY KEY)",
-            commit=True,
-        )
-
-        assert self.db.table_exists("existing_table") is True
-        assert self.db.table_exists("nonexistent_table") is False
-
-    def test_get_tables(self):
-        """测试获取所有表"""
-        self.db.connect()
-        self.db.execute(
-            "CREATE TABLE table1 (id INTEGER PRIMARY KEY)",
-            commit=True,
-        )
-        self.db.execute(
-            "CREATE TABLE table2 (id INTEGER PRIMARY KEY)",
-            commit=True,
-        )
-
-        tables = self.db.get_tables()
-        assert "table1" in tables
-        assert "table2" in tables
-
-
-class TestTaskModel:
-    """任务模型测试类"""
-
-    def setup_method(self):
-        """测试前设置"""
-        # 创建临时数据库
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_db = os.path.join(self.temp_dir, "test.db")
-
-        # 重置数据库连接
-        DatabaseConnection._instance = None
-        self.db = DatabaseConnection()
-        self.db._connection = None
-        self.db._config._config["database"]["path"] = self.temp_db
-
-        # 初始化数据库
-        init_database()
-
-    def teardown_method(self):
-        """测试后清理"""
-        if self.db._connection:
-            self.db.disconnect()
-        # 清理临时文件
-        if os.path.exists(self.temp_db):
-            os.remove(self.temp_db)
-        os.rmdir(self.temp_dir)
-
-    def test_task_creation(self):
-        """测试任务创建"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-            task_content="测试内容",
-        )
-        assert task.task_id is not None
-        assert task.task_name == "测试任务"
-        assert task.status == "进行中"
-        assert task.urgency == "中"
-
-    def test_task_save(self):
-        """测试任务保存"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-            task_content="测试内容",
-        )
-        assert task.save() is True
-
-    def test_task_get_by_id(self):
-        """测试根据ID获取任务"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-            task_content="测试内容",
-        )
-        task.save()
-
-        retrieved_task = Task.get_by_id(task.task_id)
-        assert retrieved_task is not None
-        assert retrieved_task.task_name == "测试任务"
-        assert retrieved_task.inquirer == "张三"
-
-    def test_task_update(self):
-        """测试任务更新"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-        )
-        task.save()
-
-        task.task_name = "更新后的任务"
-        task.save()
-
-        updated_task = Task.get_by_id(task.task_id)
-        assert updated_task.task_name == "更新后的任务"
-
-    def test_task_delete(self):
-        """测试任务删除"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-        )
-        task.save()
-
-        assert task.delete() is True
-
-        deleted_task = Task.get_by_id(task.task_id)
+    
+    def test_task_crud(self, sample_task_data):
+        """测试任务CRUD操作"""
+        # Create - 创建任务
+        task_id = self.db.tasks.create(**sample_task_data)
+        assert task_id is not None
+        assert task_id > 0
+        
+        # Read - 读取任务
+        task = self.db.tasks.get_by_id(task_id)
+        assert task is not None
+        assert task.title == sample_task_data["title"]
+        assert task.description == sample_task_data["description"]
+        
+        # Update - 更新任务
+        new_title = "更新后的任务"
+        self.db.tasks.update(task_id, title=new_title)
+        updated_task = self.db.tasks.get_by_id(task_id)
+        assert updated_task.title == new_title
+        
+        # Delete - 删除任务
+        self.db.tasks.delete(task_id)
+        deleted_task = self.db.tasks.get_by_id(task_id)
         assert deleted_task is None
-
-    def test_task_search(self):
-        """测试任务搜索"""
-        task1 = Task(task_name="市场咨询任务", inquirer="张三")
-        task2 = Task(task_name="技术支持任务", inquirer="李四")
-        task1.save()
-        task2.save()
-
-        results = Task.search("市场")
+    
+    def test_task_list(self, sample_task_data):
+        """测试任务列表"""
+        # 创建多个任务
+        for i in range(5):
+            data = sample_task_data.copy()
+            data["title"] = f"任务{i}"
+            self.db.tasks.create(**data)
+        
+        # 获取列表
+        tasks = self.db.tasks.list_all()
+        assert len(tasks) >= 5
+        
+        # 测试分页
+        tasks_page = self.db.tasks.list_all(page=1, page_size=2)
+        assert len(tasks_page) <= 2
+    
+    def test_task_filter(self, sample_task_data):
+        """测试任务筛选"""
+        # 创建不同状态的任务
+        statuses = ["pending", "in_progress", "completed"]
+        for status in statuses:
+            data = sample_task_data.copy()
+            data["status"] = status
+            self.db.tasks.create(**data)
+        
+        # 按状态筛选
+        pending_tasks = self.db.tasks.filter(status="pending")
+        assert all(t.status == "pending" for t in pending_tasks)
+        
+        # 按重要性筛选
+        high_tasks = self.db.tasks.filter(importance="high")
+        assert all(t.importance == "high" for t in high_tasks)
+    
+    def test_contact_crud(self, sample_contact_data):
+        """测试联系人CRUD操作"""
+        # Create
+        contact_id = self.db.contacts.create(**sample_contact_data)
+        assert contact_id is not None
+        
+        # Read
+        contact = self.db.contacts.get_by_id(contact_id)
+        assert contact.name == sample_contact_data["name"]
+        
+        # Update
+        self.db.contacts.update(contact_id, name="新姓名")
+        updated = self.db.contacts.get_by_id(contact_id)
+        assert updated.name == "新姓名"
+        
+        # Delete
+        self.db.contacts.delete(contact_id)
+        deleted = self.db.contacts.get_by_id(contact_id)
+        assert deleted is None
+    
+    def test_contact_search(self, sample_contact_data):
+        """测试联系人搜索"""
+        # 创建联系人
+        self.db.contacts.create(**sample_contact_data)
+        
+        # 按姓名搜索
+        results = self.db.contacts.search("测试")
         assert len(results) >= 1
-        assert any(t.task_name == "市场咨询任务" for t in results)
+    
+    def test_recommendation_crud(self, sample_recommendation_data):
+        """测试推荐库CRUD操作"""
+        # Create
+        rec_id = self.db.recommendations.create(**sample_recommendation_data)
+        assert rec_id is not None
+        
+        # Read
+        rec = self.db.recommendations.get_by_id(rec_id)
+        assert rec.keyword == sample_recommendation_data["keyword"]
+        
+        # Update
+        self.db.recommendations.update(rec_id, keyword="新关键词")
+        updated = self.db.recommendations.get_by_id(rec_id)
+        assert updated.keyword == "新关键词"
+        
+        # Delete
+        self.db.recommendations.delete(rec_id)
+        deleted = self.db.recommendations.get_by_id(rec_id)
+        assert deleted is None
+    
+    def test_recommendation_match(self, sample_recommendation_data):
+        """测试推荐匹配"""
+        # 创建推荐
+        self.db.recommendations.create(**sample_recommendation_data)
+        
+        # 匹配关键词
+        matches = self.db.recommendations.match("数据分析")
+        assert len(matches) >= 1
+    
+    def test_transaction(self, sample_task_data):
+        """测试事务处理"""
+        # 开始事务
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("BEGIN TRANSACTION")
+            
+            # 创建任务
+            task_id = self.db.tasks.create(**sample_task_data)
+            
+            # 人为制造错误
+            raise ValueError("Test error")
+            
+            cursor.execute("COMMIT")
+        except ValueError:
+            cursor.execute("ROLLBACK")
+        
+        # 验证回滚
+        task = self.db.tasks.get_by_id(task_id)
+        assert task is None
+    
+    def test_concurrent_access(self, sample_task_data):
+        """测试并发访问"""
+        errors = []
+        
+        def worker():
+            try:
+                db = DatabaseManager(self.db_path)
+                task_id = db.tasks.create(**sample_task_data)
+                task = db.tasks.get_by_id(task_id)
+                assert task is not None
+                db.close()
+            except Exception as e:
+                errors.append(str(e))
+        
+        # 创建多个线程
+        threads = []
+        for _ in range(5):
+            t = threading.Thread(target=worker)
+            threads.append(t)
+            t.start()
+        
+        # 等待所有线程完成
+        for t in threads:
+            t.join()
+        
+        # 验证没有错误
+        assert len(errors) == 0
+    
+    def test_performance_bulk_insert(self, sample_task_data):
+        """测试批量插入性能"""
+        import time
+        
+        start_time = time.time()
+        
+        # 批量插入
+        for i in range(100):
+            data = sample_task_data.copy()
+            data["title"] = f"批量任务{i}"
+            self.db.tasks.create(**data)
+        
+        duration = time.time() - start_time
+        
+        # 验证性能 - 100条记录应在合理时间内完成
+        assert duration < 5.0  # 5秒内完成
+    
+    def test_task_relationships(self, sample_task_data):
+        """测试任务关联"""
+        # 创建任务
+        task_id = self.db.tasks.create(**sample_task_data)
+        
+        # 添加跟踪记录
+        track_data = {
+            "task_id": task_id,
+            "content": "测试跟踪记录",
+            "operator": "测试员",
+        }
+        self.db.tracks.create(**track_data)
+        
+        # 添加提醒
+        reminder_data = {
+            "task_id": task_id,
+            "remind_time": "2026-06-20 10:00:00",
+            "message": "测试提醒",
+        }
+        self.db.reminders.create(**reminder_data)
+        
+        # 验证关联
+        tracks = self.db.tracks.filter(task_id=task_id)
+        assert len(tracks) >= 1
+        
+        reminders = self.db.reminders.filter(task_id=task_id)
+        assert len(reminders) >= 1
 
-    def test_task_to_dict(self):
-        """测试任务转字典"""
-        task = Task(
-            task_name="测试任务",
-            inquirer="张三",
-        )
-        data = task.to_dict()
 
-        assert "task_id" in data
-        assert "task_name" in data
-        assert "inquirer" in data
-        assert data["task_name"] == "测试任务"
+class TestDatabasePerformance:
+    """数据库性能测试"""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self, temp_db):
+        self.db_path = temp_db
+        self.db = DatabaseManager(self.db_path)
+        yield
+        self.db.close()
+    
+    @pytest.mark.slow
+    def test_large_data_query(self, sample_task_data):
+        """测试大数据量查询"""
+        # 插入1000条记录
+        for i in range(1000):
+            data = sample_task_data.copy()
+            data["title"] = f"性能测试任务{i}"
+            self.db.tasks.create(**data)
+        
+        # 测试查询性能
+        import time
+        start = time.time()
+        tasks = self.db.tasks.list_all()
+        duration = time.time() - start
+        
+        assert len(tasks) >= 1000
+        assert duration < 2.0  # 查询应在2秒内完成
+    
+    @pytest.mark.slow
+    def test_index_performance(self):
+        """测试索引性能"""
+        import time
+        
+        # 创建测试数据
+        for i in range(100):
+            self.db.tasks.create(
+                title=f"索引测试{i}",
+                status="pending",
+                importance="high"
+            )
+        
+        # 测试带索引的查询
+        start = time.time()
+        results = self.db.tasks.filter(status="pending")
+        duration = time.time() - start
+        
+        assert duration < 0.5  # 索引查询应很快
 
 
 if __name__ == "__main__":
