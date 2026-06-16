@@ -5,10 +5,23 @@
 name: CI
 
 on:
+  # 自动触发
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: '检查类型'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - syntax
+          - import
 
 jobs:
   check:
