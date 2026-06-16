@@ -12,10 +12,19 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
-from ..config import get_config
-from ..utils.logger import get_logger
+# 延迟导入避免循环依赖
+_logger = None
 
-logger = get_logger(__name__)
+def _get_logger():
+    global _logger
+    if _logger is None:
+        from ..utils.logger import get_logger
+        _logger = get_logger(__name__)
+    return _logger
+
+def _get_config():
+    from ..config import get_config
+    return get_config()
 
 
 class DatabaseConnection:
@@ -32,7 +41,7 @@ class DatabaseConnection:
     def __init__(self) -> None:
         """初始化数据库连接"""
         self._connection: Optional[sqlite3.Connection] = None
-        self._config = get_config()
+        self._config = _get_config()
         self._initialize_database()
 
     def _get_database_path(self) -> str:
@@ -55,7 +64,7 @@ class DatabaseConnection:
         if db_dir:
             Path(db_dir).mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"数据库路径: {db_path}")
+        _get_logger().info(f"数据库路径: {db_path}")
 
     def connect(self) -> sqlite3.Connection:
         """
@@ -73,7 +82,7 @@ class DatabaseConnection:
             self._connection.execute("PRAGMA foreign_keys = ON")
             # 设置超时时间
             self._connection.execute("PRAGMA busy_timeout = 5000")
-            logger.info("数据库连接成功")
+            _get_logger().info("数据库连接成功")
 
         return self._connection
 
@@ -82,7 +91,7 @@ class DatabaseConnection:
         if self._connection is not None:
             self._connection.close()
             self._connection = None
-            logger.info("数据库连接已关闭")
+            _get_logger().info("数据库连接已关闭")
 
     def get_connection(self) -> sqlite3.Connection:
         """获取数据库连接"""
@@ -102,7 +111,7 @@ class DatabaseConnection:
             conn.commit()
         except Exception as e:
             conn.rollback()
-            logger.error(f"事务回滚: {e}")
+            _get_logger().error(f"事务回滚: {e}")
             raise
 
     def execute(
@@ -136,7 +145,7 @@ class DatabaseConnection:
 
             return cursor
         except sqlite3.Error as e:
-            logger.error(f"SQL执行错误: {sql}, 错误: {e}")
+            _get_logger().error(f"SQL执行错误: {sql}, 错误: {e}")
             raise
 
     def executemany(
@@ -167,7 +176,7 @@ class DatabaseConnection:
 
             return cursor
         except sqlite3.Error as e:
-            logger.error(f"批量SQL执行错误: {sql}, 错误: {e}")
+            _get_logger().error(f"批量SQL执行错误: {sql}, 错误: {e}")
             raise
 
     def fetchone(
@@ -341,10 +350,10 @@ class DatabaseConnection:
             backup_conn = sqlite3.connect(backup_path)
             conn.backup(backup_conn)
             backup_conn.close()
-            logger.info(f"数据库备份成功: {backup_path}")
+            _get_logger().info(f"数据库备份成功: {backup_path}")
             return True
         except Exception as e:
-            logger.error(f"数据库备份失败: {e}")
+            _get_logger().error(f"数据库备份失败: {e}")
             return False
 
     def vacuum(self) -> bool:
@@ -356,10 +365,10 @@ class DatabaseConnection:
         """
         try:
             self.execute("VACUUM", commit=True)
-            logger.info("数据库整理完成")
+            _get_logger().info("数据库整理完成")
             return True
         except Exception as e:
-            logger.error(f"数据库整理失败: {e}")
+            _get_logger().error(f"数据库整理失败: {e}")
             return False
 
 

@@ -10,11 +10,15 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..utils.logger import get_logger
-from ..utils.helpers import generate_id, get_current_timestamp
-from .connection import get_db_connection
+# 延迟导入避免循环依赖
+_logger = None
 
-logger = get_logger(__name__)
+def _get_logger():
+    global _logger
+    if _logger is None:
+        from ..utils.logger import get_logger
+        _logger = get_logger(__name__)
+    return _logger
 
 
 class TaskStatus(Enum):
@@ -170,18 +174,18 @@ class Task(BaseModel):
                 values.append(self.task_id)
                 sql = f"UPDATE tasks SET {set_clause} WHERE task_id = ?"
                 self._db.execute(sql, tuple(values), commit=True)
-                logger.info(f"任务更新成功: {self.task_id}")
+                _get_logger().info(f"任务更新成功: {self.task_id}")
             else:
                 # 新增
                 columns = ", ".join(data.keys())
                 placeholders = ", ".join(["?" for _ in data])
                 sql = f"INSERT INTO tasks ({columns}) VALUES ({placeholders})"
                 self._db.execute(sql, tuple(data.values()), commit=True)
-                logger.info(f"任务创建成功: {self.task_id}")
+                _get_logger().info(f"任务创建成功: {self.task_id}")
 
             return True
         except Exception as e:
-            logger.error(f"保存任务失败: {e}")
+            _get_logger().error(f"保存任务失败: {e}")
             return False
 
     def delete(self) -> bool:
@@ -193,10 +197,10 @@ class Task(BaseModel):
         """
         try:
             self._db.delete("tasks", "task_id = ?", (self.task_id,))
-            logger.info(f"任务删除成功: {self.task_id}")
+            _get_logger().info(f"任务删除成功: {self.task_id}")
             return True
         except Exception as e:
-            logger.error(f"删除任务失败: {e}")
+            _get_logger().error(f"删除任务失败: {e}")
             return False
 
     @classmethod
@@ -382,10 +386,10 @@ class TaskTrackRecord(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO task_track_records ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            logger.info(f"跟踪记录创建成功: {self.record_id}")
+            _get_logger().info(f"跟踪记录创建成功: {self.record_id}")
             return True
         except Exception as e:
-            logger.error(f"保存跟踪记录失败: {e}")
+            _get_logger().error(f"保存跟踪记录失败: {e}")
             return False
 
     @classmethod
@@ -449,10 +453,10 @@ class Recommendation(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO recommendations ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            logger.info(f"推荐记录创建成功: {self.rec_id}")
+            _get_logger().info(f"推荐记录创建成功: {self.rec_id}")
             return True
         except Exception as e:
-            logger.error(f"保存推荐记录失败: {e}")
+            _get_logger().error(f"保存推荐记录失败: {e}")
             return False
 
 
@@ -498,10 +502,10 @@ class Reminder(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO reminders ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            logger.info(f"提醒记录创建成功: {self.reminder_id}")
+            _get_logger().info(f"提醒记录创建成功: {self.reminder_id}")
             return True
         except Exception as e:
-            logger.error(f"保存提醒记录失败: {e}")
+            _get_logger().error(f"保存提醒记录失败: {e}")
             return False
 
     def trigger(self) -> bool:
@@ -518,10 +522,10 @@ class Reminder(BaseModel):
 
             sql = f"UPDATE reminders SET {set_clause} WHERE reminder_id = ?"
             self._db.execute(sql, tuple(values), commit=True)
-            logger.info(f"提醒已触发: {self.reminder_id}")
+            _get_logger().info(f"提醒已触发: {self.reminder_id}")
             return True
         except Exception as e:
-            logger.error(f"触发提醒失败: {e}")
+            _get_logger().error(f"触发提醒失败: {e}")
             return False
 
 
@@ -654,5 +658,5 @@ def init_database() -> bool:
         commit=True,
     )
 
-    logger.info("数据库表结构初始化完成")
+    _get_logger().info("数据库表结构初始化完成")
     return True
