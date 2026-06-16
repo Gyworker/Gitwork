@@ -493,15 +493,17 @@ class OperationHistory:
         self, 
         format: str = 'json',
         path: str = None,
-        filters: Dict = None
+        filters: Dict = None,
+        include_archives: bool = False
     ) -> str:
         """
         导出历史记录
         
         Args:
-            format: 导出格式 (json/csv)
+            format: 导出格式 (json/csv/gzip)
             path: 保存路径
             filters: 筛选条件
+            include_archives: 是否包含归档文件中的记录
             
         Returns:
             str: 导出文件路径
@@ -509,15 +511,102 @@ class OperationHistory:
         if filters is None:
             filters = {}
         
-        result = self.query_history(**filters, page=1, page_size=100000)
-        records = result['data']
+        # 获取记录（包含归档或不包含）
+        if include_archives and not self.db:
+            records = self.get_all_records()
+            # 应用筛选条件
+            records = self._filter_records(records, filters)
+        else:
+            result = self.query_history(**filters, page=1, page_size=100000)
+            records = result['data']
         
         if format == 'json':
             return self._export_json(records, path)
         elif format == 'csv':
             return self._export_csv(records, path)
+        elif format == 'gzip':
+            return self._export_gzip(records, path)
         else:
             raise ValueError(f"不支持的导出格式: {format}")
+    
+    def _filter_records(
+        self,
+        records: List[HistoryRecord],
+        filters: Dict
+    ) -> List[HistoryRecord]:
+        """根据筛选条件过滤记录"""
+        filtered = records.copy()
+        
+        module = filters.get('module')
+        action = filters.get('action')
+        start_time = filters.get('start_time')
+        end_time = filters.get('end_time')
+        keyword = filters.get('keyword')
+        
+        if module:
+            filtered = [r for r in filtered if r.module == module]
+        if action:
+            filtered = [r for r in filtered if r.action == action]
+        if start_time:
+            filtered = [r for r in filtered if r.timestamp >= start_time]
+        if end_time:
+            filtered = [r for r in filtered if r.timestamp <= end_time]
+        if keyword:
+            filtered = [r for r in filtered 
+                       if keyword.lower() in (r.target_name or '').lower()
+                       or keyword.lower() in r.module.lower()]
+        
+        return filtered
+    
+    def export_archive_files(
+        self,
+        output_dir: str = None,
+        combine: bool = True
+    ) -> List[str]:
+        """
+        导出所有归档文件
+        
+        Args:
+            output_dir: 输出目录，默认使用归档目录
+            combine: 是否合并为一个文件
+            
+        Returns:
+            List[str]: 导出的文件路径列表
+        """
+        if not self._archive_files:
+            return []
+        
+        output_dir = output_dir or self._archive_dir
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        
+        if combine:
+            # 合并所有归档文件
+            all_records = []
+            for archive_file in self._archive_files:
+                if Path(archive_file).exists():
+                    archived_records = self._load_from_archive_file(archive_file)
+                    all_records.extend(archived_records)
+            
+            # 按时间排序
+            all_records.sort(key=lambda x: x.timestamp, reverse=True)
+            
+            # 导出为单个gzip文件
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_file = Path(output_dir) / f'export_all_{timestamp}.json.gz'
+            
+            self._export_gzip(all_records, str(output_file))
+            return [str(output_file)]
+        else:
+            # 分别导出每个归档文件
+            exported_files = []
+            for archive_file in self._archive_files:
+                if Path(archive_file).exists():
+                    # 复制到输出目录
+                    import shutil
+                    dest_file = Path(output_dir) / Path(archive_file).name
+                    shutil.copy2(archive_file, dest_file)
+                    exported_files.append(str(dest_file))
+            return exported_files
     
     def _export_json(self, records: List[HistoryRecord], path: str) -> str:
         """导出为JSON"""
@@ -555,6 +644,33 @@ class OperationHistory:
                     r.user, r.module, r.action,
                     r.target_type or '', r.target_id or '', r.target_name or ''
                 ])
+        
+        return path
+    
+    def _export_gzip(self, records: List[HistoryRecord], path: str) -> str:
+        """
+        导出为gzip压缩的JSON文件
+        
+        Args:
+            records: 记录列表
+            path: 保存路径
+            
+        Returns:
+            str: 导出文件路径
+        """
+        if path is None:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            path = f'operation_history_{timestamp}.json.gz'
+        
+        # 确保文件扩展名为.json.gz
+        if not path.endswith('.json.gz'):
+            path = path + '.json.gz'
+        
+        data = [r.to_dict() for r in records]
+        
+        # 使用gzip压缩保存
+        with gzip.open(path, 'wt', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
         
         return path
     

@@ -5,6 +5,8 @@
 
 import os
 import sys
+import json
+import gzip
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, MagicMock
@@ -294,6 +296,89 @@ class TestOperationHistoryMemoryLimit:
         
         # 内存记录应该被清空或减少
         assert len(history._records) < 20 or len(archive_files) > 0
+    
+    def test_export_history_gzip(self, tmp_path):
+        """测试导出为gzip格式"""
+        history = OperationHistory()
+        
+        # 添加记录
+        history.log_operation(
+            module='task',
+            action='CREATE',
+            target_name='测试任务'
+        )
+        
+        # 导出为gzip
+        export_file = tmp_path / 'export.json.gz'
+        result_path = history.export_history(
+            format='gzip',
+            path=str(export_file)
+        )
+        
+        assert export_file.exists()
+        assert result_path.endswith('.json.gz')
+        
+        # 验证gzip文件内容
+        import gzip
+        with gzip.open(export_file, 'rt', encoding='utf-8') as f:
+            data = json.load(f)
+            assert len(data) == 1
+            assert data[0]['module'] == 'task'
+    
+    def test_export_with_archives(self, tmp_path):
+        """测试导出时包含归档文件"""
+        history = OperationHistory(
+            memory_limit_kb=1,
+            archive_dir=str(tmp_path / 'archive')
+        )
+        
+        # 触发归档
+        for i in range(15):
+            history.log_operation(
+                module='task',
+                action='CREATE',
+                target_name=f'任务{i}' * 50
+            )
+        
+        # 导出时包含归档
+        export_file = tmp_path / 'export_all.json.gz'
+        result_path = history.export_history(
+            format='gzip',
+            path=str(export_file),
+            include_archives=True
+        )
+        
+        assert export_file.exists()
+    
+    def test_export_archive_files(self, tmp_path):
+        """测试导出归档文件"""
+        history = OperationHistory(
+            memory_limit_kb=1,
+            archive_dir=str(tmp_path / 'archive')
+        )
+        
+        # 触发归档
+        for i in range(15):
+            history.log_operation(
+                module='task',
+                action='CREATE',
+                target_name=f'任务{i}' * 50
+            )
+        
+        # 导出所有归档文件
+        exported = history.export_archive_files(
+            output_dir=str(tmp_path / 'export'),
+            combine=True
+        )
+        
+        assert len(exported) > 0
+        assert exported[0].endswith('.json.gz')
+        
+        # 验证导出文件
+        import gzip
+        with gzip.open(exported[0], 'rt', encoding='utf-8') as f:
+            data = json.load(f)
+            assert len(data) > 0
 
 
 class TestBatchOperationRecorder:
