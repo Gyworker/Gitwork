@@ -2,21 +2,28 @@
 """
 Excel导入模块
 支持从Excel文件导入通讯录数据
+版本：V2.1 (优化版)
 """
 
 import os
 import re
 import json
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Callable
 from dataclasses import dataclass, asdict
 import pandas as pd
 import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill
-from openpyxl.utils import get_column_letter
 
 # 导入项目模块
 from src.database.contacts import ContactsDB
+from src.utils.excel_utils import (
+    create_excel_header,
+    auto_adjust_column_width,
+    write_data_rows,
+    create_template,
+    create_header_style,
+    apply_style_to_cell,
+)
 
 
 @dataclass
@@ -77,7 +84,7 @@ class ExcelHeaderMapper:
 
 
 class ExcelImporter:
-    """Excel导入器"""
+    """Excel导入器 - 优化版"""
 
     def __init__(self, db: ContactsDB):
         self.db = db
@@ -87,13 +94,15 @@ class ExcelImporter:
 
     def import_from_file(self, file_path: str,
                         sheet_name: Optional[str] = None,
-                        header_row: int = 1) -> Dict:
+                        header_row: int = 1,
+                        progress_callback: Optional[Callable[[int, int], None]] = None) -> Dict:
         """从Excel文件导入通讯录
 
         Args:
             file_path: Excel文件路径
             sheet_name: 工作表名称，None则读取第一个
             header_row: 表头所在行号
+            progress_callback: 进度回调函数，参数为 (current, total)
 
         Returns:
             导入结果字典
@@ -118,6 +127,8 @@ class ExcelImporter:
             else:
                 raise ValueError(f"不支持的文件格式: {file_path}")
 
+            total_rows = len(df)
+
             # 获取表头映射
             headers = df.columns.tolist()
             header_map = ExcelHeaderMapper.find_header_mapping(headers)
@@ -137,21 +148,14 @@ class ExcelImporter:
                 except Exception as e:
                     result['errors'].append(f"第{idx+2}行解析错误: {str(e)}")
 
-            # 检测重复
-            unique_records = []
-            existing_contacts = self.db.get_all_contacts()
-            existing_keys = set(
-                f"{c.get('name', '')}|{c.get('phone', '')}"
-                for c in existing_contacts
-            )
+                # 调用进度回调
+                if progress_callback:
+                    progress_callback(idx + 1, total_rows)
 
-            for record in result['records']:
-                key = f"{record.姓名}|{record.电话}"
-                if key not in existing_keys:
-                    unique_records.append(record)
-                    result['added'] += 1
-                else:
-                    result['duplicate'] += 1
+            # 检测重复
+            unique_records = self._detect_duplicates(result['records'])
+            result['added'] = len(unique_records)
+            result['duplicate'] = result['total'] - result['added']
 
             # 保存导入记录
             self._import_records = unique_records
@@ -175,6 +179,29 @@ class ExcelImporter:
                     setattr(contact, field, value)
 
         return contact
+
+    def _detect_duplicates(self, records: List[ExcelContact]) -> List[ExcelContact]:
+        """检测重复记录
+
+        Args:
+            records: 记录列表
+
+        Returns:
+            去重后的记录列表
+        """
+        existing_contacts = self.db.get_all_contacts()
+        existing_keys = set(
+            f"{c.get('name', '')}|{c.get('phone', '')}"
+            for c in existing_contacts
+        )
+
+        unique_records = []
+        for record in records:
+            key = f"{record.姓名}|{record.电话}"
+            if key not in existing_keys:
+                unique_records.append(record)
+
+        return unique_records
 
     def save_to_database(self) -> int:
         """保存到数据库"""
@@ -219,23 +246,19 @@ class ExcelImporter:
                 f"contacts_{self.batch_id}.xlsx"
             )
 
-        # 创建工作簿
+        # 使用公共工具创建Excel
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "导入通讯录"
 
         # 定义样式
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
+        style = create_header_style()
 
         # 写入表头
         headers = ['姓名', '电话', '邮箱', '公司', '部门', '职位', '备注', '导入批次']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
+            apply_style_to_cell(cell, style)
 
         # 写入数据
         for row_idx, record in enumerate(self._import_records, 2):
@@ -247,8 +270,7 @@ class ExcelImporter:
                 ws.cell(row=row_idx, column=col_idx, value=value)
 
         # 自动调整列宽
-        for col_idx in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 15
+        auto_adjust_column_width(ws)
 
         # 保存文件
         wb.save(output_path)
@@ -322,18 +344,14 @@ class ExcelExporter:
         ws = wb.active
         ws.title = "通讯录"
 
-        # 表头样式
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
+        # 使用公共工具
+        headers = ['姓名', '电话', '邮箱', '公司', '部门', '职位', '备注']
+        style = create_header_style()
 
         # 写入表头
-        headers = ['姓名', '电话', '邮箱', '公司', '部门', '职位', '备注']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
+            apply_style_to_cell(cell, style)
 
         # 写入数据
         for row_idx, contact in enumerate(contacts, 2):
@@ -350,8 +368,7 @@ class ExcelExporter:
                 ws.cell(row=row_idx, column=col_idx, value=value)
 
         # 自动调整列宽
-        for col_idx in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 18
+        auto_adjust_column_width(ws)
 
         # 保存
         wb.save(output_path)
@@ -366,36 +383,10 @@ class ExcelExporter:
         Returns:
             模板文件路径
         """
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "通讯录模板"
-
-        # 表头样式
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="70AD47", end_color="70AD47", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
-
-        # 写入表头
         headers = ['姓名*', '电话', '邮箱', '公司', '部门', '职位', '备注']
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-
-        # 添加示例数据
         example_data = [
             ['张三', '13800138000', 'zhangsan@example.com', '示例公司', '市场部', '经理', 'VIP客户'],
             ['李四', '13900139000', 'lisi@example.com', '示例公司', '销售部', '主管', ''],
         ]
 
-        for row_idx, row_data in enumerate(example_data, 2):
-            for col_idx, value in enumerate(row_data, 1):
-                ws.cell(row=row_idx, column=col_idx, value=value)
-
-        # 自动调整列宽
-        for col_idx in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 18
-
-        wb.save(output_path)
-        return output_path
+        return create_template(output_path, headers, example_data, "70AD47")

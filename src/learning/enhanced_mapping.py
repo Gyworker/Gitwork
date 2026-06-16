@@ -2,6 +2,7 @@
 """
 增强映射学习模块
 支持从Excel文件和历史数据学习映射关系
+版本：V2.1 (优化版)
 """
 
 import os
@@ -39,12 +40,54 @@ class MappingRule:
         return cls(**data)
 
 
+# =============================================================================
+# 停用词定义 - V2.1完善版
+# =============================================================================
+
+# 中文停用词
+CHINESE_STOP_WORDS = {
+    # 常见助词
+    '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个',
+    '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好',
+    '自己', '这', '那', '里', '为', '而且', '但是', '所以', '如果', '因为', '还是',
+    # 常见动词
+    '做', '进行', '使用', '需要', '可以', '能够', '应该', '必须', '需要', '希望',
+    # 常见副词
+    '很', '非常', '特别', '比较', '最', '更', '还', '再', '又', '也', '都', '只',
+    # 常见介词
+    '从', '到', '把', '被', '让', '给', '向', '对', '关于', '对于',
+    # 常见连词
+    '和', '或', '但', '而', '则', '因此', '所以', '于是', '既然',
+    # 常见量词
+    '个', '些', '种', '类', '点', '次', '件', '条', '把', '位',
+    # 其他常见词
+    '什么', '怎么', '如何', '怎样', '哪', '哪个', '哪些', '谁', '多少', '几',
+    '这个', '那个', '这些', '那些', '这样', '那样', '如此',
+}
+
+# 英文停用词
+ENGLISH_STOP_WORDS = {
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+    'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those',
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who',
+    'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few',
+    'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only',
+    'own', 'same', 'so', 'than', 'too', 'very', 'just',
+}
+
+# 合并所有停用词
+ALL_STOP_WORDS = CHINESE_STOP_WORDS | ENGLISH_STOP_WORDS
+
+
 class MappingLearner:
     """映射学习器"""
 
     def __init__(self, db: ContactsDB):
         self.db = db
         self.rules: Dict[str, MappingRule] = {}
+        self.stop_words = ALL_STOP_WORDS  # 使用完善的停用词列表
         self._load_rules()
 
     def _load_rules(self):
@@ -203,12 +246,45 @@ class MappingLearner:
         return None
 
     def _extract_keywords(self, text: str) -> List[str]:
-        """从文本提取关键词"""
-        # 移除常见停用词
-        stop_words = {'的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'}
-        words = re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]+', text)
-        keywords = [w for w in words if len(w) >= 2 and w not in stop_words]
-        return keywords
+        """从文本提取关键词 - 使用完善的停用词列表
+
+        Args:
+            text: 文本内容
+
+        Returns:
+            关键词列表
+        """
+        # 提取中文和英文词
+        chinese_words = re.findall(r'[\u4e00-\u9fa5]+', text)
+        english_words = re.findall(r'[a-zA-Z]+', text)
+        numbers = re.findall(r'\d+', text)
+
+        # 过滤停用词
+        chinese_keywords = [
+            w for w in chinese_words
+            if len(w) >= 2 and w not in self.stop_words
+        ]
+        english_keywords = [
+            w.lower() for w in english_words
+            if len(w) >= 2 and w.lower() not in self.stop_words
+        ]
+
+        # 数字序列（保留作为关键词）
+        number_keywords = [n for n in numbers if len(n) >= 2]
+
+        # 合并结果
+        keywords = chinese_keywords + english_keywords + number_keywords
+
+        # 去重
+        seen = set()
+        unique_keywords = []
+        for kw in keywords:
+            kw_lower = kw.lower() if isinstance(kw, str) else str(kw)
+            if kw_lower not in seen:
+                seen.add(kw_lower)
+                unique_keywords.append(kw)
+
+        return unique_keywords
 
     def _add_rule(self, keyword: str, responsible: str,
                   confidence: float = 1.0, source: str = 'manual') -> MappingRule:
@@ -244,7 +320,7 @@ class MappingLearner:
         """保存规则到数据库"""
         try:
             self.db.execute_query(
-                """INSERT OR REPLACE INTO mapping_rules 
+                """INSERT OR REPLACE INTO mapping_rules
                    (keyword, responsible, confidence, source, usage_count, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (rule.keyword, rule.responsible, rule.confidence, rule.source,
@@ -268,6 +344,23 @@ class MappingLearner:
             return None, 0.0
 
         # 匹配规则
+        best_match = self._find_best_match(keywords)
+
+        # 更新使用统计
+        if best_match[0]:
+            self._update_usage(best_match[0])
+
+        return best_match
+
+    def _find_best_match(self, keywords: List[str]) -> Tuple[Optional[str], float]:
+        """查找最佳匹配
+
+        Args:
+            keywords: 关键词列表
+
+        Returns:
+            (责任人, 置信度)
+        """
         best_match = None
         best_score = 0.0
 
@@ -275,27 +368,59 @@ class MappingLearner:
             keyword_lower = keyword.lower()
 
             # 精确匹配
-            if keyword_lower in self.rules:
-                rule = self.rules[keyword_lower]
-                score = rule.confidence * 1.0  # 精确匹配权重
-                if score > best_score:
-                    best_score = score
-                    best_match = rule.responsible
+            exact_result = self._exact_match(keyword_lower)
+            if exact_result and exact_result[1] > best_score:
+                best_score = exact_result[1]
+                best_match = exact_result[0]
 
             # 模糊匹配
-            for rule_key, rule in self.rules.items():
-                similarity = SequenceMatcher(None, keyword_lower, rule_key).ratio()
-                if similarity > 0.8:  # 相似度阈值
-                    score = rule.confidence * similarity * 0.8  # 模糊匹配权重
-                    if score > best_score:
-                        best_score = score
-                        best_match = rule.responsible
-
-        # 更新使用统计
-        if best_match:
-            self._update_usage(best_match)
+            fuzzy_result = self._fuzzy_match(keyword_lower)
+            if fuzzy_result and fuzzy_result[1] > best_score:
+                best_score = fuzzy_result[1]
+                best_match = fuzzy_result[0]
 
         return best_match, best_score
+
+    def _exact_match(self, keyword: str) -> Optional[Tuple[str, float]]:
+        """精确匹配
+
+        Args:
+            keyword: 关键词
+
+        Returns:
+            (责任人, 置信度) 或 None
+        """
+        if keyword in self.rules:
+            rule = self.rules[keyword]
+            # 精确匹配权重为1.0
+            return rule.responsible, rule.confidence * 1.0
+        return None
+
+    def _fuzzy_match(self, keyword: str, threshold: float = 0.8) -> Optional[Tuple[str, float]]:
+        """模糊匹配
+
+        Args:
+            keyword: 关键词
+            threshold: 相似度阈值
+
+        Returns:
+            (责任人, 置信度) 或 None
+        """
+        best_score = 0.0
+        best_responsible = None
+
+        for rule_key, rule in self.rules.items():
+            similarity = SequenceMatcher(None, keyword, rule_key).ratio()
+            if similarity >= threshold:
+                # 模糊匹配权重为0.8
+                score = rule.confidence * similarity * 0.8
+                if score > best_score:
+                    best_score = score
+                    best_responsible = rule.responsible
+
+        if best_responsible:
+            return best_responsible, best_score
+        return None
 
     def _update_usage(self, responsible: str):
         """更新使用统计"""
@@ -320,24 +445,25 @@ class MappingLearner:
             保存的文件路径
         """
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
-        from openpyxl.utils import get_column_letter
+        from src.utils.excel_utils import (
+            create_excel_header,
+            auto_adjust_column_width,
+            create_header_style,
+            apply_style_to_cell,
+        )
 
         wb = Workbook()
         ws = wb.active
         ws.title = "映射规则"
 
-        # 表头样式
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        # 使用公共工具
+        headers = ['关键词', '责任人', '置信度', '来源', '使用次数', '最后使用', '创建时间']
+        style = create_header_style()
 
         # 写入表头
-        headers = ['关键词', '责任人', '置信度', '来源', '使用次数', '最后使用', '创建时间']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+            apply_style_to_cell(cell, style)
 
         # 写入数据
         rules = self.get_all_rules()
@@ -350,8 +476,7 @@ class MappingLearner:
                 ws.cell(row=row_idx, column=col_idx, value=value)
 
         # 自动调整列宽
-        for col_idx in range(1, len(headers) + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 15
+        auto_adjust_column_width(ws)
 
         wb.save(output_path)
         return output_path
@@ -377,3 +502,19 @@ class MappingLearner:
             except Exception:
                 return False
         return False
+
+    def add_stop_words(self, words: List[str]):
+        """添加自定义停用词
+
+        Args:
+            words: 停用词列表
+        """
+        self.stop_words.update(words)
+
+    def get_stop_words(self) -> set:
+        """获取当前停用词集合
+
+        Returns:
+            停用词集合
+        """
+        return self.stop_words.copy()

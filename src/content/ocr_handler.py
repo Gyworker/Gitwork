@@ -2,6 +2,7 @@
 """
 OCR处理模块
 支持图片文字识别和名片解析
+版本：V2.1 (优化版)
 """
 
 import os
@@ -17,6 +18,53 @@ from pathlib import Path
 # 图片处理
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
+
+
+# =============================================================================
+# 常量定义
+# =============================================================================
+
+# 置信度权重配置
+CONFIDENCE_WEIGHTS = {
+    'name': 0.3,
+    'phone': 0.3,
+    'email': 0.2,
+    'company': 0.2,
+}
+
+# 电话号码正则
+PHONE_PATTERN = re.compile(
+    r'(?:电话|TEL|手机|Mobile|Phone)?[:：]?\s*'
+    r'(\+?86)?\s*'
+    r'(?:1[3-9]\d{9}|(?:010|021|022|023|024|025|027|028|029)\d{7,8})'
+)
+
+# 邮箱正则
+EMAIL_PATTERN = re.compile(
+    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+)
+
+# 常见职位关键词
+POSITION_KEYWORDS = [
+    '经理', '总监', '主管', '负责人', '主任', '工程师',
+    'Consultant', 'Manager', 'Director', 'Chief', 'CEO', 'CTO', 'CFO',
+    'President', 'Vice', 'Senior', 'Lead', 'Head'
+]
+
+# 常见部门关键词
+DEPARTMENT_KEYWORDS = [
+    '部', '部门', '科', '室',
+    'Department', 'Dept', 'Division', 'Team'
+]
+
+# 公司关键词
+COMPANY_KEYWORDS = ['公司', '有限公司', 'Co.', 'Ltd', 'Corp']
+
+# 地址关键词
+ADDRESS_KEYWORDS = ['地址', 'Address', '市', '区', '路', '街']
+
+# 联系方式关键词
+CONTACT_KEYWORDS = ['电话', '手机', '邮箱', 'email', 'phone', 'tel', '地址', 'address']
 
 
 @dataclass
@@ -92,36 +140,15 @@ class ImagePreprocessor:
 
 
 class BusinessCardParser:
-    """名片解析器"""
+    """名片解析器 - 优化版，方法拆分提高可维护性"""
 
-    # 电话号码正则
-    PHONE_PATTERN = re.compile(
-        r'(?:电话|TEL|手机|Mobile|Phone)?[:：]?\s*'
-        r'(\+?86)?\s*'
-        r'(?:1[3-9]\d{9}|(?:010|021|022|023|024|025|027|028|029)\d{7,8})'
-    )
+    def __init__(self):
+        """初始化解析器"""
+        self.phone_pattern = PHONE_PATTERN
+        self.email_pattern = EMAIL_PATTERN
 
-    # 邮箱正则
-    EMAIL_PATTERN = re.compile(
-        r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-    )
-
-    # 常见职位关键词
-    POSITION_KEYWORDS = [
-        '经理', '总监', '主管', '负责人', '主任', '工程师',
-        'Consultant', 'Manager', 'Director', 'Chief', 'CEO', 'CTO', 'CFO',
-        'President', 'Vice', 'Senior', 'Lead', 'Head'
-    ]
-
-    # 常见部门关键词
-    DEPARTMENT_KEYWORDS = [
-        '部', '部门', '科', '室',
-        'Department', 'Dept', 'Division', 'Team'
-    ]
-
-    @classmethod
-    def parse(cls, text: str) -> Dict:
-        """解析名片文本
+    def parse(self, text: str) -> Dict:
+        """解析名片文本 - 主方法，调度各子方法
 
         Args:
             text: OCR识别的原始文本
@@ -129,60 +156,147 @@ class BusinessCardParser:
         Returns:
             解析后的结构化数据
         """
-        lines = text.split('\n')
-        lines = [line.strip() for line in lines if line.strip()]
+        lines = self._split_lines(text)
 
         result = {
-            'name': '',
-            'phone': '',
-            'email': '',
-            'company': '',
-            'department': '',
-            'position': '',
-            'address': ''
+            'name': self._extract_name(lines),
+            'phone': self._extract_phone(text),
+            'email': self._extract_email(text),
+            'company': self._extract_company(lines),
+            'department': self._extract_department(lines),
+            'position': self._extract_position(lines),
+            'address': self._extract_address(lines),
         }
-
-        # 提取电话
-        phone_match = cls.PHONE_PATTERN.search(text)
-        if phone_match:
-            result['phone'] = cls._clean_phone(phone_match.group(0))
-
-        # 提取邮箱
-        email_match = cls.EMAIL_PATTERN.search(text)
-        if email_match:
-            result['email'] = email_match.group(0).lower()
-
-        # 分析每行文本
-        for i, line in enumerate(lines):
-            # 姓名识别（通常是第一行的大字体文本）
-            if i == 0 and len(line) <= 10 and not cls._is_contact_info(line):
-                result['name'] = line
-
-            # 职位识别
-            for keyword in cls.POSITION_KEYWORDS:
-                if keyword in line:
-                    result['position'] = line
-                    break
-
-            # 部门识别
-            for keyword in cls.DEPARTMENT_KEYWORDS:
-                if keyword in line and 'department' in line.lower():
-                    result['department'] = line
-                    break
-
-            # 公司识别（通常包含公司、有限公司等关键词）
-            if any(kw in line for kw in ['公司', '有限公司', 'Co.', 'Ltd', 'Corp']):
-                result['company'] = line
-
-            # 地址识别
-            if any(kw in line for kw in ['地址', 'Address', '市', '区', '路', '街']):
-                result['address'] = line
 
         # 如果没有识别到姓名，尝试从邮箱推断
         if not result['name'] and result['email']:
-            result['name'] = cls._extract_name_from_email(result['email'])
+            result['name'] = self._extract_name_from_email(result['email'])
 
         return result
+
+    @staticmethod
+    def _split_lines(text: str) -> List[str]:
+        """分割文本为行
+
+        Args:
+            text: 原始文本
+
+        Returns:
+            非空行列表
+        """
+        lines = text.split('\n')
+        return [line.strip() for line in lines if line.strip()]
+
+    @staticmethod
+    def _extract_phone(text: str) -> str:
+        """提取电话号码
+
+        Args:
+            text: 文本内容
+
+        Returns:
+            电话号码或空字符串
+        """
+        phone_match = PHONE_PATTERN.search(text)
+        if phone_match:
+            return BusinessCardParser._clean_phone(phone_match.group(0))
+        return ""
+
+    @staticmethod
+    def _extract_email(text: str) -> str:
+        """提取邮箱地址
+
+        Args:
+            text: 文本内容
+
+        Returns:
+            邮箱地址或空字符串
+        """
+        email_match = EMAIL_PATTERN.search(text)
+        if email_match:
+            return email_match.group(0).lower()
+        return ""
+
+    @staticmethod
+    def _extract_name(lines: List[str]) -> str:
+        """提取姓名
+
+        Args:
+            lines: 文本行列表
+
+        Returns:
+            姓名或空字符串
+        """
+        if not lines:
+            return ""
+
+        # 姓名通常是第一行的大字体文本
+        first_line = lines[0]
+        if len(first_line) <= 10 and not BusinessCardParser._is_contact_info(first_line):
+            return first_line
+        return ""
+
+    @staticmethod
+    def _extract_company(lines: List[str]) -> str:
+        """提取公司名称
+
+        Args:
+            lines: 文本行列表
+
+        Returns:
+            公司名称或空字符串
+        """
+        for line in lines:
+            if any(kw in line for kw in COMPANY_KEYWORDS):
+                return line
+        return ""
+
+    @staticmethod
+    def _extract_department(lines: List[str]) -> str:
+        """提取部门信息
+
+        Args:
+            lines: 文本行列表
+
+        Returns:
+            部门信息或空字符串
+        """
+        for line in lines:
+            # 部门关键词 + department关键字
+            if any(kw in line for kw in DEPARTMENT_KEYWORDS):
+                if 'department' in line.lower():
+                    return line
+        return ""
+
+    @staticmethod
+    def _extract_position(lines: List[str]) -> str:
+        """提取职位信息
+
+        Args:
+            lines: 文本行列表
+
+        Returns:
+            职位信息或空字符串
+        """
+        for line in lines:
+            if any(keyword in line for keyword in POSITION_KEYWORDS):
+                return line
+        return ""
+
+    @staticmethod
+    def _extract_address(lines: List[str]) -> str:
+        """提取地址信息
+
+        Args:
+            lines: 文本行列表
+
+        Returns:
+            地址信息或空字符串
+        """
+        for line in lines:
+            if any(kw in line for kw in ADDRESS_KEYWORDS):
+                return line
+        return ""
 
     @staticmethod
     def _clean_phone(phone_str: str) -> str:
@@ -197,8 +311,7 @@ class BusinessCardParser:
     @staticmethod
     def _is_contact_info(line: str) -> bool:
         """判断是否为联系方式行"""
-        contact_keywords = ['电话', '手机', '邮箱', 'email', 'phone', 'tel', '地址', 'address']
-        return any(kw in line.lower() for kw in contact_keywords)
+        return any(kw in line.lower() for kw in CONTACT_KEYWORDS)
 
     @staticmethod
     def _extract_name_from_email(email: str) -> str:
@@ -208,6 +321,23 @@ class BusinessCardParser:
         name_part = re.sub(r'^(info|sales|support|admin|contact)', '', name_part)
         # 首字母大写
         return name_part.capitalize()
+
+    def calculate_confidence(self, result: Dict) -> float:
+        """计算识别置信度
+
+        Args:
+            result: 解析结果字典
+
+        Returns:
+            置信度值 (0-1)
+        """
+        confidence = 0.0
+
+        for field, weight in CONFIDENCE_WEIGHTS.items():
+            if result.get(field):
+                confidence += weight
+
+        return min(confidence, 1.0)
 
 
 class OCRProcessor:
@@ -278,17 +408,8 @@ class OCRProcessor:
             result.position = parsed.get('position', '')
             result.address = parsed.get('address', '')
 
-            # 计算置信度（基于识别内容完整性）
-            confidence = 0.0
-            if result.name:
-                confidence += 0.3
-            if result.phone:
-                confidence += 0.3
-            if result.email:
-                confidence += 0.2
-            if result.company:
-                confidence += 0.2
-            result.confidence = min(confidence, 1.0)
+            # 计算置信度 - 使用parser的方法
+            result.confidence = self.parser.calculate_confidence(parsed)
 
             result.process_time = time.time() - start_time
 
@@ -297,19 +418,28 @@ class OCRProcessor:
 
         return result
 
-    def recognize_batch(self, image_paths: List[str]) -> List[OCRResult]:
+    def recognize_batch(self, image_paths: List[str],
+                       progress_callback: Optional[callable] = None) -> List[OCRResult]:
         """批量识别图片
 
         Args:
             image_paths: 图片路径列表
+            progress_callback: 进度回调函数，参数为 (current, total)
 
         Returns:
             识别结果列表
         """
         results = []
-        for path in image_paths:
+        total = len(image_paths)
+
+        for idx, path in enumerate(image_paths):
             result = self.recognize_image(path)
             results.append(result)
+
+            # 调用进度回调
+            if progress_callback:
+                progress_callback(idx + 1, total)
+
         return results
 
     def recognize_and_save(self, image_path: str,
