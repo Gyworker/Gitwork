@@ -1,6 +1,6 @@
 """
 内容导入组件
-支持：文本粘贴、图片OCR、Outlook邮件、企业微信
+支持：文本粘贴、图片OCR、MSG邮件文件、企业微信
 """
 
 from typing import Optional
@@ -12,6 +12,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
+
+# 导入内容解析模块
+from src.content.msg_parser import MSGParser, MSGEmail
 
 
 class ContentImportWidget(QWidget):
@@ -64,7 +67,7 @@ class ContentImportWidget(QWidget):
         self.radio_image.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_image)
         
-        self.radio_outlook = QRadioButton("Outlook")
+        self.radio_outlook = QRadioButton("邮件(MSG)")
         self.radio_outlook.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_outlook)
         
@@ -123,9 +126,9 @@ class ContentImportWidget(QWidget):
             self.input_label.setText("📌 请导入图片或拖拽图片到下方：")
             self.input_text.setPlaceholderText("支持 JPG、PNG 格式...\n点击'文件'按钮导入图片")
         elif self.radio_outlook.isChecked():
-            self.mode_label.setText("📧 Outlook邮件模式")
-            self.input_label.setText("📌 请导入Outlook邮件文件（.msg）：")
-            self.input_text.setPlaceholderText("支持 .msg 格式邮件文件...")
+            self.mode_label.setText("📧 MSG邮件模式")
+            self.input_label.setText("📌 请导入邮件文件（.msg）：")
+            self.input_text.setPlaceholderText("支持 .msg 格式Outlook邮件文件...\n点击'文件'按钮选择MSG文件")
         elif self.radio_wechat.isChecked():
             self.mode_label.setText("💬 企业微信模式")
             self.input_label.setText("📌 请导入企业微信聊天记录文件：")
@@ -177,13 +180,61 @@ class ContentImportWidget(QWidget):
         }
         
     def _parse_outlook(self, content: str) -> dict:
-        """解析Outlook邮件"""
-        # TODO: 实现Outlook邮件解析
-        return {
-            'task_name': '邮件任务',
-            'task_content': content,
-            'source': 'outlook'
-        }
+        """解析MSG邮件文件"""
+        # 检查MSG解析库是否可用
+        if not MSGParser.is_available():
+            QMessageBox.warning(
+                self, "库未安装",
+                "MSG解析库未安装，部分功能可能受限。\n"
+                "建议安装: pip install extract-msg"
+            )
+        
+        # content此时应该是文件路径
+        filepath = content.strip()
+        
+        if not filepath or not filepath.endswith('.msg'):
+            return {
+                'task_name': '邮件任务',
+                'task_content': '请先选择MSG邮件文件',
+                'source': 'msg'
+            }
+        
+        try:
+            # 解析MSG文件
+            email = MSGParser.parse_file_safe(filepath)
+            
+            # 构建任务数据
+            task_data = {
+                'task_name': email.subject or '无主题邮件',
+                'task_content': email.to_task_content(),
+                'source': 'msg',
+                'sender': email.sender,
+                'sender_email': email.sender_email,
+                'date': email.date,
+                'importance': email.importance,
+                'attachments': email.attachments,
+                # 额外信息供后续处理
+                '_raw_email': email
+            }
+            
+            return task_data
+            
+        except ImportError as e:
+            QMessageBox.critical(self, "解析错误", str(e))
+            return {
+                'task_name': '邮件任务',
+                'task_content': f'解析失败: {str(e)}',
+                'source': 'msg',
+                'error': str(e)
+            }
+        except Exception as e:
+            QMessageBox.critical(self, "解析错误", f"解析MSG文件失败: {e}")
+            return {
+                'task_name': '邮件任务',
+                'task_content': f'解析失败: {str(e)}',
+                'source': 'msg',
+                'error': str(e)
+            }
         
     def _parse_wechat(self, content: str) -> dict:
         """解析企业微信"""
@@ -222,22 +273,82 @@ class ContentImportWidget(QWidget):
     def _load_file_content(self, filepath: str):
         """加载文件内容"""
         try:
+            # MSG文件特殊处理
+            if filepath.lower().endswith('.msg'):
+                self._load_msg_file(filepath)
+                return
+            
+            # 普通文本文件
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             self.input_text.setPlainText(content)
         except Exception as e:
             QMessageBox.critical(self, "错误", f"读取文件失败：{e}")
+    
+    def _load_msg_file(self, filepath: str):
+        """加载MSG邮件文件"""
+        try:
+            # 尝试解析MSG文件
+            email = MSGParser.parse_file_safe(filepath)
+            
+            # 显示邮件预览
+            preview = f"【主题】{email.subject or '无主题'}\n"
+            preview += f"【发件人】{email.sender or ''} <{email.sender_email}>\n"
+            preview += f"【时间】{email.date}\n"
+            preview += f"【重要程度】{email.importance}\n"
+            preview += "\n" + "="*50 + "\n"
+            preview += "【正文预览】\n"
+            preview += email.body[:500] if email.body else "(无正文)"
+            if len(email.body or '') > 500:
+                preview += "\n...(正文过长，已截断)"
+            
+            if email.attachments:
+                preview += "\n\n" + "="*50 + "\n"
+                preview += f"【附件】{len(email.attachments)}个\n"
+                for att in email.attachments[:5]:
+                    preview += f"  - {att}\n"
+            
+            # 将文件路径存入输入框（用于解析时使用）
+            self.input_text.setPlaceholderText(f"[MSG文件已加载]\n{filepath}")
+            self.input_text.setPlainText(filepath)
+            
+            QMessageBox.information(
+                self, "MSG文件预览",
+                f"已加载邮件文件:\n{filepath}\n\n"
+                f"主题: {email.subject or '无主题'}\n"
+                f"发件人: {email.sender or email.sender_email}\n"
+                f"时间: {email.date}\n\n"
+                f"点击'解析'按钮提取任务信息"
+            )
+            
+        except ImportError as e:
+            QMessageBox.critical(
+                self, "库未安装", 
+                f"{str(e)}\n\n"
+                "请在命令行运行:\npip install extract-msg"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"读取MSG文件失败：{e}")
             
     def _show_help(self):
         """显示帮助"""
+        # 检查MSG库状态
+        msg_lib_info = MSGParser.get_library_info()
+        msg_status = "已安装" if msg_lib_info['available'] else "未安装"
+        
         QMessageBox.information(
             self, "使用帮助",
             "内容导入说明：\n\n"
             "• 文本：直接粘贴或输入文字内容\n"
             "• 图片：导入图片进行OCR识别\n"
-            "• Outlook：导入邮件文件（.msg格式）\n"
+            "• 邮件(MSG)：导入Outlook邮件文件\n"
+            "  MSG解析库状态：" + msg_status + "\n"
             "• 企业微信：导入聊天记录文件\n\n"
-            "解析后可在右侧确认任务信息"
+            "导入流程：\n"
+            "1. 选择导入方式\n"
+            "2. 点击'文件'按钮选择文件\n"
+            "3. 点击'解析'提取任务信息\n"
+            "4. 在右侧确认并保存任务"
         )
         
     def clear(self):
