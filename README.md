@@ -26,10 +26,10 @@
 
 | 指标 | 状态 |
 |------|------|
-| 版本 | V4.4 |
+| 版本 | V4.5 |
 | 代码质量 | 通过 |
-| 测试用例 | 41个通过 |
-| 综合评分 | 4.6/5 |
+| 测试用例 | 457+个通过 |
+| 综合评分 | 4.7/5 |
 
 ## 快速开始
 
@@ -74,7 +74,11 @@ market_task_tracker/
 │   ├── config.py            # 配置管理
 │   ├── core/                 # 核心模块
 │   │   ├── logger.py         # 日志模块
-│   │   └── data_pager.py     # 数据分页
+│   │   ├── data_pager.py     # 数据分页
+│   │   ├── performance.py     # 性能监控
+│   │   ├── usability.py       # 用户体验
+│   │   ├── acceptance.py      # 验收测试
+│   │   └── cache_optimizer.py # 缓存优化
 │   ├── database/             # 数据库层
 │   │   ├── connection.py     # 数据库连接
 │   │   ├── models.py         # 数据模型
@@ -82,6 +86,7 @@ market_task_tracker/
 │   ├── ui/                   # 界面层
 │   │   ├── main_window.py    # 主窗口
 │   │   ├── contacts.py       # 通讯录（含OCR）
+│   │   ├── dpi_adapter.py    # DPI适配
 │   │   └── widgets/          # UI组件
 │   ├── content/              # 内容处理
 │   │   ├── excel_import.py   # Excel导入
@@ -92,8 +97,9 @@ market_task_tracker/
 │   └── utils/                # 工具层
 │       ├── helpers.py        # 辅助函数
 │       ├── exceptions.py      # 异常定义
-│       └── validators.py      # 数据验证
-├── tests/                    # 测试用例
+│       ├── validators.py      # 数据验证
+│       └── security.py        # 安全模块（加密/审计/权限）
+├── tests/                    # 测试用例 (457+个)
 ├── scripts/                  # 脚本工具
 ├── data/                     # 数据目录
 ├── logs/                     # 日志目录
@@ -117,6 +123,21 @@ market_task_tracker/
 | V4.2 | 2026-06-17 | 增量评审验证 |
 | V4.3 | 2026-06-18 | 单元测试、OCR功能、文档更新 |
 | V4.4 | 2026-06-18 | E-R图优化、BaseDAO、查询缓存 |
+| V4.5 | 2026-06-18 | 安全增强、审计日志、权限控制 |
+
+## V4.5 新功能
+
+### 安全增强
+
+- **数据库加密** - 数据库文件加密存储
+- **审计日志** - 操作审计记录与查询
+- **权限控制** - 基于角色的权限管理 (RBAC)
+
+### 性能优化
+
+- **增强缓存** - 支持LRU/LFU/FIFO/TTL多种策略
+- **统计缓存** - 统计分析结果缓存优化
+- **DPI适配** - 响应式布局与DPI自动适配
 
 ## V4.4 新功能
 
