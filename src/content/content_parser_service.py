@@ -13,6 +13,7 @@ from datetime import datetime
 import os
 
 from src.content.msg_parser import MSGParser, MSGEmail, ParseError as MSGParseError
+from src.content.image_ocr_processor import get_ocr_processor, ImageOCRProcessor
 from src.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -315,29 +316,64 @@ class ImageParser(ContentParser):
             return False
     
     def parse(self, content: str) -> ParsedContent:
-        """解析图片（OCR识别）"""
+        """
+        解析图片（OCR识别）
+        
+        Args:
+            content: 图片文件路径
+            
+        Returns:
+            ParsedContent: 解析结果
+        """
         result = ParsedContent()
         result.source_type = "image"
         result.source = "image"
         
-        if not self.is_available():
-            result.error = "OCR库未安装"
-            result.error_details = "请安装: pip install pytesseract"
+        filepath = content.strip()
+        if not filepath:
+            result.error = "图片路径为空"
             return result
         
-        filepath = content.strip()
-        if not filepath or not os.path.exists(filepath):
+        if not os.path.exists(filepath):
             result.error = "图片文件不存在"
+            result.error_details = filepath
             return result
         
         result.source_file = filepath
         
         try:
-            # TODO: 实现OCR识别
-            # 目前返回占位数据
-            result.task_name = '图片识别任务'
-            result.task_content = '[OCR功能待实现]'
-            logger.info(f"图片解析: {filepath}")
+            # 获取OCR处理器
+            ocr = get_ocr_processor()
+            
+            if not ocr.is_available:
+                result.error = "OCR库不可用"
+                result.error_details = "请安装: pip install pytesseract pillow"
+                result.task_name = '图片识别任务'
+                result.task_content = '[OCR功能未启用]'
+                return result
+            
+            # 执行OCR识别
+            ocr_result = ocr.process_image(filepath)
+            
+            if ocr_result.success:
+                result.task_name = ocr_result.task_name
+                result.task_content = ocr_result.task_content
+                
+                # 填充联系人信息
+                if ocr_result.contact_info:
+                    if ocr_result.contact_info.name:
+                        result.consultant_name = ocr_result.contact_info.name
+                    if ocr_result.contact_info.phone:
+                        result.consultant_contact = ocr_result.contact_info.phone
+                    if ocr_result.contact_info.company:
+                        result.source = ocr_result.contact_info.company
+                
+                logger.info(f"图片OCR识别成功: {filepath}")
+            else:
+                result.error = ocr_result.error or "OCR识别失败"
+                result.error_details = ocr_result.error_details
+                result.task_name = '图片识别任务'
+                result.task_content = ocr_result.raw_text or '[OCR识别失败]'
             
         except Exception as e:
             result.error = "OCR识别失败"
