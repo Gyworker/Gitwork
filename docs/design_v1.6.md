@@ -1065,6 +1065,8 @@ Excel格式导出包含7个工作表：
 | StatisticsService | 趋势分析 | ✅ |
 | StatisticsService | 导出报告（txt/json/csv/excel） | ✅ |
 | StatisticsService | Excel多Sheet导出（7个工作表） | ✅ |
+| MainWindow | 统计报表导出按钮 | ✅ |
+| MainWindow | 格式选择对话框（xlsx/json/csv/txt） | ✅ |
 
 ---
 

@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import (
 
 from ..config import get_config
 from ..utils.logger import get_logger
+from ..core.statistics_service import get_statistics_service
 from .widgets.task_info_widget import TaskInfoWidget
 from .widgets.task_track_widget import TaskTrackWidget
 from .widgets.recommendation_widget import RecommendationWidget
@@ -180,6 +181,97 @@ class MainWindow(QMainWindow):
         self.nav_list.setCurrentRow(0)  # 切换到任务信息页面
         self.task_info_widget._load_task_detail(task_id)
 
+    def _on_export_statistics(self) -> None:
+        """导出统计报表"""
+        from PyQt5.QtWidgets import QFileDialog, QMessageBox
+        from datetime import datetime
+
+        logger.info("打开统计报表导出对话框")
+
+        # 弹出格式选择对话框
+        format_items = ["Excel (.xlsx)", "JSON (.json)", "CSV (.csv)", "文本 (.txt)"]
+        format_map = {
+            "Excel (.xlsx)": "excel",
+            "JSON (.json)": "json",
+            "CSV (.csv)": "csv",
+            "文本 (.txt)": "txt"
+        }
+        extensions_map = {
+            "excel": "Excel Files (*.xlsx)",
+            "json": "JSON Files (*.json)",
+            "csv": "CSV Files (*.csv)",
+            "txt": "Text Files (*.txt)"
+        }
+
+        # 选择格式
+        format_dialog = QFileDialog()
+        format_dialog.setWindowTitle("选择导出格式")
+
+        # 创建格式选择对话框
+        from PyQt5.QtWidgets import QInputDialog
+        selected_format, ok = QInputDialog.getItem(
+            self,
+            "导出统计报表",
+            "请选择导出格式:",
+            format_items,
+            0,
+            False
+        )
+
+        if not ok or not selected_format:
+            return
+
+        format_type = format_map.get(selected_format, "excel")
+        extension = extensions_map.get(format_type, "Excel Files (*.xlsx)")
+
+        # 选择保存路径
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        default_name = f'统计报告_{timestamp}'
+
+        if format_type == "excel":
+            default_name += '.xlsx'
+        elif format_type == "json":
+            default_name += '.json'
+        elif format_type == "csv":
+            default_name += '.csv'
+        else:
+            default_name += '.txt'
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存统计报表",
+            default_name,
+            extension
+        )
+
+        if not filepath:
+            return
+
+        try:
+            # 获取统计服务
+            stats_service = get_statistics_service()
+
+            # 导出报告
+            result = stats_service.export_report(format=format_type, filepath=filepath)
+
+            # 显示成功消息
+            QMessageBox.information(
+                self,
+                "导出成功",
+                f"统计报表已导出到:\n{result}",
+                QMessageBox.Ok
+            )
+            logger.info(f"统计报表导出成功: {result}")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "导出失败",
+                f"导出统计报表时出错:\n{str(e)}",
+                QMessageBox.Ok
+            )
+            logger.error(f"导出统计报表失败: {e}")
+
     def _init_menu(self) -> None:
         """初始化菜单栏"""
         menubar = self.menuBar()
@@ -253,6 +345,12 @@ class MainWindow(QMainWindow):
         export_btn = QPushButton("导出")
         export_btn.setMaximumWidth(80)
         toolbar.addWidget(export_btn)
+
+        # 统计报表按钮
+        stats_btn = QPushButton("📊 统计报表")
+        stats_btn.setMaximumWidth(100)
+        stats_btn.clicked.connect(self._on_export_statistics)
+        toolbar.addWidget(stats_btn)
 
         toolbar.addSeparator()
 
