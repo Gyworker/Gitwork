@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-内容导入组件
-支持：文本粘贴、图片OCR、MSG邮件文件、企业微信
+内容导入组件 - UI层
+只负责UI交互，业务逻辑委托给ContentParserService
+
+版本：V4.1 (重构版)
 """
 
 from typing import Optional
@@ -13,13 +16,24 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 
-# 导入内容解析模块
-from src.content.msg_parser import MSGParser, MSGEmail
+# 导入业务逻辑层
+from src.content.content_parser_service import (
+    get_parser_service,
+    ContentParserService,
+    ParsedContent,
+)
+from src.content.msg_parser import MSGParser
 
 
 class ContentImportWidget(QWidget):
     """
-    内容导入组件
+    内容导入组件 (UI层)
+    
+    职责：
+    - UI布局和交互
+    - 用户输入处理
+    - 调用业务服务
+    
     布局：
     - 标题栏（固定）
     - 导入方式选择
@@ -32,8 +46,10 @@ class ContentImportWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        # 业务逻辑服务
+        self._parser_service: ContentParserService = get_parser_service()
         self._init_ui()
-        
+    
     def _init_ui(self):
         """初始化UI"""
         layout = QVBoxLayout(self)
@@ -41,44 +57,64 @@ class ContentImportWidget(QWidget):
         layout.setSpacing(5)
         
         # ===== 标题栏 =====
+        self._create_title_bar(layout)
+        
+        # ===== 导入方式选择 =====
+        self._create_method_selector(layout)
+        
+        # ===== 输入内容区 =====
+        self._create_input_area(layout)
+        
+        # ===== 操作按钮 =====
+        self._create_action_buttons(layout)
+    
+    def _create_title_bar(self, layout: QVBoxLayout):
+        """创建标题栏"""
         title_layout = QHBoxLayout()
         title = QLabel("📥 内容导入")
         title.setFont(QFont("宋体", 11, QFont.Bold))
         title.setStyleSheet("color: #1976D2;")
         title_layout.addWidget(title)
         title_layout.addStretch()
+        
         self.help_btn = QPushButton("?")
         self.help_btn.setFixedSize(25, 25)
         self.help_btn.setToolTip("查看帮助")
         self.help_btn.clicked.connect(self._show_help)
         title_layout.addWidget(self.help_btn)
         layout.addLayout(title_layout)
-        
-        # ===== 导入方式选择 =====
+    
+    def _create_method_selector(self, layout: QVBoxLayout):
+        """创建导入方式选择器"""
         method_group = QGroupBox("导入方式")
         method_layout = QHBoxLayout(method_group)
         
+        # 文本选项
         self.radio_text = QRadioButton("文本")
         self.radio_text.setChecked(True)
         self.radio_text.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_text)
         
+        # 图片选项
         self.radio_image = QRadioButton("图片")
         self.radio_image.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_image)
         
+        # MSG邮件选项
         self.radio_outlook = QRadioButton("邮件(MSG)")
         self.radio_outlook.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_outlook)
         
+        # 企业微信选项
         self.radio_wechat = QRadioButton("企业微信")
         self.radio_wechat.toggled.connect(self._on_method_changed)
         method_layout.addWidget(self.radio_wechat)
         
         method_layout.addStretch()
         layout.addWidget(method_group)
-        
-        # ===== 输入内容区 =====
+    
+    def _create_input_area(self, layout: QVBoxLayout):
+        """创建输入区域"""
         self.input_label = QLabel("📌 请输入内容：")
         self.input_label.setFont(QFont("宋体", 10))
         layout.addWidget(self.input_label)
@@ -88,12 +124,13 @@ class ContentImportWidget(QWidget):
         self.input_text.setFont(QFont("宋体", 10))
         layout.addWidget(self.input_text, 1)
         
-        # ===== 模式切换标签 =====
+        # 模式切换标签
         self.mode_label = QLabel("📄 文本模式")
         self.mode_label.setStyleSheet("color: #666;")
         layout.addWidget(self.mode_label)
-        
-        # ===== 操作按钮 =====
+    
+    def _create_action_buttons(self, layout: QVBoxLayout):
+        """创建操作按钮"""
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
         
@@ -114,141 +151,95 @@ class ContentImportWidget(QWidget):
         
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
-        
+    
     def _on_method_changed(self):
         """导入方式切换"""
         if self.radio_text.isChecked():
-            self.mode_label.setText("📄 文本模式")
-            self.input_label.setText("📌 请输入内容：")
-            self.input_text.setPlaceholderText("在此粘贴或输入内容...")
+            self._update_for_text_mode()
         elif self.radio_image.isChecked():
-            self.mode_label.setText("🖼️ 图片模式（OCR识别）")
-            self.input_label.setText("📌 请导入图片或拖拽图片到下方：")
-            self.input_text.setPlaceholderText("支持 JPG、PNG 格式...\n点击'文件'按钮导入图片")
+            self._update_for_image_mode()
         elif self.radio_outlook.isChecked():
-            self.mode_label.setText("📧 MSG邮件模式")
-            self.input_label.setText("📌 请导入邮件文件（.msg）：")
-            self.input_text.setPlaceholderText("支持 .msg 格式Outlook邮件文件...\n点击'文件'按钮选择MSG文件")
+            self._update_for_msg_mode()
         elif self.radio_wechat.isChecked():
-            self.mode_label.setText("💬 企业微信模式")
-            self.input_label.setText("📌 请导入企业微信聊天记录文件：")
-            self.input_text.setPlaceholderText("支持企业微信导出的聊天记录文件...")
-            
+            self._update_for_wechat_mode()
+    
+    def _update_for_text_mode(self):
+        """切换到文本模式"""
+        self.mode_label.setText("📄 文本模式")
+        self.input_label.setText("📌 请输入内容：")
+        self.input_text.setPlaceholderText("在此粘贴或输入内容...")
+    
+    def _update_for_image_mode(self):
+        """切换到图片模式"""
+        self.mode_label.setText("🖼️ 图片模式（OCR识别）")
+        self.input_label.setText("📌 请导入图片或拖拽图片到下方：")
+        self.input_text.setPlaceholderText(
+            "支持 JPG、PNG 格式...\n点击'文件'按钮导入图片"
+        )
+    
+    def _update_for_msg_mode(self):
+        """切换到MSG模式"""
+        self.mode_label.setText("📧 MSG邮件模式")
+        self.input_label.setText("📌 请导入邮件文件（.msg）：")
+        self.input_text.setPlaceholderText(
+            "支持 .msg 格式Outlook邮件文件...\n点击'文件'按钮选择MSG文件"
+        )
+    
+    def _update_for_wechat_mode(self):
+        """切换到企业微信模式"""
+        self.mode_label.setText("💬 企业微信模式")
+        self.input_label.setText("📌 请导入企业微信聊天记录文件：")
+        self.input_text.setPlaceholderText(
+            "支持企业微信导出的聊天记录文件..."
+        )
+    
+    def _get_source_type(self) -> str:
+        """获取当前选择的来源类型"""
+        if self.radio_text.isChecked():
+            return "text"
+        elif self.radio_image.isChecked():
+            return "image"
+        elif self.radio_outlook.isChecked():
+            return "msg"
+        elif self.radio_wechat.isChecked():
+            return "wechat"
+        return "text"
+    
     def _on_parse(self):
-        """解析内容"""
+        """解析内容 - 调用业务服务"""
         content = self.input_text.toPlainText().strip()
         
         if not content:
             QMessageBox.warning(self, "提示", "请输入内容后再解析！")
             return
-            
+        
         try:
-            # 根据导入方式进行解析
-            if self.radio_text.isChecked():
-                parsed = self._parse_text(content)
-            elif self.radio_image.isChecked():
-                parsed = self._parse_image(content)
-            elif self.radio_outlook.isChecked():
-                parsed = self._parse_outlook(content)
-            elif self.radio_wechat.isChecked():
-                parsed = self._parse_wechat(content)
-            else:
-                parsed = {}
-                
-            self.content_parsed.emit(parsed)
+            # 获取来源类型
+            source_type = self._get_source_type()
             
+            # 调用业务服务解析
+            result = self._parser_service.parse(content, source_type)
+            
+            # 处理解析结果
+            if result.is_success:
+                self.content_parsed.emit(result.to_dict())
+                QMessageBox.information(
+                    self, "解析成功",
+                    f"成功解析内容！\n\n主题: {result.task_name}"
+                )
+            else:
+                error_msg = result.error
+                if result.error_details:
+                    error_msg += f"\n\n详情: {result.error_details}"
+                QMessageBox.critical(self, "解析错误", error_msg)
+                
         except Exception as e:
             QMessageBox.critical(self, "解析错误", f"解析失败：{e}")
-            
-    def _parse_text(self, content: str) -> dict:
-        """解析文本内容"""
-        # TODO: 实现文本解析逻辑
-        # 目前返回占位数据
-        return {
-            'task_name': content[:50] if len(content) > 50 else content,
-            'task_content': content,
-            'source': 'text'
-        }
-        
-    def _parse_image(self, content: str) -> dict:
-        """解析图片（OCR）"""
-        # TODO: 实现OCR识别
-        return {
-            'task_name': '图片识别任务',
-            'task_content': content,
-            'source': 'image'
-        }
-        
-    def _parse_outlook(self, content: str) -> dict:
-        """解析MSG邮件文件"""
-        # 检查MSG解析库是否可用
-        if not MSGParser.is_available():
-            QMessageBox.warning(
-                self, "库未安装",
-                "MSG解析库未安装，部分功能可能受限。\n"
-                "建议安装: pip install extract-msg"
-            )
-        
-        # content此时应该是文件路径
-        filepath = content.strip()
-        
-        if not filepath or not filepath.endswith('.msg'):
-            return {
-                'task_name': '邮件任务',
-                'task_content': '请先选择MSG邮件文件',
-                'source': 'msg'
-            }
-        
-        try:
-            # 解析MSG文件
-            email = MSGParser.parse_file_safe(filepath)
-            
-            # 构建任务数据
-            task_data = {
-                'task_name': email.subject or '无主题邮件',
-                'task_content': email.to_task_content(),
-                'source': 'msg',
-                'sender': email.sender,
-                'sender_email': email.sender_email,
-                'date': email.date,
-                'importance': email.importance,
-                'attachments': email.attachments,
-                # 额外信息供后续处理
-                '_raw_email': email
-            }
-            
-            return task_data
-            
-        except ImportError as e:
-            QMessageBox.critical(self, "解析错误", str(e))
-            return {
-                'task_name': '邮件任务',
-                'task_content': f'解析失败: {str(e)}',
-                'source': 'msg',
-                'error': str(e)
-            }
-        except Exception as e:
-            QMessageBox.critical(self, "解析错误", f"解析MSG文件失败: {e}")
-            return {
-                'task_name': '邮件任务',
-                'task_content': f'解析失败: {str(e)}',
-                'source': 'msg',
-                'error': str(e)
-            }
-        
-    def _parse_wechat(self, content: str) -> dict:
-        """解析企业微信"""
-        # TODO: 实现企业微信解析
-        return {
-            'task_name': '企业微信任务',
-            'task_content': content,
-            'source': 'wechat'
-        }
-        
+    
     def _on_clear(self):
         """清除内容"""
         self.input_text.clear()
-        
+    
     def _on_open_file(self):
         """打开文件"""
         if self.radio_image.isChecked():
@@ -268,17 +259,18 @@ class ContentImportWidget(QWidget):
             )
             
         if filepath:
-            self._load_file_content(filepath)
-            
-    def _load_file_content(self, filepath: str):
-        """加载文件内容"""
+            self._load_file(filepath)
+    
+    def _load_file(self, filepath: str):
+        """加载文件"""
+        if filepath.lower().endswith('.msg'):
+            self._load_msg_file(filepath)
+        else:
+            self._load_text_file(filepath)
+    
+    def _load_text_file(self, filepath: str):
+        """加载文本文件"""
         try:
-            # MSG文件特殊处理
-            if filepath.lower().endswith('.msg'):
-                self._load_msg_file(filepath)
-                return
-            
-            # 普通文本文件
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             self.input_text.setPlainText(content)
@@ -286,71 +278,58 @@ class ContentImportWidget(QWidget):
             QMessageBox.critical(self, "错误", f"读取文件失败：{e}")
     
     def _load_msg_file(self, filepath: str):
-        """加载MSG邮件文件"""
+        """加载MSG邮件文件 - 使用业务服务"""
         try:
-            # 尝试解析MSG文件
-            email = MSGParser.parse_file_safe(filepath)
+            # 使用业务服务解析
+            parser = self._parser_service.get_parser('msg')
+            if parser and not parser.is_available():
+                QMessageBox.warning(
+                    self, "库未安装",
+                    "MSG解析库未安装。\n\n请在命令行运行:\npip install extract-msg"
+                )
+                return
             
-            # 显示邮件预览
-            preview = f"【主题】{email.subject or '无主题'}\n"
-            preview += f"【发件人】{email.sender or ''} <{email.sender_email}>\n"
-            preview += f"【时间】{email.date}\n"
-            preview += f"【重要程度】{email.importance}\n"
-            preview += "\n" + "="*50 + "\n"
-            preview += "【正文预览】\n"
-            preview += email.body[:500] if email.body else "(无正文)"
-            if len(email.body or '') > 500:
-                preview += "\n...(正文过长，已截断)"
+            result = parser.parse(filepath)
             
-            if email.attachments:
-                preview += "\n\n" + "="*50 + "\n"
-                preview += f"【附件】{len(email.attachments)}个\n"
-                for att in email.attachments[:5]:
-                    preview += f"  - {att}\n"
-            
-            # 将文件路径存入输入框（用于解析时使用）
-            self.input_text.setPlaceholderText(f"[MSG文件已加载]\n{filepath}")
-            self.input_text.setPlainText(filepath)
-            
-            QMessageBox.information(
-                self, "MSG文件预览",
-                f"已加载邮件文件:\n{filepath}\n\n"
-                f"主题: {email.subject or '无主题'}\n"
-                f"发件人: {email.sender or email.sender_email}\n"
-                f"时间: {email.date}\n\n"
-                f"点击'解析'按钮提取任务信息"
-            )
-            
-        except ImportError as e:
-            QMessageBox.critical(
-                self, "库未安装", 
-                f"{str(e)}\n\n"
-                "请在命令行运行:\npip install extract-msg"
-            )
+            if result.is_success:
+                # 显示预览
+                QMessageBox.information(
+                    self, "MSG文件预览",
+                    result.preview + "\n\n点击'解析'按钮提取任务信息"
+                )
+                # 将文件路径存入输入框
+                self.input_text.setPlainText(filepath)
+            else:
+                error_msg = result.error
+                if result.error_details:
+                    error_msg += f"\n\n详情: {result.error_details}"
+                QMessageBox.critical(self, "错误", error_msg)
+                
         except Exception as e:
             QMessageBox.critical(self, "错误", f"读取MSG文件失败：{e}")
-            
+    
     def _show_help(self):
         """显示帮助"""
-        # 检查MSG库状态
-        msg_lib_info = MSGParser.get_library_info()
-        msg_status = "已安装" if msg_lib_info['available'] else "未安装"
+        # 检查依赖状态
+        deps = self._parser_service.check_dependencies()
         
-        QMessageBox.information(
-            self, "使用帮助",
-            "内容导入说明：\n\n"
-            "• 文本：直接粘贴或输入文字内容\n"
-            "• 图片：导入图片进行OCR识别\n"
-            "• 邮件(MSG)：导入Outlook邮件文件\n"
-            "  MSG解析库状态：" + msg_status + "\n"
-            "• 企业微信：导入聊天记录文件\n\n"
-            "导入流程：\n"
-            "1. 选择导入方式\n"
-            "2. 点击'文件'按钮选择文件\n"
-            "3. 点击'解析'提取任务信息\n"
-            "4. 在右侧确认并保存任务"
-        )
+        help_text = "内容导入说明：\n\n"
+        help_text += "• 文本：直接粘贴或输入文字内容\n"
+        help_text += "• 图片：导入图片进行OCR识别\n"
+        help_text += "• 邮件(MSG)：导入Outlook邮件文件\n"
+        help_text += "• 企业微信：导入聊天记录文件\n\n"
+        help_text += "依赖库状态：\n"
+        for name, available in deps.items():
+            status = "✓ 已安装" if available else "✗ 未安装"
+            help_text += f"  {name}: {status}\n"
+        help_text += "\n导入流程：\n"
+        help_text += "1. 选择导入方式\n"
+        help_text += "2. 点击'文件'按钮选择文件\n"
+        help_text += "3. 点击'解析'提取任务信息\n"
+        help_text += "4. 在右侧确认并保存任务"
         
+        QMessageBox.information(self, "使用帮助", help_text)
+    
     def clear(self):
         """清空输入"""
         self.input_text.clear()
