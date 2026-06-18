@@ -9,6 +9,14 @@ from .data_export import (
     DataValidationService,
 )
 from .statistics import StatisticsService
+from .statistics_service import (
+    StatisticsService as NewStatisticsService,
+    TaskSummary,
+    ResponderStat,
+    ModuleStat,
+    TrendData,
+    get_statistics_service,
+)
 from .recommendations import RecommendationService
 from .performance import (
     PerformanceMonitor,
@@ -39,6 +47,12 @@ __all__ = [
     'DataValidationService',
     # 统计分析
     'StatisticsService',
+    'NewStatisticsService',
+    'TaskSummary',
+    'ResponderStat',
+    'ModuleStat',
+    'TrendData',
+    'get_statistics_service',
     # 推荐服务
     'RecommendationService',
     # 性能优化

@@ -388,14 +388,27 @@ class ImageParser(ContentParser):
 # =============================================================================
 
 class WeChatParser(ContentParser):
-    """企业微信解析器"""
+    """
+    企业微信解析器
+    
+    支持的格式:
+    1. 文本格式 (.txt) - 企业微信导出的纯文本格式
+    2. JSON格式 (.json) - 企业微信导出的JSON格式
+    3. CSV格式 (.csv) - 企业微信导出的CSV格式
+    
+    功能:
+    - 自动识别咨询者姓名
+    - 提取关键模块信息
+    - 合并连续消息
+    - 提取产品型号
+    """
     
     @property
     def parser_type(self) -> str:
         return "wechat"
     
     def is_available(self) -> bool:
-        """企业微信解析器始终可用（占位）"""
+        """企业微信解析器始终可用"""
         return True
     
     def parse(self, content: str) -> ParsedContent:
@@ -404,10 +417,24 @@ class WeChatParser(ContentParser):
         result.source_type = "wechat"
         result.source = "wechat"
         
-        # TODO: 实现企业微信解析
-        result.task_name = '企业微信任务'
-        result.task_content = content
-        result.error = "企业微信解析功能待实现"
+        try:
+            # 导入实际解析器
+            from src.content.wechat_parser import WeChatParser as RealWeChatParser
+            
+            # 使用实际解析器
+            return RealWeChatParser.parse_content(content)
+            
+        except ImportError:
+            result.error = "企业微信解析模块未找到"
+            result.task_name = '企业微信任务'
+            result.task_content = content
+            logger.error("WeChatParser模块导入失败")
+        except Exception as e:
+            result.error = "企业微信解析失败"
+            result.error_details = str(e)
+            result.task_name = '企业微信任务'
+            result.task_content = content
+            logger.error(f"企业微信解析异常: {e}")
         
         return result
 

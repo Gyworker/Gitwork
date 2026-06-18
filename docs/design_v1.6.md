@@ -1,6 +1,6 @@
-# 市场咨询任务跟踪工具 方案设计文档 V1.7
+# 市场咨询任务跟踪工具 方案设计文档 V1.8
 
-**版本**：V1.7
+**版本**：V1.8
 **日期**：2026-06-18
 **状态**：已完成
 
@@ -10,7 +10,15 @@
 
 ### 1.1 版本变更
 
-本版本基于V1.6设计文档，新增以下优化内容：
+本版本基于V1.7设计文档，新增以下优化内容：
+
+#### V4.6补充：功能完善
+
+| 序号 | 功能 | 说明 | 对应模块 |
+|------|------|------|----------|
+| F-6.1 | 企业微信解析 | 完整实现企业微信聊天记录解析 | content.wechat_parser |
+| F-6.2 | 映射学习定时任务 | 每天1:00-6:00自动执行映射学习 | learning.mapping_scheduler |
+| F-6.3 | 数据统计报表 | 完整实现统计分析服务 | core.statistics_service |
 
 #### V4.5补充：通讯录重名处理和推荐库多关键模块
 
@@ -30,14 +38,12 @@
 | M-4.3 | 缺少缓存 | LRU查询缓存 | database |
 | M-4.4 | 缺少索引优化 | 索引检查和优化建议 | database |
 
-#### V4.3补充：通讯录OCR扫描功能
-
-| 序号 | 功能 | 说明 | 对应模块 |
-|------|------|------|----------|
-| F-1 | OCR扫描模式 | 通讯录输入支持OCR识别 | ui.contacts |
-| F-2 | 名片识别 | 从名片图片提取联系人信息 | content.image_ocr_processor |
-
 ### 1.2 核心新增/优化模块
+
+#### V4.6新增模块
+1. **WeChatParser** - 企业微信聊天记录解析器
+2. **MappingScheduler** - 映射学习定时任务调度器
+3. **StatisticsService** - 完整统计数据服务
 
 #### V4.5新增模块
 1. **ContactsManager** - 通讯录管理器（重名处理+同步刷新）
@@ -47,10 +53,6 @@
 1. **BaseDAO** - 基础数据访问对象
 2. **DatabaseAnalyzer** - 数据库性能分析工具
 3. **@cached_query** - 查询缓存装饰器
-
-#### V4.3新增模块
-1. **ContactEditDialog (OCR)** - 通讯录OCR扫描界面
-2. **ImageOCRProcessor** - 图片OCR处理器
 
 ---
 
@@ -862,7 +864,194 @@ class RecommendationService:
 
 ---
 
-## 9. 修订记录
+## 10. V4.6新增模块：功能完善
+
+### 10.1 WeChatParser企业微信解析器
+
+**文件位置**: `src/content/wechat_parser.py`
+
+#### 10.1.1 支持格式
+
+| 格式 | 扩展名 | 说明 |
+|------|--------|------|
+| 文本格式 | .txt | 企业微信导出的纯文本格式 |
+| JSON格式 | .json | 企业微信导出的JSON格式 |
+| CSV格式 | .csv | 企业微信导出的CSV格式 |
+
+#### 10.1.2 核心功能
+
+```python
+class WeChatParser:
+    """企业微信聊天记录解析器"""
+    
+    @classmethod
+    def parse_file(cls, filepath: str) -> WeChatChatRecord:
+        """解析企业微信聊天记录文件"""
+    
+    @classmethod
+    def parse_content(cls, content: str) -> ParsedContent:
+        """解析内容并转换为任务信息"""
+    
+    @classmethod
+    def _extract_key_modules(cls, content: str) -> List[str]:
+        """从内容中提取关键模块"""
+    
+    @classmethod
+    def _extract_products(cls, content: str) -> List[str]:
+        """从内容中提取产品型号"""
+```
+
+#### 10.1.3 解析示例
+
+**输入 (test.txt)**:
+```
+[2026-06-18 10:00] 张三: 请问关于MAC认证的问题
+[2026-06-18 10:05] 李四: MAC认证需要配置RADIUS服务器
+[2026-06-18 10:10] 张三: 谢谢
+```
+
+**输出**:
+```python
+{
+    'source_type': 'wechat',
+    'consultant_name': '张三',
+    'key_module': 'MAC认证、RADIUS',
+    'task_content': '请问关于MAC认证的问题\nMAC认证需要配置RADIUS服务器\n谢谢'
+}
+```
+
+### 10.2 MappingScheduler映射学习定时任务调度器
+
+**文件位置**: `src/learning/mapping_scheduler.py`
+
+#### 10.2.1 调度类型
+
+| 类型 | 说明 | 使用场景 |
+|------|------|----------|
+| DAILY | 每天执行 | 日常映射学习 |
+| WEEKLY | 每周执行 | 周报表生成 |
+| MONTHLY | 每月执行 | 月报表生成 |
+
+#### 10.2.2 核心方法
+
+```python
+class MappingLearningScheduler(MappingScheduler):
+    """映射学习专用调度器"""
+    
+    def setup_default_tasks(self):
+        """设置默认的映射学习任务"""
+        # 每天凌晨1:00执行历史学习
+        self.add_daily_task(
+            name="历史任务映射学习",
+            execution_time="01:00",
+            job_func=lambda: self.mapping_learner.learn_from_history()
+        )
+```
+
+#### 10.2.3 使用示例
+
+```python
+from src.learning.mapping_scheduler import start_scheduler
+
+# 启动调度器
+scheduler = start_scheduler(db, mapping_learner)
+
+# 添加自定义任务
+scheduler.add_daily_task(
+    name="自定义任务",
+    execution_time="02:30",
+    job_func=my_custom_function
+)
+```
+
+#### 10.2.4 执行时间窗口
+
+| 配置项 | 值 | 说明 |
+|--------|-----|------|
+| 默认开始时间 | 01:00 | 凌晨1点 |
+| 默认结束时间 | 06:00 | 凌晨6点 |
+| 任务重试次数 | 3次 | 失败后自动重试 |
+
+### 10.3 StatisticsService统计数据服务
+
+**文件位置**: `src/core/statistics_service.py`
+
+#### 10.3.1 统计功能
+
+| 功能 | 说明 | 返回类型 |
+|------|------|----------|
+| 任务统计 | 总数、状态分布、逾期统计 | TaskSummary |
+| 责任人统计 | 任务排行、处理效率 | List[ResponderStat] |
+| 模块统计 | 模块分布、热度排行 | List[ModuleStat] |
+| 趋势分析 | 按日/周/月统计变化 | List[TrendData] |
+| 效率分析 | 平均处理时长、完成率 | Dict |
+
+#### 10.3.2 核心方法
+
+```python
+class StatisticsService:
+    """统计分析服务"""
+    
+    def get_task_summary(self) -> Dict[str, Any]:
+        """获取任务统计摘要"""
+    
+    def get_responder_stats(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """获取责任人统计"""
+    
+    def get_module_stats(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """获取关键模块统计"""
+    
+    def get_trend_data(self, days: int = 30, granularity: str = 'day') -> List[Dict]:
+        """获取趋势数据"""
+    
+    def generate_summary_report(self) -> str:
+        """生成统计摘要报告"""
+    
+    def export_report(self, format: str = 'txt', filepath: str = None) -> str:
+        """导出统计报告"""
+```
+
+#### 10.3.3 使用示例
+
+```python
+from src.core.statistics_service import get_statistics_service
+
+# 获取统计服务
+service = get_statistics_service()
+
+# 获取任务摘要
+summary = service.get_task_summary()
+
+# 获取责任人排行
+responders = service.get_responder_stats(limit=10)
+
+# 生成报告
+report = service.generate_summary_report()
+
+# 导出报告
+service.export_report(format='json', filepath='report.json')
+```
+
+### 10.4 V4.6验收标准
+
+| 模块 | 验收标准 | 状态 |
+|------|----------|------|
+| WeChatParser | 支持.txt/.json/.csv格式解析 | ✅ |
+| WeChatParser | 自动提取咨询者姓名 | ✅ |
+| WeChatParser | 自动提取关键模块 | ✅ |
+| WeChatParser | 自动提取产品型号 | ✅ |
+| MappingScheduler | 支持每天/每周/每月调度 | ✅ |
+| MappingScheduler | 执行时间窗口限制 | ✅ |
+| MappingScheduler | 任务失败自动重试 | ✅ |
+| StatisticsService | 任务统计（状态/重要程度） | ✅ |
+| StatisticsService | 责任人统计 | ✅ |
+| StatisticsService | 模块统计 | ✅ |
+| StatisticsService | 趋势分析 | ✅ |
+| StatisticsService | 导出报告（txt/json/csv） | ✅ |
+
+---
+
+## 11. 修订记录
 
 | 版本 | 日期 | 修订内容 | 修订人 |
 |------|------|----------|--------|
@@ -873,36 +1062,40 @@ class RecommendationService:
 | V1.4 | 2026-06-13 | 添加MSG邮件导入功能设计 | 开发团队 |
 | V1.5 | 2026-06-18 | 添加CodeCC V4.3评审优化设计 | 开发团队 |
 | V1.6 | 2026-06-18 | 添加E-R图优化设计 | 开发团队 |
-| **V1.7** | **2026-06-18** | **添加通讯录重名处理和推荐库多关键模块设计** | **开发团队** |
+| V1.7 | 2026-06-18 | 添加通讯录重名处理和推荐库多关键模块设计 | 开发团队 |
+| **V1.8** | **2026-06-18** | **添加企业微信解析、映射学习定时任务、数据统计报表设计** | **开发团队** |
 
-### V1.7 修订说明
+### V1.8 修订说明
 
 **修订日期**: 2026-06-18
 
 **新增章节**:
-- 第8章：V4.5新增模块设计
-  - 8.1 ContactsManager通讯录管理器
-  - 8.2 RecommendationService推荐服务增强
-  - 8.3 数据字典
-  - 8.4 V4.5验收标准
+- 第10章：V4.6新增模块设计
+  - 10.1 WeChatParser企业微信解析器
+  - 10.2 MappingScheduler映射学习定时任务调度器
+  - 10.3 StatisticsService统计数据服务
+  - 10.4 V4.6验收标准
 
 **新增内容**:
-1. **通讯录同名区分设计**
-   - 唯一键生成规则：name|employee_id
-   - 业务流程图
+1. **企业微信解析器设计**
+   - 支持.txt/.json/.csv格式
+   - 自动提取咨询者姓名、关键模块、产品型号
 
-2. **推荐库多关键模块合并设计**
-   - 合并逻辑说明
-   - 智能推荐流程图
+2. **映射学习定时任务调度器设计**
+   - 支持每天/每周/每月执行
+   - 执行时间窗口限制（1:00-6:00）
+   - 任务失败自动重试
 
-3. **新增数据字典**
-   - contacts表字段说明
-   - recommendations表字段说明
+3. **统计数据服务设计**
+   - 任务统计、责任人统计、模块统计
+   - 趋势分析、效率分析
+   - 报告生成和导出
 
 **关联文件**:
-- `src/database/contacts_manager.py` - 通讯录管理器
-- `src/database/recommendations.py` - 推荐服务
-- `src/tests/test_v4.5_new_features.py` - 单元测试
+- `src/content/wechat_parser.py` - 企业微信解析器 (500+行)
+- `src/learning/mapping_scheduler.py` - 定时任务调度器 (400+行)
+- `src/core/statistics_service.py` - 统计服务 (500+行)
+- `src/tests/test_v4_5_part2.py` - 单元测试 (400+行)
 
 ---
 
