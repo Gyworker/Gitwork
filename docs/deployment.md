@@ -5,8 +5,8 @@
 | 项目 | 内容 |
 |------|------|
 | 应用名称 | 市场咨询任务跟踪工具 |
-| 版本号 | V1.0 |
-| 发布日期 | 2026-06-16 |
+| 版本号 | V4.4 |
+| 发布日期 | 2026-06-18 |
 | 技术栈 | Python 3.10 + PyQt5 5.15 + SQLite 3 |
 
 ---
@@ -16,9 +16,10 @@
 1. [部署概述](#部署概述)
 2. [环境要求](#环境要求)
 3. [部署步骤](#部署步骤)
-4. [配置说明](#配置说明)
-5. [验证部署](#验证部署)
-6. [常见问题](#常见问题)
+4. [OCR功能部署](#ocr功能部署)
+5. [配置说明](#配置说明)
+6. [验证部署](#验证部署)
+7. [常见问题](#常见问题)
 
 ---
 
@@ -52,7 +53,7 @@
 |------|----------|
 | 操作系统 | Windows 10/11, macOS 10.14+ |
 | Python | 3.10 或更高 |
-| 其他 | 无特殊要求 |
+| Tesseract OCR | 5.0+（可选，用于OCR功能） |
 
 ---
 
@@ -123,7 +124,8 @@ pip install -r requirements.txt
 | PyQt5 | >=5.15.0 | GUI框架 |
 | pandas | >=2.0.0 | 数据处理 |
 | openpyxl | >=3.1.0 | Excel读写 |
-| Pillow | >=10.0.0 | 图片处理（OCR） |
+| Pillow | >=10.0.0 | 图片处理 |
+| pytesseract | >=0.3.10 | OCR识别（可选） |
 | colorlog | >=6.7.0 | 日志彩色输出 |
 | PyYAML | >=6.0.1 | 配置文件 |
 | pytest | >=7.4.0 | 单元测试 |
@@ -133,6 +135,98 @@ pip install -r requirements.txt
 ```bash
 python src/main.py
 ```
+
+---
+
+## OCR功能部署
+
+### 为什么需要OCR功能
+
+OCR（光学字符识别）功能可以从名片、宣传册等图片中自动识别联系人信息，提高数据录入效率。
+
+### 安装步骤
+
+#### Windows
+
+1. **下载Tesseract安装包**
+   - 访问：https://github.com/UB-Mannheim/tesseract/wiki
+   - 下载最新版本的Windows安装包（exe）
+
+2. **运行安装程序**
+   - 双击下载的exe文件
+   - 选择安装目录（默认：`C:\Program Files\Tesseract-OCR`）
+
+3. **选择语言包**
+   - 在组件选择页面，勾选：
+     - `chi_sim` - 简体中文
+     - `eng` - 英文
+   - 也可以添加其他语言包
+
+4. **添加到系统PATH**（可选）
+   - 勾选 "Add to PATH" 选项
+   - 或手动添加安装目录到PATH环境变量
+
+5. **验证安装**
+   ```cmd
+   tesseract --version
+   ```
+
+#### macOS
+
+```bash
+# 使用Homebrew安装
+brew install tesseract
+
+# 安装语言包
+brew install tesseract-lang
+
+# 验证安装
+tesseract --version
+```
+
+#### Linux (Ubuntu/Debian)
+
+```bash
+# 安装Tesseract
+sudo apt-get install tesseract-ocr
+
+# 安装语言包
+sudo apt-get install tesseract-ocr-chi-sim  # 简体中文
+sudo apt-get install tesseract-ocr-eng     # 英文
+
+# 验证安装
+tesseract --version
+```
+
+### 配置OCR路径
+
+如果Tesseract不在系统PATH中，需要在应用中配置路径：
+
+```python
+# 在应用初始化时设置
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+```
+
+或在环境变量中设置：
+
+```bash
+# Windows
+set TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe
+
+# macOS/Linux
+export TESSERACT_PATH=/usr/local/bin/tesseract
+```
+
+### OCR功能验证
+
+1. 启动应用
+2. 打开通讯录页面
+3. 点击"添加"按钮
+4. 选择"OCR扫描"模式
+5. 选择一张名片图片
+6. 点击"开始OCR识别"
+7. 确认识别结果
 
 ---
 
@@ -150,7 +244,7 @@ python src/main.py
 # 应用配置
 app:
   name: "市场咨询任务跟踪工具"
-  version: "1.0"
+  version: "4.4"
   language: "zh_CN"
 
 # 数据库配置
@@ -165,6 +259,13 @@ logging:
   file: "logs/app.log"
   max_size: 10485760       # 最大文件大小（字节）
   backup_count: 5          # 备份文件数量
+
+# OCR配置
+ocr:
+  enabled: true
+  tesseract_path: ""      # 自动从PATH查找，可手动指定
+  language: "chi_sim+eng" # 识别语言
+  timeout: 30             # 超时时间（秒）
 
 # 界面配置
 ui:
@@ -201,6 +302,15 @@ ui:
 | 编辑任务 | 修改任务信息并保存 |
 | 删除任务 | 删除任务并确认 |
 | 数据导出 | 导出为Excel文件 |
+| OCR识别 | 添加通讯录联系人，验证OCR功能 |
+
+### OCR功能验证
+
+1. 准备一张名片图片
+2. 打开通讯录页面
+3. 点击"添加" → 选择"OCR扫描"
+4. 选择图片并点击识别
+5. 确认识别结果正确
 
 ### 日志检查
 
@@ -244,7 +354,7 @@ database:
 1. 关闭应用
 2. 从备份复制数据库文件
    ```bash
-   cp backup/gitwork_backup_20260616.db data/gitwork.db
+   cp backup/gitwork_backup_20260618.db data/gitwork.db
    ```
 3. 启动应用
 
@@ -291,6 +401,39 @@ pip install PyQt5
 2. 检查列标题是否匹配
 3. 确认数据格式正确
 
+### Q5: OCR功能无法使用
+
+**原因**: Tesseract OCR未正确安装
+
+**解决方法**:
+1. 确认Tesseract已安装：
+   ```cmd
+   tesseract --version
+   ```
+2. 确认在系统PATH中：
+   ```cmd
+   where tesseract
+   ```
+3. 如不在PATH中，手动配置tesseract路径
+
+### Q6: OCR识别结果为空
+
+**原因**: 图片质量问题或语言不支持
+
+**解决方法**:
+1. 使用更清晰的名片图片
+2. 确认安装了正确的语言包（chi_sim+eng）
+3. 检查Tesseract版本（建议5.0+）
+
+### Q7: OCR识别结果错误率高
+
+**原因**: 图片模糊或排版复杂
+
+**解决方法**:
+1. 使用更高分辨率的图片
+2. 确保图片清晰、无阴影
+3. 手动核对并修正识别结果
+
 ---
 
 ## 卸载
@@ -303,6 +446,10 @@ pip install PyQt5
    - Windows: `%APPDATA%\Gitwork`
    - macOS: `~/Library/Application Support/Gitwork`
    - Linux: `~/.config/Gitwork`
+4. 如需卸载OCR功能：
+   - Windows: 使用控制面板卸载Tesseract
+   - macOS: `brew uninstall tesseract`
+   - Linux: `sudo apt remove tesseract-ocr`
 
 ### 保留数据
 
@@ -319,5 +466,5 @@ pip install PyQt5
 
 ---
 
-**文档版本**: V1.0  
-**最后更新**: 2026-06-16
+**文档版本**: V4.4  
+**最后更新**: 2026-06-18

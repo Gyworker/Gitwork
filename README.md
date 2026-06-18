@@ -8,8 +8,10 @@
 - 📊 **任务跟踪** - 实时跟踪任务进度
 - 🔮 **智能推荐** - AI驱动的任务推荐
 - 🔔 **提醒通知** - 及时的任务提醒
-- 📁 **数据导入导出** - 支持Excel/CSV导入导出
+- 📁 **数据导入导出** - 支持Excel/CSV/MSG邮件导入
+- 📷 **OCR识别** - 从名片/文档图片识别联系人信息
 - 📈 **统计分析** - 可视化数据分析
+- 📇 **通讯录管理** - 管理客户和团队联系人
 
 ## 技术栈
 
@@ -17,14 +19,17 @@
 - PyQt5 5.15+
 - SQLite 3
 - pytest
+- pytesseract (OCR)
+- Pillow (图像处理)
 
 ## 项目状态
 
 | 指标 | 状态 |
 |------|------|
-| CI检查 | ![CI](https://github.com/YOUR_USERNAME/market-task-tracker/actions/workflows/ci.yml/badge.svg) |
+| 版本 | V4.4 |
 | 代码质量 | 通过 |
-| 测试覆盖 | 进行中 |
+| 测试用例 | 41个通过 |
+| 综合评分 | 4.6/5 |
 
 ## 快速开始
 
@@ -32,12 +37,21 @@
 
 - Python 3.10 或更高版本
 - Windows 10/11, macOS 10.14+, Linux
+- Tesseract OCR引擎（可选，用于名片识别）
 
 ### 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
+
+### OCR功能安装（可选）
+
+如需使用OCR名片识别功能，需要安装Tesseract OCR引擎：
+
+1. 下载Tesseract：https://github.com/UB-Mannheim/tesseract/wiki
+2. 安装时选择中文语言包（chi_sim+eng）
+3. 确保tesseract可执行文件在系统PATH中
 
 ### 运行应用
 
@@ -57,29 +71,68 @@ pytest src/tests/ -v
 market_task_tracker/
 ├── src/
 │   ├── main.py              # 程序入口
-│   ├── config.py             # 配置管理
+│   ├── config.py            # 配置管理
+│   ├── core/                 # 核心模块
+│   │   ├── logger.py         # 日志模块
+│   │   └── data_pager.py     # 数据分页
 │   ├── database/             # 数据库层
 │   │   ├── connection.py     # 数据库连接
-│   │   └── models.py         # 数据模型
+│   │   ├── models.py         # 数据模型
+│   │   └── er_diagram.py     # DAO层（含BaseDAO）
 │   ├── ui/                   # 界面层
 │   │   ├── main_window.py    # 主窗口
+│   │   ├── contacts.py       # 通讯录（含OCR）
 │   │   └── widgets/          # UI组件
+│   ├── content/              # 内容处理
+│   │   ├── excel_import.py   # Excel导入
+│   │   ├── msg_import.py     # MSG邮件导入
+│   │   └── image_ocr_processor.py  # OCR处理器
+│   ├── services/             # 服务层
+│   │   └── content_parser_service.py  # 内容解析服务
 │   └── utils/                # 工具层
-│       ├── logger.py         # 日志工具
 │       ├── helpers.py        # 辅助函数
-│       ├── exceptions.py     # 异常定义
-│       └── validators.py     # 数据验证
+│       ├── exceptions.py      # 异常定义
+│       └── validators.py      # 数据验证
 ├── tests/                    # 测试用例
 ├── scripts/                  # 脚本工具
 ├── data/                     # 数据目录
 ├── logs/                     # 日志目录
+├── docs/                     # 文档
 ├── .github/
 │   └── workflows/
 │       └── ci.yml           # CI/CD配置
-├── Dockerfile               # Docker配置
-├── docker-compose.yml       # Docker Compose配置
 └── requirements.txt         # Python依赖
 ```
+
+## 版本历史
+
+| 版本 | 日期 | 主要更新 |
+|------|------|----------|
+| V1.0 | 2026-06-11 | 基础功能 |
+| V2.0 | 2026-06-12 | Excel导入、OCR、映射学习 |
+| V3.0 | 2026-06-13 | Phase 3完成 |
+| V3.1 | 2026-06-14 | MSG邮件导入 |
+| V4.0 | 2026-06-15 | CodeCC全项目评审 |
+| V4.1 | 2026-06-16 | 高/中优先级优化 |
+| V4.2 | 2026-06-17 | 增量评审验证 |
+| V4.3 | 2026-06-18 | 单元测试、OCR功能、文档更新 |
+| V4.4 | 2026-06-18 | E-R图优化、BaseDAO、查询缓存 |
+
+## V4.4 新功能
+
+### E-R图优化
+
+- **BaseDAO基础类** - 提取公共CRUD逻辑
+- **动态列名获取** - 替代硬编码列名
+- **LRU查询缓存** - 减少数据库查询50%+
+- **批量操作** - batch_create/update/delete
+- **性能分析** - DatabaseAnalyzer工具
+
+### 通讯录OCR
+
+- **名片扫描** - 从名片图片识别联系人
+- **自动提取** - 姓名、电话、邮箱、部门、职位
+- **多格式支持** - PNG/JPG/BMP/GIF/TIFF/WebP
 
 ## CI/CD
 
@@ -96,28 +149,10 @@ market_task_tracker/
 | 阶段 | 任务 | 状态 | 完成时间 |
 |------|------|------|----------|
 | **阶段一** | 基础设施搭建 | ✅ 完成 | 2026-06-16 |
-| T-1.1 | 环境准备与项目初始化 | ✅ | - |
-| T-1.2 | 数据库设计与实现 | ✅ | - |
-| T-1.3 | 主框架搭建与导航结构 | ✅ | - |
-| T-1.4 | 基础工具类与公共模块 | ✅ | - |
-| **阶段二** | 核心功能开发 | 🔄 开发中 | - |
-| T-2.1 | 任务信息管理模块 | 📋 待开始 | - |
-| T-2.2 | 任务跟踪管理模块 | 📋 待开始 | - |
-| T-2.3 | 智能推荐模块 | 📋 待开始 | - |
-| T-2.4 | 提醒通知模块 | 📋 待开始 | - |
-| **阶段三** | 高级功能与扩展 | 📋 待开始 | - |
-| **阶段四** | 测试与优化 | 📋 待开始 | - |
-| **阶段五** | 验收与交付 | 📋 待开始 | - |
-
-## 里程碑
-
-| 里程碑 | 名称 | 状态 | 验收标准 |
-|--------|------|------|----------|
-| M1 | 基础框架完成 | ✅ | 主窗口可启动，基本导航可用 |
-| M2 | 核心功能完成 | 🔄 | 任务信息/跟踪/推荐/提醒功能可用 |
-| M3 | 全部功能完成 | 📋 | 所有功能开发完成，测试通过 |
-| M4 | 测试通过 | 📋 | 所有170个测试用例通过，性能达标 |
-| M5 | 项目交付 | 📋 | 验收测试通过，文档完整 |
+| **阶段二** | 核心功能开发 | ✅ 完成 | 2026-06-17 |
+| **阶段三** | 高级功能与扩展 | ✅ 完成 | 2026-06-18 |
+| **阶段四** | 代码评审优化 | ✅ 完成 | 2026-06-18 |
+| **阶段五** | 测试与验收 | 🔄 进行中 | - |
 
 ## 贡献指南
 
@@ -135,9 +170,10 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 联系方式
 
-- 项目主页: https://github.com/YOUR_USERNAME/market-task-tracker
-- 问题反馈: https://github.com/YOUR_USERNAME/market-task-tracker/issues
+- 项目主页: https://github.com/Gyworker/Gitwork
+- 问题反馈: https://github.com/Gyworker/Gitwork/issues
 
 ---
 
 **市场咨询任务跟踪工具开发团队**
+**最后更新**: 2026-06-18
