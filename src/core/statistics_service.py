@@ -662,7 +662,7 @@ class StatisticsService:
         导出统计报告
         
         Args:
-            format: 报告格式 ('txt', 'json', 'csv')
+            format: 报告格式 ('txt', 'json', 'csv', 'excel')
             filepath: 输出文件路径
             
         Returns:
@@ -674,6 +674,8 @@ class StatisticsService:
             return self._export_json(filepath)
         elif format == 'csv':
             return self._export_csv(filepath)
+        elif format == 'excel':
+            return self._export_excel(filepath)
         else:
             raise ValueError(f"不支持的格式: {format}")
     
@@ -732,6 +734,342 @@ class StatisticsService:
             writer.writerow(['责任人', '总任务', '进行中', '已完成'])
             for r in self.get_responder_stats():
                 writer.writerow([r['responder'], r['total_tasks'], r['in_progress'], r['completed']])
+        
+        return filepath
+    
+    def _export_excel(self, filepath: str = None) -> str:
+        """
+        导出Excel格式报告（多Sheet）
+        
+        Args:
+            filepath: 输出文件路径
+            
+        Returns:
+            str: 文件路径
+        """
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            logger.error("请安装openpyxl: pip install openpyxl")
+            raise ImportError("导出Excel需要安装openpyxl库")
+        
+        if not filepath:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filepath = f'统计报告_{timestamp}.xlsx'
+        
+        # 创建工作簿
+        wb = Workbook()
+        
+        # 样式定义
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        title_font = Font(bold=True, size=14)
+        subtitle_font = Font(bold=True, size=12)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        center_align = Alignment(horizontal='center', vertical='center')
+        left_align = Alignment(horizontal='left', vertical='center')
+        
+        # =========================================================================
+        # Sheet1: 统计概览
+        # =========================================================================
+        ws_summary = wb.active
+        ws_summary.title = "统计概览"
+        
+        row = 1
+        # 标题
+        ws_summary.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
+        ws_summary.cell(row=row, column=1, value="市场咨询任务跟踪工具 - 统计报告")
+        ws_summary.cell(row=row, column=1).font = title_font
+        ws_summary.cell(row=row, column=1).alignment = center_align
+        
+        row += 1
+        ws_summary.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
+        ws_summary.cell(row=row, column=1, value=f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        ws_summary.cell(row=row, column=1).alignment = center_align
+        
+        # 获取数据
+        summary = self.get_task_summary()
+        efficiency = self.get_efficiency_analysis()
+        
+        row += 2
+        # 任务概览标题
+        ws_summary.cell(row=row, column=1, value="【任务概览】").font = subtitle_font
+        row += 1
+        
+        # 概览数据
+        overview_data = [
+            ("总任务数", summary.get('total', 0)),
+            ("今日新增", summary.get('today_created', 0)),
+            ("今日完成", summary.get('today_completed', 0)),
+            ("逾期任务", summary.get('overdue', 0)),
+        ]
+        
+        for label, value in overview_data:
+            ws_summary.cell(row=row, column=1, value=label)
+            ws_summary.cell(row=row, column=2, value=value)
+            ws_summary.cell(row=row, column=1).border = thin_border
+            ws_summary.cell(row=row, column=2).border = thin_border
+            row += 1
+        
+        row += 1
+        # 效率分析标题
+        ws_summary.cell(row=row, column=1, value="【效率分析】").font = subtitle_font
+        row += 1
+        
+        # 效率数据
+        efficiency_data = [
+            ("平均处理时长", f"{efficiency.get('avg_duration_hours', 0)} 小时"),
+            ("平均响应时长", f"{efficiency.get('avg_response_hours', 0)} 小时"),
+            ("完成率", f"{efficiency.get('completion_rate', 0)}%"),
+            ("已完成任务", efficiency.get('completed_tasks', 0)),
+            ("进行中任务", efficiency.get('in_progress_tasks', 0)),
+        ]
+        
+        for label, value in efficiency_data:
+            ws_summary.cell(row=row, column=1, value=label)
+            ws_summary.cell(row=row, column=2, value=value)
+            ws_summary.cell(row=row, column=1).border = thin_border
+            ws_summary.cell(row=row, column=2).border = thin_border
+            row += 1
+        
+        # 设置列宽
+        ws_summary.column_dimensions['A'].width = 20
+        ws_summary.column_dimensions['B'].width = 20
+        
+        # =========================================================================
+        # Sheet2: 状态分布
+        # =========================================================================
+        ws_status = wb.create_sheet("状态分布")
+        
+        row = 1
+        ws_status.cell(row=row, column=1, value="任务状态分布统计").font = title_font
+        ws_status.cell(row=row, column=1).alignment = center_align
+        ws_status.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+        
+        row += 2
+        # 表头
+        headers = ["状态", "数量", "占比"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_status.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        status_data = self.get_status_distribution()
+        for item in status_data:
+            ws_status.cell(row=row, column=1, value=item['status']).border = thin_border
+            ws_status.cell(row=row, column=2, value=item['count']).border = thin_border
+            ws_status.cell(row=row, column=3, value=f"{item['percentage']}%").border = thin_border
+            ws_status.cell(row=row, column=2).alignment = center_align
+            ws_status.cell(row=row, column=3).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_status.column_dimensions['A'].width = 15
+        ws_status.column_dimensions['B'].width = 12
+        ws_status.column_dimensions['C'].width = 12
+        
+        # =========================================================================
+        # Sheet3: 责任人统计
+        # =========================================================================
+        ws_responder = wb.create_sheet("责任人统计")
+        
+        row = 1
+        ws_responder.cell(row=row, column=1, value="责任人任务统计").font = title_font
+        ws_responder.cell(row=row, column=1).alignment = center_align
+        ws_responder.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+        
+        row += 2
+        # 表头
+        headers = ["责任人", "总任务", "进行中", "已完成", "平均时长(小时)"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_responder.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        responder_data = self.get_responder_stats(20)
+        for item in responder_data:
+            ws_responder.cell(row=row, column=1, value=item['responder']).border = thin_border
+            ws_responder.cell(row=row, column=2, value=item['total_tasks']).border = thin_border
+            ws_responder.cell(row=row, column=3, value=item['in_progress']).border = thin_border
+            ws_responder.cell(row=row, column=4, value=item['completed']).border = thin_border
+            ws_responder.cell(row=row, column=5, value=item['avg_duration']).border = thin_border
+            for col in range(2, 6):
+                ws_responder.cell(row=row, column=col).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_responder.column_dimensions['A'].width = 20
+        ws_responder.column_dimensions['B'].width = 10
+        ws_responder.column_dimensions['C'].width = 10
+        ws_responder.column_dimensions['D'].width = 10
+        ws_responder.column_dimensions['E'].width = 15
+        
+        # =========================================================================
+        # Sheet4: 模块统计
+        # =========================================================================
+        ws_module = wb.create_sheet("模块统计")
+        
+        row = 1
+        ws_module.cell(row=row, column=1, value="关键模块统计").font = title_font
+        ws_module.cell(row=row, column=1).alignment = center_align
+        ws_module.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+        
+        row += 2
+        # 表头
+        headers = ["模块名称", "任务数量", "占比"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_module.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        module_data = self.get_module_stats(50)
+        for item in module_data:
+            ws_module.cell(row=row, column=1, value=item['module']).border = thin_border
+            ws_module.cell(row=row, column=2, value=item['count']).border = thin_border
+            ws_module.cell(row=row, column=3, value=f"{item['percentage']}%").border = thin_border
+            ws_module.cell(row=row, column=2).alignment = center_align
+            ws_module.cell(row=row, column=3).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_module.column_dimensions['A'].width = 30
+        ws_module.column_dimensions['B'].width = 12
+        ws_module.column_dimensions['C'].width = 12
+        
+        # =========================================================================
+        # Sheet5: 趋势分析
+        # =========================================================================
+        ws_trend = wb.create_sheet("趋势分析")
+        
+        row = 1
+        ws_trend.cell(row=row, column=1, value="任务创建趋势（近30天）").font = title_font
+        ws_trend.cell(row=row, column=1).alignment = center_align
+        ws_trend.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+        
+        row += 2
+        # 表头
+        headers = ["日期", "新增任务", "完成任务"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_trend.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        trend_data = self.get_trend_data(days=30, granularity='day')
+        for item in trend_data:
+            ws_trend.cell(row=row, column=1, value=item['date']).border = thin_border
+            ws_trend.cell(row=row, column=2, value=item['created']).border = thin_border
+            ws_trend.cell(row=row, column=3, value=item['completed']).border = thin_border
+            for col in range(2, 4):
+                ws_trend.cell(row=row, column=col).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_trend.column_dimensions['A'].width = 15
+        ws_trend.column_dimensions['B'].width = 12
+        ws_trend.column_dimensions['C'].width = 12
+        
+        # =========================================================================
+        # Sheet6: 部门统计
+        # =========================================================================
+        ws_dept = wb.create_sheet("部门统计")
+        
+        row = 1
+        ws_dept.cell(row=row, column=1, value="部门任务统计").font = title_font
+        ws_dept.cell(row=row, column=1).alignment = center_align
+        ws_dept.merge_cells(start_row=row, start_column=1, end_row=row, end_column=5)
+        
+        row += 2
+        # 表头
+        headers = ["部门", "总任务", "已完成", "进行中", "占比"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_dept.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        dept_data = self.get_department_stats()
+        for item in dept_data:
+            ws_dept.cell(row=row, column=1, value=item['department']).border = thin_border
+            ws_dept.cell(row=row, column=2, value=item['total']).border = thin_border
+            ws_dept.cell(row=row, column=3, value=item['completed']).border = thin_border
+            ws_dept.cell(row=row, column=4, value=item['in_progress']).border = thin_border
+            ws_dept.cell(row=row, column=5, value=f"{item['percentage']}%").border = thin_border
+            for col in range(2, 6):
+                ws_dept.cell(row=row, column=col).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_dept.column_dimensions['A'].width = 20
+        ws_dept.column_dimensions['B'].width = 10
+        ws_dept.column_dimensions['C'].width = 10
+        ws_dept.column_dimensions['D'].width = 10
+        ws_dept.column_dimensions['E'].width = 10
+        
+        # =========================================================================
+        # Sheet7: 重要程度分布
+        # =========================================================================
+        ws_importance = wb.create_sheet("重要程度")
+        
+        row = 1
+        ws_importance.cell(row=row, column=1, value="任务重要程度分布").font = title_font
+        ws_importance.cell(row=row, column=1).alignment = center_align
+        ws_importance.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+        
+        row += 2
+        # 表头
+        headers = ["重要程度", "数量", "占比"]
+        for col, header in enumerate(headers, 1):
+            cell = ws_importance.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
+        
+        row += 1
+        # 数据
+        importance_data = self.get_importance_distribution()
+        for item in importance_data:
+            ws_importance.cell(row=row, column=1, value=item['importance']).border = thin_border
+            ws_importance.cell(row=row, column=2, value=item['count']).border = thin_border
+            ws_importance.cell(row=row, column=3, value=f"{item['percentage']}%").border = thin_border
+            ws_importance.cell(row=row, column=2).alignment = center_align
+            ws_importance.cell(row=row, column=3).alignment = center_align
+            row += 1
+        
+        # 设置列宽
+        ws_importance.column_dimensions['A'].width = 15
+        ws_importance.column_dimensions['B'].width = 12
+        ws_importance.column_dimensions['C'].width = 12
+        
+        # 保存文件
+        wb.save(filepath)
+        logger.info(f"Excel报告已导出: {filepath}")
         
         return filepath
 

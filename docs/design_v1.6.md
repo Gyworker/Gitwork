@@ -985,6 +985,7 @@ scheduler.add_daily_task(
 | 模块统计 | 模块分布、热度排行 | List[ModuleStat] |
 | 趋势分析 | 按日/周/月统计变化 | List[TrendData] |
 | 效率分析 | 平均处理时长、完成率 | Dict |
+| 报告导出 | txt/json/csv/excel多格式 | str |
 
 #### 10.3.2 核心方法
 
@@ -1008,7 +1009,7 @@ class StatisticsService:
         """生成统计摘要报告"""
     
     def export_report(self, format: str = 'txt', filepath: str = None) -> str:
-        """导出统计报告"""
+        """导出统计报告 (支持: txt, json, csv, excel)"""
 ```
 
 #### 10.3.3 使用示例
@@ -1030,7 +1031,22 @@ report = service.generate_summary_report()
 
 # 导出报告
 service.export_report(format='json', filepath='report.json')
+service.export_report(format='excel', filepath='report.xlsx')
 ```
+
+#### 10.3.4 Excel导出功能
+
+Excel格式导出包含7个工作表：
+
+| 工作表 | 内容 |
+|--------|------|
+| 统计概览 | 总览、效率分析 |
+| 状态分布 | 按状态统计任务数量和占比 |
+| 责任人统计 | 各责任人任务排行和处理效率 |
+| 模块统计 | 关键模块热度排行 |
+| 趋势分析 | 近30天任务创建/完成趋势 |
+| 部门统计 | 各部门任务分布 |
+| 重要程度 | 任务重要程度分布 |
 
 ### 10.4 V4.6验收标准
 
@@ -1047,7 +1063,8 @@ service.export_report(format='json', filepath='report.json')
 | StatisticsService | 责任人统计 | ✅ |
 | StatisticsService | 模块统计 | ✅ |
 | StatisticsService | 趋势分析 | ✅ |
-| StatisticsService | 导出报告（txt/json/csv） | ✅ |
+| StatisticsService | 导出报告（txt/json/csv/excel） | ✅ |
+| StatisticsService | Excel多Sheet导出（7个工作表） | ✅ |
 
 ---
 

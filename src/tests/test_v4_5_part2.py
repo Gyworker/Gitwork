@@ -432,6 +432,171 @@ class TestStatisticsServiceDatabase(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
 
+class TestStatisticsExcelExport(unittest.TestCase):
+    """统计服务Excel导出测试"""
+    
+    def setUp(self):
+        """初始化测试环境"""
+        from src.core.statistics_service import StatisticsService
+        
+        self.service = StatisticsService()
+        self.temp_dir = tempfile.mkdtemp()
+    
+    def test_export_report_excel_format(self):
+        """测试Excel格式导出"""
+        # 模拟数据库返回
+        with patch.object(self.service, 'get_task_summary') as mock_summary, \
+             patch.object(self.service, 'get_efficiency_analysis') as mock_eff, \
+             patch.object(self.service, 'get_status_distribution') as mock_status, \
+             patch.object(self.service, 'get_importance_distribution') as mock_importance, \
+             patch.object(self.service, 'get_responder_stats') as mock_responder, \
+             patch.object(self.service, 'get_module_stats') as mock_module, \
+             patch.object(self.service, 'get_department_stats') as mock_dept, \
+             patch.object(self.service, 'get_trend_data') as mock_trend:
+            
+            mock_summary.return_value = {'total': 100, 'today_created': 5, 'today_completed': 3, 'overdue': 2}
+            mock_eff.return_value = {'avg_duration_hours': 24.0, 'avg_response_hours': 12.0, 'completion_rate': 70.0, 'completed_tasks': 70, 'in_progress_tasks': 30}
+            mock_status.return_value = [{'status': '进行中', 'count': 30, 'percentage': 30.0}, {'status': '完成', 'count': 70, 'percentage': 70.0}]
+            mock_importance.return_value = [{'importance': '高', 'count': 25, 'percentage': 25.0}]
+            mock_responder.return_value = [{'responder': '张三', 'total_tasks': 30, 'in_progress': 10, 'completed': 20, 'avg_duration': 24.0}]
+            mock_module.return_value = [{'module': 'MAC认证', 'count': 20, 'percentage': 20.0}]
+            mock_dept.return_value = [{'department': '技术部', 'total': 50, 'completed': 35, 'in_progress': 15, 'percentage': 50.0}]
+            mock_trend.return_value = [{'date': '2026-06-18', 'created': 5, 'completed': 3}]
+            
+            # 导出Excel
+            filepath = os.path.join(self.temp_dir, 'test_report.xlsx')
+            result = self.service.export_report(format='excel', filepath=filepath)
+            
+            # 验证文件生成
+            self.assertTrue(os.path.exists(result))
+            self.assertTrue(result.endswith('.xlsx'))
+            
+            # 验证文件内容
+            try:
+                from openpyxl import load_workbook
+                wb = load_workbook(result)
+                
+                # 验证Sheet
+                self.assertIn('统计概览', wb.sheetnames)
+                self.assertIn('状态分布', wb.sheetnames)
+                self.assertIn('责任人统计', wb.sheetnames)
+                self.assertIn('模块统计', wb.sheetnames)
+                self.assertIn('趋势分析', wb.sheetnames)
+                self.assertIn('部门统计', wb.sheetnames)
+                self.assertIn('重要程度', wb.sheetnames)
+                
+                # 验证统计概览Sheet内容
+                ws_summary = wb['统计概览']
+                self.assertEqual(ws_summary.cell(row=1, column=1).value, '市场咨询任务跟踪工具 - 统计报告')
+                
+                wb.close()
+            except ImportError:
+                self.skipTest("openpyxl未安装")
+    
+    def test_export_excel_default_filepath(self):
+        """测试Excel导出默认文件名"""
+        with patch.object(self.service, 'get_task_summary') as mock_summary, \
+             patch.object(self.service, 'get_efficiency_analysis') as mock_eff, \
+             patch.object(self.service, 'get_status_distribution') as mock_status, \
+             patch.object(self.service, 'get_importance_distribution') as mock_importance, \
+             patch.object(self.service, 'get_responder_stats') as mock_responder, \
+             patch.object(self.service, 'get_module_stats') as mock_module, \
+             patch.object(self.service, 'get_department_stats') as mock_dept, \
+             patch.object(self.service, 'get_trend_data') as mock_trend:
+            
+            mock_summary.return_value = {'total': 0}
+            mock_eff.return_value = {}
+            mock_status.return_value = []
+            mock_importance.return_value = []
+            mock_responder.return_value = []
+            mock_module.return_value = []
+            mock_dept.return_value = []
+            mock_trend.return_value = []
+            
+            # 不指定路径，生成默认文件名
+            result = self.service.export_report(format='excel')
+            
+            self.assertTrue(os.path.exists(result))
+            self.assertTrue('统计报告_' in result)
+            self.assertTrue(result.endswith('.xlsx'))
+    
+    def test_export_unsupported_format(self):
+        """测试不支持的格式"""
+        with self.assertRaises(ValueError) as context:
+            self.service.export_report(format='pdf')
+        
+        self.assertIn('不支持的格式', str(context.exception))
+    
+    def test_export_excel_with_all_data(self):
+        """测试导出完整数据"""
+        with patch.object(self.service, 'get_task_summary') as mock_summary, \
+             patch.object(self.service, 'get_efficiency_analysis') as mock_eff, \
+             patch.object(self.service, 'get_status_distribution') as mock_status, \
+             patch.object(self.service, 'get_importance_distribution') as mock_importance, \
+             patch.object(self.service, 'get_responder_stats') as mock_responder, \
+             patch.object(self.service, 'get_module_stats') as mock_module, \
+             patch.object(self.service, 'get_department_stats') as mock_dept, \
+             patch.object(self.service, 'get_trend_data') as mock_trend:
+            
+            mock_summary.return_value = {'total': 100, 'today_created': 5, 'today_completed': 3, 'overdue': 2}
+            mock_eff.return_value = {'avg_duration_hours': 24.0, 'avg_response_hours': 12.0, 'completion_rate': 70.0}
+            mock_status.return_value = [
+                {'status': '进行中', 'count': 30, 'percentage': 30.0},
+                {'status': '完成', 'count': 50, 'percentage': 50.0},
+                {'status': '挂起', 'count': 20, 'percentage': 20.0}
+            ]
+            mock_importance.return_value = [
+                {'importance': '高', 'count': 25, 'percentage': 25.0},
+                {'importance': '中', 'count': 50, 'percentage': 50.0},
+                {'importance': '低', 'count': 25, 'percentage': 25.0}
+            ]
+            mock_responder.return_value = [
+                {'responder': '张三', 'total_tasks': 30, 'in_progress': 10, 'completed': 20, 'avg_duration': 24.0},
+                {'responder': '李四', 'total_tasks': 25, 'in_progress': 5, 'completed': 20, 'avg_duration': 20.0}
+            ]
+            mock_module.return_value = [
+                {'module': 'MAC认证', 'count': 20, 'percentage': 20.0},
+                {'module': '802.1x认证', 'count': 15, 'percentage': 15.0}
+            ]
+            mock_dept.return_value = [
+                {'department': '技术部', 'total': 50, 'completed': 35, 'in_progress': 15, 'percentage': 50.0}
+            ]
+            mock_trend.return_value = [
+                {'date': '2026-06-18', 'created': 5, 'completed': 3},
+                {'date': '2026-06-17', 'created': 8, 'completed': 6}
+            ]
+            
+            filepath = os.path.join(self.temp_dir, 'full_report.xlsx')
+            result = self.service.export_report(format='excel', filepath=filepath)
+            
+            self.assertTrue(os.path.exists(result))
+            
+            # 验证数据完整性
+            try:
+                from openpyxl import load_workbook
+                wb = load_workbook(result)
+                
+                # 验证状态分布
+                ws_status = wb['状态分布']
+                self.assertEqual(ws_status.cell(row=4, column=1).value, '进行中')
+                self.assertEqual(ws_status.cell(row=4, column=2).value, 30)
+                
+                # 验证责任人统计
+                ws_responder = wb['责任人统计']
+                self.assertEqual(ws_responder.cell(row=4, column=1).value, '张三')
+                self.assertEqual(ws_responder.cell(row=4, column=2).value, 30)
+                
+                wb.close()
+            except ImportError:
+                self.skipTest("openpyxl未安装")
+    
+    def tearDown(self):
+        """清理测试环境"""
+        import shutil
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+
 # =============================================================================
 # 测试运行器
 # =============================================================================
@@ -446,6 +611,7 @@ if __name__ == '__main__':
     suite.addTests(loader.loadTestsFromTestCase(TestMappingScheduler))
     suite.addTests(loader.loadTestsFromTestCase(TestStatisticsService))
     suite.addTests(loader.loadTestsFromTestCase(TestStatisticsServiceDatabase))
+    suite.addTests(loader.loadTestsFromTestCase(TestStatisticsExcelExport))
     
     # 运行
     runner = unittest.TextTestRunner(verbosity=2)
