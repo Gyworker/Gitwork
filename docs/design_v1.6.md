@@ -1067,6 +1067,10 @@ Excel格式导出包含7个工作表：
 | StatisticsService | Excel多Sheet导出（7个工作表） | ✅ |
 | MainWindow | 统计报表导出按钮 | ✅ |
 | MainWindow | 格式选择对话框（xlsx/json/csv/txt） | ✅ |
+| MainWindow | 任务导出功能（带时间戳） | ✅ |
+| ContactsWidget | 通讯录导出功能（带时间戳） | ✅ |
+| RecommendationWidget | 推荐库导出功能（带时间戳） | ✅ |
+| ExportUtils | 统一导出工具模块 | ✅ |
 
 ---
 

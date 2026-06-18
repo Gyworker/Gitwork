@@ -201,8 +201,51 @@ class ContactWidget(QDialog):
             
     def _on_export(self):
         """导出通讯录"""
-        # TODO: 实现导出逻辑
-        QMessageBox.information(self, "提示", "导出功能开发中...")
+        from PyQt5.QtWidgets import QFileDialog
+        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
+        from src.content.excel_import import ExcelExporter
+        from src.database.contacts_manager import ContactsManager
+        import os
+
+        logger.info("打开通讯录导出对话框")
+
+        # 生成带时间戳的默认文件名
+        default_name = generate_export_filename(ExportPrefix.CONTACTS_EXPORT, ExportExtension.EXCEL)
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出通讯录",
+            default_name,
+            "Excel文件 (*.xlsx)"
+        )
+
+        if not filepath:
+            return
+
+        try:
+            # 获取通讯录管理器
+            db = ContactsManager()
+            exporter = ExcelExporter(db)
+
+            # 导出
+            result = exporter.export_all(filepath)
+
+            QMessageBox.information(
+                self,
+                "导出成功",
+                f"通讯录已导出到:\n{result}",
+                QMessageBox.Ok
+            )
+            logger.info(f"通讯录导出成功: {result}")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "导出失败",
+                f"导出通讯录时出错:\n{str(e)}",
+                QMessageBox.Ok
+            )
+            logger.error(f"通讯录导出失败: {e}")
 
 
 class ContactEditDialog(QDialog):

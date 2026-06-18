@@ -183,32 +183,21 @@ class MainWindow(QMainWindow):
 
     def _on_export_statistics(self) -> None:
         """导出统计报表"""
-        from PyQt5.QtWidgets import QFileDialog, QMessageBox
-        from datetime import datetime
+        from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog
+        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
 
         logger.info("打开统计报表导出对话框")
 
         # 弹出格式选择对话框
         format_items = ["Excel (.xlsx)", "JSON (.json)", "CSV (.csv)", "文本 (.txt)"]
         format_map = {
-            "Excel (.xlsx)": "excel",
-            "JSON (.json)": "json",
-            "CSV (.csv)": "csv",
-            "文本 (.txt)": "txt"
-        }
-        extensions_map = {
-            "excel": "Excel Files (*.xlsx)",
-            "json": "JSON Files (*.json)",
-            "csv": "CSV Files (*.csv)",
-            "txt": "Text Files (*.txt)"
+            "Excel (.xlsx)": ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"),
+            "JSON (.json)": ("json", ExportExtension.JSON, "JSON Files (*.json)"),
+            "CSV (.csv)": ("csv", ExportExtension.CSV, "CSV Files (*.csv)"),
+            "文本 (.txt)": ("txt", ExportExtension.TXT, "Text Files (*.txt)")
         }
 
         # 选择格式
-        format_dialog = QFileDialog()
-        format_dialog.setWindowTitle("选择导出格式")
-
-        # 创建格式选择对话框
-        from PyQt5.QtWidgets import QInputDialog
         selected_format, ok = QInputDialog.getItem(
             self,
             "导出统计报表",
@@ -221,27 +210,17 @@ class MainWindow(QMainWindow):
         if not ok or not selected_format:
             return
 
-        format_type = format_map.get(selected_format, "excel")
-        extension = extensions_map.get(format_type, "Excel Files (*.xlsx)")
+        format_type, extension, file_filter = format_map.get(selected_format, 
+                                                             ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"))
 
-        # 选择保存路径
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        default_name = f'统计报告_{timestamp}'
-
-        if format_type == "excel":
-            default_name += '.xlsx'
-        elif format_type == "json":
-            default_name += '.json'
-        elif format_type == "csv":
-            default_name += '.csv'
-        else:
-            default_name += '.txt'
+        # 生成带时间戳的默认文件名
+        default_name = generate_export_filename(ExportPrefix.STATISTICS_REPORT, extension)
 
         filepath, _ = QFileDialog.getSaveFileName(
             self,
             "保存统计报表",
             default_name,
-            extension
+            file_filter
         )
 
         if not filepath:
@@ -271,6 +250,83 @@ class MainWindow(QMainWindow):
                 QMessageBox.Ok
             )
             logger.error(f"导出统计报表失败: {e}")
+
+    def _on_export_tasks(self) -> None:
+        """导出任务列表"""
+        from PyQt5.QtWidgets import QFileDialog
+        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
+        from src.core.data_export import DataExportService
+        from src.database.task_info import TaskInfoDB
+
+        logger.info("打开任务导出对话框")
+
+        # 格式选择
+        format_items = ["Excel (.xlsx)", "CSV (.csv)"]
+        format_map = {
+            "Excel (.xlsx)": ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"),
+            "CSV (.csv)": ("csv", ExportExtension.CSV, "CSV Files (*.csv)")
+        }
+
+        from PyQt5.QtWidgets import QInputDialog
+        selected_format, ok = QInputDialog.getItem(
+            self,
+            "导出任务",
+            "请选择导出格式:",
+            format_items,
+            0,
+            False
+        )
+
+        if not ok or not selected_format:
+            return
+
+        format_type, extension, file_filter = format_map.get(selected_format,
+                                                             ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"))
+
+        # 生成带时间戳的默认文件名
+        default_name = generate_export_filename(ExportPrefix.TASK_EXPORT, extension)
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出任务",
+            default_name,
+            file_filter
+        )
+
+        if not filepath:
+            return
+
+        try:
+            # 获取任务数据
+            db = TaskInfoDB()
+            tasks = db.get_all_tasks()
+
+            # 导出
+            exporter = DataExportService(db)
+            if format_type == "excel":
+                success = exporter.export_tasks_to_excel(tasks, filepath)
+            else:
+                success = exporter.export_tasks_to_csv(tasks, filepath)
+
+            if success:
+                QMessageBox.information(
+                    self,
+                    "导出成功",
+                    f"任务列表已导出到:\n{filepath}",
+                    QMessageBox.Ok
+                )
+                logger.info(f"任务导出成功: {filepath}")
+            else:
+                raise Exception("导出失败")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "导出失败",
+                f"导出任务时出错:\n{str(e)}",
+                QMessageBox.Ok
+            )
+            logger.error(f"任务导出失败: {e}")
 
     def _init_menu(self) -> None:
         """初始化菜单栏"""
@@ -344,6 +400,7 @@ class MainWindow(QMainWindow):
         # 导出按钮
         export_btn = QPushButton("导出")
         export_btn.setMaximumWidth(80)
+        export_btn.clicked.connect(self._on_export_tasks)
         toolbar.addWidget(export_btn)
 
         # 统计报表按钮

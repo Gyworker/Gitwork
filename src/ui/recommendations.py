@@ -282,14 +282,63 @@ class RecommendationWidget(QDialog):
             
     def _on_export(self):
         """导出推荐库"""
+        from PyQt5.QtWidgets import QFileDialog
+        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
+        from src.database.recommendations import RecommendationDB
+        import csv
+
+        logger.info("打开推荐库导出对话框")
+
+        # 生成带时间戳的默认文件名
+        default_name = generate_export_filename(ExportPrefix.RECOMMENDATIONS_EXPORT, ExportExtension.CSV)
+
         filepath, _ = QFileDialog.getSaveFileName(
-            self, "导出推荐库", "推荐库.csv",
+            self,
+            "导出推荐库",
+            default_name,
             "CSV文件 (*.csv)"
         )
-        
-        if filepath:
-            # TODO: 实现导出逻辑
-            QMessageBox.information(self, "提示", "导出功能开发中...")
+
+        if not filepath:
+            return
+
+        try:
+            # 获取推荐库数据
+            db = RecommendationDB()
+            records = db.get_all_recommendations()
+
+            # 导出CSV
+            with open(filepath, 'w', encoding='utf-8-sig', newline='') as f:
+                writer = csv.writer(f)
+                # 写入表头
+                writer.writerow(['姓名', '关键模块', '工号', '手机号', '邮箱', '部门'])
+                # 写入数据
+                for record in records:
+                    writer.writerow([
+                        record.get('name', ''),
+                        record.get('key_module', ''),
+                        record.get('employee_id', ''),
+                        record.get('phone', ''),
+                        record.get('email', ''),
+                        record.get('department', '')
+                    ])
+
+            QMessageBox.information(
+                self,
+                "导出成功",
+                f"推荐库已导出到:\n{filepath}",
+                QMessageBox.Ok
+            )
+            logger.info(f"推荐库导出成功: {filepath}")
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "导出失败",
+                f"导出推荐库时出错:\n{str(e)}",
+                QMessageBox.Ok
+            )
+            logger.error(f"推荐库导出失败: {e}")
 
 
 class RecommendationEditDialog(QDialog):
