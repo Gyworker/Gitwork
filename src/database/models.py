@@ -10,15 +10,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-# 延迟导入避免循环依赖
-_logger = None
+from ..utils.logger import get_logger
+from ..utils.helpers import generate_id, get_current_timestamp
+from .connection import get_db_connection
 
-def _get_logger():
-    global _logger
-    if _logger is None:
-        from ..utils.logger import get_logger
-        _logger = get_logger(__name__)
-    return _logger
+logger = get_logger(__name__)
 
 
 class TaskStatus(Enum):
@@ -83,8 +79,10 @@ class Task(BaseModel):
         inquirer_company: str = "",
         inquirer_phone: str = "",
         inquirer_email: str = "",
+        inquirer_employee_id: str = "",  # 新增：咨询者工号
         respondent: str = "",
         respondent_dept: str = "",
+        respondent_employee_id: str = "",  # 新增：答复人工号
         industry: str = "",
         key_module: str = "",
         task_content: str = "",
@@ -110,8 +108,10 @@ class Task(BaseModel):
             inquirer_company: 咨询者公司
             inquirer_phone: 咨询者电话
             inquirer_email: 咨询者邮箱
+            inquirer_employee_id: 咨询者工号（用于区分重名）
             respondent: 答复人姓名
             respondent_dept: 答复人部门
+            respondent_employee_id: 答复人工号（用于区分重名）
             industry: 所属行业
             key_module: 关键模块
             task_content: 任务内容
@@ -134,8 +134,10 @@ class Task(BaseModel):
         self.inquirer_company = inquirer_company
         self.inquirer_phone = inquirer_phone
         self.inquirer_email = inquirer_email
+        self.inquirer_employee_id = inquirer_employee_id
         self.respondent = respondent
         self.respondent_dept = respondent_dept
+        self.respondent_employee_id = respondent_employee_id
         self.industry = industry
         self.key_module = key_module
         self.task_content = task_content
@@ -174,18 +176,18 @@ class Task(BaseModel):
                 values.append(self.task_id)
                 sql = f"UPDATE tasks SET {set_clause} WHERE task_id = ?"
                 self._db.execute(sql, tuple(values), commit=True)
-                _get_logger().info(f"任务更新成功: {self.task_id}")
+                logger.info(f"任务更新成功: {self.task_id}")
             else:
                 # 新增
                 columns = ", ".join(data.keys())
                 placeholders = ", ".join(["?" for _ in data])
                 sql = f"INSERT INTO tasks ({columns}) VALUES ({placeholders})"
                 self._db.execute(sql, tuple(data.values()), commit=True)
-                _get_logger().info(f"任务创建成功: {self.task_id}")
+                logger.info(f"任务创建成功: {self.task_id}")
 
             return True
         except Exception as e:
-            _get_logger().error(f"保存任务失败: {e}")
+            logger.error(f"保存任务失败: {e}")
             return False
 
     def delete(self) -> bool:
@@ -197,10 +199,10 @@ class Task(BaseModel):
         """
         try:
             self._db.delete("tasks", "task_id = ?", (self.task_id,))
-            _get_logger().info(f"任务删除成功: {self.task_id}")
+            logger.info(f"任务删除成功: {self.task_id}")
             return True
         except Exception as e:
-            _get_logger().error(f"删除任务失败: {e}")
+            logger.error(f"删除任务失败: {e}")
             return False
 
     @classmethod
@@ -386,10 +388,10 @@ class TaskTrackRecord(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO task_track_records ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            _get_logger().info(f"跟踪记录创建成功: {self.record_id}")
+            logger.info(f"跟踪记录创建成功: {self.record_id}")
             return True
         except Exception as e:
-            _get_logger().error(f"保存跟踪记录失败: {e}")
+            logger.error(f"保存跟踪记录失败: {e}")
             return False
 
     @classmethod
@@ -453,10 +455,10 @@ class Recommendation(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO recommendations ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            _get_logger().info(f"推荐记录创建成功: {self.rec_id}")
+            logger.info(f"推荐记录创建成功: {self.rec_id}")
             return True
         except Exception as e:
-            _get_logger().error(f"保存推荐记录失败: {e}")
+            logger.error(f"保存推荐记录失败: {e}")
             return False
 
 
@@ -502,10 +504,10 @@ class Reminder(BaseModel):
             placeholders = ", ".join(["?" for _ in data])
             sql = f"INSERT INTO reminders ({columns}) VALUES ({placeholders})"
             self._db.execute(sql, tuple(data.values()), commit=True)
-            _get_logger().info(f"提醒记录创建成功: {self.reminder_id}")
+            logger.info(f"提醒记录创建成功: {self.reminder_id}")
             return True
         except Exception as e:
-            _get_logger().error(f"保存提醒记录失败: {e}")
+            logger.error(f"保存提醒记录失败: {e}")
             return False
 
     def trigger(self) -> bool:
@@ -522,11 +524,36 @@ class Reminder(BaseModel):
 
             sql = f"UPDATE reminders SET {set_clause} WHERE reminder_id = ?"
             self._db.execute(sql, tuple(values), commit=True)
-            _get_logger().info(f"提醒已触发: {self.reminder_id}")
+            logger.info(f"提醒已触发: {self.reminder_id}")
             return True
         except Exception as e:
-            _get_logger().error(f"触发提醒失败: {e}")
+            logger.error(f"触发提醒失败: {e}")
             return False
+
+
+def _migrate_add_employee_id_to_tasks(db: "DatabaseConnection") -> None:
+    """迁移：为tasks表添加工号字段（向后兼容）"""
+    try:
+        # 检查是否已有 inquirer_employee_id 列
+        rows = db.fetchall("PRAGMA table_info(tasks)")
+        columns = [row[1] for row in rows]
+
+        if "inquirer_employee_id" not in columns:
+            db.execute(
+                "ALTER TABLE tasks ADD COLUMN inquirer_employee_id TEXT",
+                commit=True
+            )
+            logger.info("已添加 inquirer_employee_id 字段到 tasks 表")
+
+        if "respondent_employee_id" not in columns:
+            db.execute(
+                "ALTER TABLE tasks ADD COLUMN respondent_employee_id TEXT",
+                commit=True
+            )
+            logger.info("已添加 respondent_employee_id 字段到 tasks 表")
+
+    except Exception as e:
+        logger.error(f"迁移工号字段失败: {e}")
 
 
 def init_database() -> bool:
@@ -538,7 +565,7 @@ def init_database() -> bool:
     """
     db = get_db_connection()
 
-    # 创建任务表
+    # 创建任务表（包含工号字段）
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS tasks (
@@ -549,8 +576,10 @@ def init_database() -> bool:
             inquirer_company TEXT,
             inquirer_phone TEXT,
             inquirer_email TEXT,
+            inquirer_employee_id TEXT,
             respondent TEXT,
             respondent_dept TEXT,
+            respondent_employee_id TEXT,
             industry TEXT,
             key_module TEXT,
             task_content TEXT,
@@ -568,6 +597,9 @@ def init_database() -> bool:
     """,
         commit=True,
     )
+
+    # 迁移：为旧表添加工号字段
+    _migrate_add_employee_id_to_tasks(db)
 
     # 创建跟踪记录表
     db.execute(
@@ -658,5 +690,5 @@ def init_database() -> bool:
         commit=True,
     )
 
-    _get_logger().info("数据库表结构初始化完成")
+    logger.info("数据库表结构初始化完成")
     return True
