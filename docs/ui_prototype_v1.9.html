@@ -1567,6 +1567,22 @@
             text-align: right;
         }
 
+        /* V1.9新增：任务跟踪区多选警告样式 */
+        .track-multi-warning {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* V1.9新增：智能学习&应答弹窗样式 */
         .doc-import-zone {
             background: #F5F5F5;
@@ -1962,6 +1978,21 @@
                             <button class="track-btn" style="background: #4CAF50; color: white; border-color: #4CAF50;" onclick="showSmartLearningPage()">🧠 智能学习</button>
                         </div>
 
+                        <!-- V1.9新增：任务跟踪区多选警告区域 - 多选时显示 -->
+                        <div id="trackMultiSelectWarning" class="track-multi-warning" style="display: none; background: #FFF3E0; border: 2px solid #FF9800; border-radius: 4px; padding: 10px 15px; margin: 8px 12px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 20px; color: #E65100;">⚠️</span>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 12px; color: #E65100; font-weight: bold;">多选任务警告</div>
+                                    <div style="font-size: 11px; color: #666; margin-top: 2px;">
+                                        您已选择 <strong id="trackSelectedCount">0</strong> 个任务。"智能学习&应答"功能仅支持关联<strong>单个任务</strong>。
+                                        <span style="color: #E65100;">请取消部分选择后重试。</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 10px; background: #FFF; color: #E65100; border-color: #E65100;" onclick="clearExtraSelections()">取消选择</button>
+                            </div>
+                        </div>
+
                         <!-- 筛选栏 -->
                         <div class="filter-bar">
                             <span class="filter-label">筛选:</span>
@@ -2033,7 +2064,7 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><input type="checkbox"></td>
+                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
                                         <td>1</td>
                                         <td>产品报价咨询</td>
                                         <td><span class="status-tag status-progress">进行中</span></td>
@@ -2045,7 +2076,7 @@
                                         <td><span class="action-link" onclick="showDetail(1)">详情</span><span class="reminder-count" onclick="showReminder(1)">提醒(3/6)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox"></td>
+                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
                                         <td>2</td>
                                         <td>技术方案确认</td>
                                         <td><span class="status-tag status-pending">挂起</span></td>
@@ -2057,7 +2088,7 @@
                                         <td><span class="action-link" onclick="showDetail(2)">详情</span><span class="reminder-count" onclick="showReminder(2)">提醒(2/4)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox"></td>
+                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
                                         <td>3</td>
                                         <td>需求调研</td>
                                         <td><span class="status-tag status-replied">已答复</span></td>
@@ -2069,7 +2100,7 @@
                                         <td><span class="action-link" onclick="showDetail(3)">详情</span><span class="reminder-count" onclick="showReminder(3)">提醒(1/6)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox"></td>
+                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
                                         <td>4</td>
                                         <td>合同条款</td>
                                         <td><span class="status-tag status-done">完成</span></td>
@@ -3230,21 +3261,23 @@ CREATE TABLE recommendations (
             const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
             const selectedCount = checkedRows.length;
 
+            // 隐藏任务跟踪区的多选警告
+            document.getElementById('trackMultiSelectWarning').style.display = 'none';
+
             if (selectedCount === 0) {
                 alert('⚠️ 请先在"任务跟踪"列表中选中一个任务，再使用"智能学习&应答"功能');
                 return;
             }
 
             if (selectedCount > 1) {
-                // 显示多选警告
-                document.getElementById('multiSelectWarning').classList.remove('hidden');
-                document.getElementById('multiSelectWarning').querySelector('#selectedCount').textContent = selectedCount;
-                document.getElementById('taskLinkSection').classList.add('hidden');
+                // V1.9修改：在任务跟踪区显示多选警告，不打开弹窗
+                const warningEl = document.getElementById('trackMultiSelectWarning');
+                document.getElementById('trackSelectedCount').textContent = selectedCount;
+                warningEl.style.display = 'block';
+                // 不打开弹窗，直接返回
+                return;
             } else {
                 // 单选，显示正常，获取任务信息
-                document.getElementById('multiSelectWarning').classList.add('hidden');
-                document.getElementById('taskLinkSection').classList.remove('hidden');
-
                 // 获取选中行
                 const selectedRow = checkedRows[0].closest('tr');
 
@@ -3263,7 +3296,6 @@ CREATE TABLE recommendations (
 
                 // 重置分页
                 currentSimilarPage = 1;
-                updateSimilarTaskDisplay();
             }
 
             // 默认显示"相似任务参考"标签页
@@ -3271,6 +3303,39 @@ CREATE TABLE recommendations (
 
             // 显示弹窗
             showSmartLearningModal();
+        }
+
+        // V1.9新增：清除多选，只保留第一个选择
+        function clearExtraSelections() {
+            const table = document.querySelector('.table-container table');
+            const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+
+            // 取消除第一个之外的所有选择
+            for (let i = 1; i < checkedRows.length; i++) {
+                checkedRows[i].checked = false;
+            }
+
+            // 隐藏多选警告
+            document.getElementById('trackMultiSelectWarning').style.display = 'none';
+
+            // 显示成功提示
+            alert('✅ 已取消选择，现在只保留了 1 个任务选择。\n您可以再次点击"智能学习&应答"按钮。');
+        }
+
+        // V1.9新增：实时检测任务选中数量
+        function updateTaskSelectionStatus() {
+            const table = document.querySelector('.table-container table');
+            const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+            const selectedCount = checkedRows.length;
+
+            // 更新选中状态显示
+            const warningEl = document.getElementById('trackMultiSelectWarning');
+            if (selectedCount > 1) {
+                document.getElementById('trackSelectedCount').textContent = selectedCount;
+                warningEl.style.display = 'block';
+            } else {
+                warningEl.style.display = 'none';
+            }
         }
 
         function showSmartLearningModal() {
