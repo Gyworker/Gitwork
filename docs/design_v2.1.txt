@@ -1,0 +1,703 @@
+# 市场咨询任务跟踪工具 方案设计
+
+**文档版本**：V2.1  
+**创建日期**：2026年6月13日  
+**更新日期**：2026年6月22日  
+**文档状态**：已评审
+
+---
+
+## 评审记录
+
+### 评审会议信息
+
+| 项目 | 内容 |
+|------|------|
+| 评审日期 | 2026年6月22日 |
+| 评审对象 | 市场咨询任务跟踪工具方案设计V2.0 |
+| 评审结论 | 通过评审，建议V2.1版本 |
+| 评审人 | AI助手 |
+
+### 评审意见
+
+| 序号 | 评审维度 | 评分 | 问题/建议 |
+|------|----------|------|----------|
+| 1 | 完整性 | ⭐⭐⭐⭐⭐ | 设计完整，新增自动备份、主题切换技术方案 |
+| 2 | 可行性 | ⭐⭐⭐⭐⭐ | 技术方案可行，代码实现完整 |
+| 3 | 一致性 | ⭐⭐⭐⭐⭐ | 与需求文档保持一致 |
+| 4 | 可维护性 | ⭐⭐⭐⭐⭐ | 模块化设计，代码结构清晰 |
+
+---
+
+## 一、系统架构
+
+### 1.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Presentation Layer (UI)                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │
+│  │ MainWindow  │ │ TaskTrack   │ │ ImportExport│         │
+│  └─────────────┘ └─────────────┘ └─────────────┘         │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │
+│  │SmartLearning│ │AutoBackup   │ │ThemeConfig │ ⭐V2.1   │
+│  └─────────────┘ └─────────────┘ └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│                     Business Logic Layer (Service)           │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │
+│  │ ReminderSvc │ │ BackupSvc   │ │ LearningSvc │         │
+│  └─────────────┘ └─────────────┘ └─────────────┘         │
+│  ┌─────────────┐ ┌─────────────┐                          │
+│  │AutoBackupSvc│ │ThemeManager │ ⭐V2.1                   │
+│  └─────────────┘ └─────────────┘                          │
+├─────────────────────────────────────────────────────────────┤
+│                     Data Access Layer (DAO)                 │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │
+│  │ TaskDao    │ │ContactDao   │ │ BaseDao     │         │
+│  └─────────────┘ └─────────────┘ └─────────────┘         │
+├─────────────────────────────────────────────────────────────┤
+│                     Data Layer (SQLite)                     │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │
+│  │ tasks      │ │ contacts    │ │backup_rec.  │         │
+│  └─────────────┘ └─────────────┘ └─────────────┘         │
+│  ┌─────────────┐ ┌─────────────┐                          │
+│  │reminders   │ │learn_records│                          │
+│  └─────────────┘ └─────────────┘                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 技术栈
+
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| UI层 | PyQt5 | Qt5 Python绑定 |
+| 业务层 | Python 3.x | 核心业务逻辑 |
+| 数据层 | SQLite | 本地数据库 |
+| OCR | Tesseract | 本地OCR引擎 |
+
+---
+
+## 二、核心模块设计
+
+### 2.1 自动备份模块（V2.1新增）
+
+#### 2.1.1 模块结构
+
+```
+AutoBackupService
+├── AutoBackupConfig        # 配置管理
+│   ├── DEFAULT_CONFIG      # 默认配置
+│   ├── frequency_seconds   # 频率秒数转换
+│   └── should_backup_now() # 备份时机判断
+└── AutoBackupService       # 服务实现
+    ├── _timer             # 定时器
+    ├── _running           # 运行状态
+    └── _schedule_next()   # 调度下次备份
+```
+
+#### 2.1.2 类图
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    AutoBackupConfig                      │
+├─────────────────────────────────────────────────────────┤
+│ - config: Dict                                          │
+│ - DEFAULT_CONFIG: Dict                                   │
+├─────────────────────────────────────────────────────────┤
+│ + get(key): Any                                        │
+│ + set(key, value): None                                 │
+│ + save(): bool                                         │
+│ + frequency_seconds: int                                │
+│ + should_backup_now(): bool                            │
+│ + get_next_backup_time(): datetime                     │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                    AutoBackupService                      │
+├─────────────────────────────────────────────────────────┤
+│ - _instance: AutoBackupService (单例)                   │
+│ - config: AutoBackupConfig                              │
+│ - backup_service: BackupService                         │
+│ - _timer: threading.Timer                               │
+│ - _running: bool                                       │
+├─────────────────────────────────────────────────────────┤
+│ + start(): None                                        │
+│ + stop(): None                                         │
+│ + trigger_backup(reason): bool                         │
+│ + update_config(config_dict): bool                     │
+│ + get_status(): Dict                                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 2.1.3 核心流程
+
+**定时备份流程：**
+```
+1. 服务启动 → 检查启用状态
+2. 计算下次备份时间
+3. 启动定时器
+4. 定时器触发 → 执行备份
+5. 更新配置（上次备份时间）
+6. 清理旧备份
+7. 安排下次备份
+```
+
+**启动时备份流程：**
+```
+1. 程序启动
+2. 检查配置（backup_on_startup）
+3. 判断是否应该备份（should_backup_now）
+4. 后台线程执行备份
+5. 标记启动备份已完成
+```
+
+#### 2.1.4 配置表设计
+
+```sql
+CREATE TABLE auto_backup_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    config_data TEXT NOT NULL,  -- JSON格式配置
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+配置JSON结构：
+```json
+{
+    "enabled": true,
+    "frequency": "daily",
+    "backup_time": "02:00",
+    "keep_count": 7,
+    "max_backup_size_mb": 100,
+    "backup_on_startup": true,
+    "backup_on_shutdown": true,
+    "notify_on_backup": true,
+    "include_logs": false,
+    "compression_level": 6,
+    "last_backup_time": "2026-06-22T08:00:00",
+    "last_backup_path": "/path/to/backup.zip",
+    "auto_backup_count": 42
+}
+```
+
+#### 2.1.5 备份文件结构
+
+```
+backup_YYYYMMDD_HHMMSS.zip
+├── database.db          # 数据库文件
+└── metadata.json       # 元数据
+    {
+        "backup_type": "自动",
+        "backup_time": "20260622_080000",
+        "app_version": "2.1.0",
+        "task_count": 100,
+        "contact_count": 50
+    }
+```
+
+---
+
+### 2.2 主题管理模块（V2.1新增）
+
+#### 2.2.1 模块结构
+
+```
+ThemeManager
+├── ThemeType            # 主题类型枚举
+│   ├── LIGHT           # 浅色主题
+│   ├── DARK            # 深色主题
+│   └── AUTO            # 自动切换
+├── ThemeColors          # 颜色配置
+│   ├── LIGHT           # 浅色配色
+│   └── DARK            # 深色配色
+├── ThemeConfig         # 配置管理
+│   ├── DEFAULT_CONFIG  # 默认配置
+│   └── font_size      # 字体大小
+└── ThemeManager        # 核心管理器
+    ├── apply_theme()   # 应用主题
+    ├── toggle_theme()  # 切换主题
+    └── generate_stylesheet()  # 生成QSS
+```
+
+#### 2.2.2 类图
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      ThemeType                            │
+├─────────────────────────────────────────────────────────┤
+│ + LIGHT: ThemeType                                       │
+│ + DARK: ThemeType                                        │
+│ + AUTO: ThemeType                                       │
+├─────────────────────────────────────────────────────────┤
+│ + display_name: str                                     │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                     ThemeColors                           │
+├─────────────────────────────────────────────────────────┤
+│ + LIGHT: Dict (浅色主题颜色)                            │
+│ + DARK: Dict (深色主题颜色)                             │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                     ThemeConfig                          │
+├─────────────────────────────────────────────────────────┤
+│ - config: Dict                                          │
+│ - DEFAULT_CONFIG: Dict                                   │
+├─────────────────────────────────────────────────────────┤
+│ + save(): bool                                         │
+│ + get(key): Any                                        │
+│ + set(key, value): None                                │
+│ + theme_type: ThemeType                                │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ThemeManager                           │
+├─────────────────────────────────────────────────────────┤
+│ - _instance: ThemeManager (单例)                        │
+│ - config: ThemeConfig                                   │
+│ - current_theme: ThemeType                             │
+│ - colors: Dict                                         │
+├─────────────────────────────────────────────────────────┤
+│ + apply_theme(theme_type): None                        │
+│ + toggle_theme(): None                                 │
+│ + generate_stylesheet(): str                           │
+│ + set_font_size(size): None                            │
+│ + get_current_theme(): ThemeType                        │
+│ + get_colors(): Dict                                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 2.2.3 颜色配置
+
+**浅色主题颜色：**
+```python
+LIGHT = {
+    "primary": "#1976D2",
+    "primary_dark": "#1565C0",
+    "bg_main": "#FFFFFF",
+    "bg_secondary": "#F5F5F5",
+    "text_primary": "#212121",
+    "text_secondary": "#757575",
+    "border": "#E0E0E0",
+    "success": "#4CAF50",
+    "warning": "#FF9800",
+    "error": "#F44336",
+    # ... 更多颜色
+}
+```
+
+**深色主题颜色：**
+```python
+DARK = {
+    "primary": "#90CAF9",
+    "primary_dark": "#64B5F6",
+    "bg_main": "#121212",
+    "bg_secondary": "#1E1E1E",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#B0B0B0",
+    "border": "#424242",
+    "success": "#81C784",
+    "warning": "#FFB74D",
+    "error": "#E57373",
+    # ... 更多颜色
+}
+```
+
+#### 2.2.4 QSS样式生成
+
+```python
+def generate_stylesheet(self) -> str:
+    """生成完整的QSS样式表"""
+    colors = self.colors
+    font_size = self.config.get("font_size", 10)
+    font_family = self.config.get("font_family", "Microsoft YaHei")
+    
+    return f"""
+    QMainWindow {{
+        background-color: {colors['bg_main']};
+        color: {colors['text_primary']};
+    }}
+    QWidget {{
+        background-color: {colors['bg_main']};
+        color: {colors['text_primary']};
+    }}
+    QPushButton {{
+        background-color: {colors['btn_primary_bg']};
+        color: {colors['btn_primary_text']};
+        border: none;
+        padding: 6px 16px;
+        border-radius: 4px;
+    }}
+    /* ... 更多样式 */
+    """
+```
+
+#### 2.2.5 主题应用流程
+
+```
+1. 用户选择主题
+2. ThemeManager.apply_theme(ThemeType)
+3. 更新配置保存
+4. 获取目标颜色
+5. 生成完整QSS
+6. 应用到QApplication
+7. 刷新所有窗口
+```
+
+---
+
+## 三、数据库设计
+
+### 3.1 自动备份配置表
+
+```sql
+-- 自动备份配置表
+CREATE TABLE auto_backup_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    config_data TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 备份记录表（扩展自backup_service）
+CREATE TABLE backup_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    backup_type VARCHAR(20) NOT NULL,
+    backup_file TEXT NOT NULL,
+    backup_size INTEGER,
+    task_count INTEGER,
+    contact_count INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 3.2 E-R图
+
+```
+┌──────────────────┐       ┌──────────────────┐
+│ auto_backup_     │       │ backup_records   │
+│ config            │       │                  │
+├──────────────────┤       ├──────────────────┤
+│ id (PK)          │       │ id (PK)          │
+│ config_data      │       │ backup_type      │
+│ updated_at       │       │ backup_file      │
+└──────────────────┘       │ backup_size      │
+                           │ task_count      │
+                           │ contact_count   │
+                           │ created_at      │
+                           └──────────────────┘
+                                    ▲
+                                    │
+                         ┌──────────┴──────────┐
+                         │                     │
+                  ┌──────┴──────┐        ┌─────┴─────┐
+                  │   tasks     │        │ contacts   │
+                  ├─────────────┤        ├───────────┤
+                  │ id (PK)     │        │ id (PK)   │
+                  │ task_name   │        │ name      │
+                  │ ...         │        │ ...       │
+                  └─────────────┘        └───────────┘
+```
+
+---
+
+## 四、UI设计
+
+### 4.1 自动备份配置界面
+
+#### 4.1.1 界面布局
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ AutoBackupConfigWidget                                      │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 📊 自动备份状态                                          │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 启用状态:    [QLabel]                                   │ │
+│ │ 运行状态:    [QLabel]                                   │ │
+│ │ 上次备份:    [QLabel]                                   │ │
+│ │ 下次备份:    [QLabel]                                   │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ ⚙️ 基本设置                                              │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ [QCheckBox] 启用自动备份功能                            │ │
+│ │ [QCheckBox] 程序启动时自动备份                          │ │
+│ │ [QCheckBox] 程序关闭时自动备份                          │ │
+│ │ [QCheckBox] 备份完成时发送通知                          │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 📅 备份策略                                              │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 备份频率: [QComboBox]    备份时间: [QTimeEdit]         │ │
+│ │ 保留备份数: [QSpinBox]                                   │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 🔧 高级设置                                              │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 最大备份大小: [QSpinBox] MB                             │ │
+│ │ 压缩级别: [QSpinBox] (0-9)                             │ │
+│ │ [QCheckBox] 备份时包含日志文件                          │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ [QPushButton 立即备份] [QPushButton 恢复默认] [QPushButton 保存] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.1.2 组件说明
+
+| 组件 | 类型 | 说明 |
+|------|------|------|
+| status_enabled | QLabel | 显示启用状态 |
+| status_running | QLabel | 显示运行状态 |
+| status_last_backup | QLabel | 显示上次备份时间 |
+| status_next_backup | QLabel | 显示下次备份时间 |
+| enable_checkbox | QCheckBox | 启用/禁用自动备份 |
+| frequency_combo | QComboBox | 备份频率选择 |
+| backup_time_edit | QTimeEdit | 每日备份时间 |
+| keep_count_spin | QSpinBox | 保留备份数量 |
+| save_btn | QPushButton | 保存设置 |
+
+---
+
+### 4.2 主题配置界面
+
+#### 4.2.1 界面布局
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ThemeConfigWidget                                           │
+├─────────────────────────────────────────────────────────────┤
+│ 🎨 主题设置                                                 │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 当前状态                                                  │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 当前主题: [QLabel]                                       │ │
+│ │ 主题类型: [QLabel]                                       │ │
+│ │ 字体大小: [QLabel]                                       │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 主题选择                                                  │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 选择主题: [QComboBox]                                    │ │
+│ │ 💡 提示: 浅色主题适合白天使用，深色主题适合夜间使用        │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 字体设置                                                  │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ 字体大小: [QSlider ═════●═════] 10 pt                  │ │
+│ │ 预设: [QPushButton 9] [10] [11] [12]                  │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ 效果预览                                                  │ │
+│ ├─────────────────────────────────────────────────────────┤ │
+│ │ ┌─────────────────────────────────────────────────────┐ │ │
+│ │ │ 预览标题                                             │ │ │
+│ │ │ 这是一段预览文字...                                   │ │ │
+│ │ │ [主要按钮] [次要按钮] [危险按钮]                     │ │ │
+│ │ └─────────────────────────────────────────────────────┘ │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ [QPushButton 🌙 切换主题] [QPushButton ✅ 应用] [QPushButton 重置] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.2 组件说明
+
+| 组件 | 类型 | 说明 |
+|------|------|------|
+| current_theme_label | QLabel | 显示当前主题名称 |
+| theme_type_label | QLabel | 显示主题类型 |
+| font_size_label | QLabel | 显示字体大小 |
+| theme_combo | QComboBox | 主题选择下拉框 |
+| font_slider | QSlider | 字体大小滑块 |
+| preview_card | QFrame | 预览卡片容器 |
+| toggle_btn | QPushButton | 切换主题按钮 |
+
+---
+
+## 五、接口设计
+
+### 5.1 自动备份服务接口
+
+```python
+class AutoBackupService:
+    """自动备份服务类"""
+    
+    def start(self) -> None:
+        """启动自动备份定时器"""
+        
+    def stop(self) -> None:
+        """停止自动备份定时器"""
+        
+    def trigger_backup(self, reason: str = "手动触发") -> bool:
+        """手动触发备份"""
+        
+    def update_config(self, config_dict: Dict) -> bool:
+        """更新配置"""
+        
+    def get_status(self) -> Dict:
+        """获取自动备份状态"""
+```
+
+### 5.2 主题管理服务接口
+
+```python
+class ThemeManager:
+    """主题管理器"""
+    
+    def apply_theme(self, theme_type: ThemeType) -> None:
+        """应用主题"""
+        
+    def toggle_theme(self) -> None:
+        """切换主题"""
+        
+    def generate_stylesheet(self) -> str:
+        """生成QSS样式表"""
+        
+    def set_font_size(self, size: int) -> None:
+        """设置字体大小"""
+        
+    def get_current_theme(self) -> ThemeType:
+        """获取当前主题"""
+        
+    def get_colors(self) -> Dict:
+        """获取当前主题颜色"""
+```
+
+---
+
+## 六、核心算法
+
+### 6.1 备份时机判断算法
+
+```python
+def should_backup_now(self) -> bool:
+    """检查是否应该立即备份"""
+    if not self.config.get("enabled", False):
+        return False  # 未启用
+    
+    last_backup = self.config.get("last_backup_time")
+    if not last_backup:
+        return True  # 从未备份
+    
+    # 计算是否到达下次备份时间
+    last_time = datetime.fromisoformat(last_backup)
+    next_backup = last_time + timedelta(seconds=self.frequency_seconds)
+    return datetime.now() >= next_backup
+```
+
+### 6.2 定时调度算法
+
+```python
+def _schedule_next_backup(self) -> None:
+    """安排下次备份"""
+    next_time = self.config.get_next_backup_time()
+    wait_seconds = (next_time - datetime.now()).total_seconds()
+    
+    if wait_seconds <= 0:
+        wait_seconds = self.config.frequency_seconds
+    
+    self._timer = threading.Timer(wait_seconds, self._on_timer)
+    self._timer.daemon = True
+    self._timer.start()
+```
+
+---
+
+## 七、测试设计
+
+### 7.1 自动备份测试用例
+
+| 用例ID | 用例名称 | 测试步骤 | 预期结果 |
+|--------|----------|----------|----------|
+| AU-001 | 启用自动备份 | 勾选启用复选框并保存 | 启用状态变为"已启用" |
+| AU-002 | 禁用自动备份 | 取消勾选并保存 | 启用状态变为"已禁用" |
+| AU-003 | 修改备份频率 | 选择"每天"并保存 | 状态显示更新为"每天" |
+| AU-004 | 手动立即备份 | 点击"立即备份"按钮 | 创建新备份文件 |
+| AU-005 | 恢复默认配置 | 点击"恢复默认"按钮 | 配置恢复为默认值 |
+
+### 7.2 主题切换测试用例
+
+| 用例ID | 用例名称 | 测试步骤 | 预期结果 |
+|--------|----------|----------|----------|
+| TH-001 | 切换到深色主题 | 点击切换按钮 | 界面变为深色配色 |
+| TH-002 | 切换到浅色主题 | 点击切换按钮 | 界面变为浅色配色 |
+| TH-003 | 调整字体大小 | 拖动滑块到14 | 字体大小变为14pt |
+| TH-004 | 预设字体大小 | 点击"12"预设按钮 | 字体大小变为12pt |
+| TH-005 | 重置主题 | 点击重置按钮 | 恢复浅色主题、10pt字体 |
+
+---
+
+## 八、部署设计
+
+### 8.1 目录结构
+
+```
+market_task_tracker/
+├── src/
+│   ├── market_task_tracker/
+│   │   └── src/
+│   │       ├── core/
+│   │       │   ├── auto_backup_service.py  ⭐V2.1
+│   │       │   ├── theme_manager.py         ⭐V2.1
+│   │       │   └── ...
+│   │       ├── ui/
+│   │       │   └── widgets/
+│   │       │       ├── auto_backup_config_widget.py  ⭐V2.1
+│   │       │       ├── theme_config_widget.py        ⭐V2.1
+│   │       │       └── ...
+│   │       └── ...
+│   └── main.py
+├── backup/                    # 备份文件存储目录
+├── config/
+│   └── theme_config.json     # 主题配置文件
+├── data/
+│   └── market_task_tracker.db
+├── logs/
+└── main.exe
+```
+
+### 8.2 配置文件
+
+**主题配置（theme_config.json）：**
+```json
+{
+    "theme_type": "light",
+    "font_size": 10,
+    "font_family": "Microsoft YaHei",
+    "window_opacity": 1.0,
+    "animations_enabled": true
+}
+```
+
+---
+
+## 九、版本记录
+
+| 版本 | 日期 | 变更内容 |
+|------|------|----------|
+| V1.0 | 2026-06-13 | 初始版本 |
+| V1.5 | 2026-06-15 | 新增导出功能设计 |
+| V1.6 | 2026-06-16 | 新增OCR识别设计 |
+| V1.7 | 2026-06-17 | 新增企业微信集成设计 |
+| V1.8 | 2026-06-18 | 新增MSG邮件解析设计 |
+| V1.9 | 2026-06-22 | 新增智能学习&应答设计 |
+| V2.0 | 2026-06-22 | 新增任务详情编辑设计 |
+| V2.1 | 2026-06-22 | 新增自动备份、主题切换设计 |
+
+---
+
+**文档结束**
+
+*本方案设计定义了市场咨询任务跟踪工具的技术实现方案，包括V2.1版本新增的自动备份和主题切换功能。*
