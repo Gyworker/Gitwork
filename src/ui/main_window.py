@@ -39,6 +39,7 @@ from .widgets.statistics_widget import StatisticsWidget
 from .widgets.library_widget import LibraryWidget
 from .widgets.learning_widget import LearningWidget
 from .widgets.auto_backup_config_widget import AutoBackupConfigWidget
+from .widgets.theme_config_widget import ThemeConfigWidget
 
 logger = get_logger(__name__)
 
@@ -92,7 +93,8 @@ class MainWindow(QMainWindow):
             "📈 统计分析",
             "📚 推荐库",
             "📚 学习积累",
-            "💾 自动备份",  # 新增
+            "💾 自动备份",
+            "🎨 主题设置",  # 新增
         ]
 
         for item_text in nav_items:
@@ -112,6 +114,7 @@ class MainWindow(QMainWindow):
         self.library_widget = LibraryWidget()
         self.learning_widget = LearningWidget()
         self.auto_backup_config_widget = AutoBackupConfigWidget()  # 自动备份配置
+        self.theme_config_widget = ThemeConfigWidget()  # 主题配置
 
         # 添加到工作区
         self.work_area.addWidget(self.task_info_widget)
@@ -123,6 +126,7 @@ class MainWindow(QMainWindow):
         self.work_area.addWidget(self.library_widget)
         self.work_area.addWidget(self.learning_widget)
         self.work_area.addWidget(self.auto_backup_config_widget)  # 自动备份配置
+        self.work_area.addWidget(self.theme_config_widget)  # 主题配置
 
         # 添加到分割器
         splitter.addWidget(self.nav_list)
@@ -243,6 +247,34 @@ class MainWindow(QMainWindow):
         refresh_action.setShortcut("F5")
         view_menu.addAction(refresh_action)
 
+        view_menu.addSeparator()
+
+        # 主题切换子菜单
+        theme_menu = QMenu("主题切换(&T)", self)
+        view_menu.addMenu(theme_menu)
+
+        self.light_theme_action = QAction("☀️ 浅色主题", self, checkable=True)
+        self.light_theme_action.triggered.connect(lambda: self._switch_theme("light"))
+        theme_menu.addAction(self.light_theme_action)
+
+        self.dark_theme_action = QAction("🌙 深色主题", self, checkable=True)
+        self.dark_theme_action.triggered.connect(lambda: self._switch_theme("dark"))
+        theme_menu.addAction(self.dark_theme_action)
+
+        theme_menu.addSeparator()
+
+        self.toggle_theme_action = QAction("🔄 切换主题", self)
+        self.toggle_theme_action.setShortcut("Ctrl+T")
+        self.toggle_theme_action.triggered.connect(self._toggle_theme)
+        theme_menu.addAction(self.toggle_theme_action)
+
+        # 设置菜单
+        settings_menu = menubar.addMenu("设置(&S)")
+
+        preferences_action = QAction("偏好设置(&P)...", self)
+        preferences_action.triggered.connect(self._show_preferences)
+        settings_menu.addAction(preferences_action)
+
         # 帮助菜单
         help_menu = menubar.addMenu("帮助(&H)")
 
@@ -316,6 +348,40 @@ class MainWindow(QMainWindow):
             f"市场咨询任务跟踪管理工具\n"
             f"提升团队协作效率",
         )
+
+    def _switch_theme(self, theme_type: str) -> None:
+        """切换主题"""
+        try:
+            from ..core.theme_manager import get_theme_manager, ThemeType
+            theme_manager = get_theme_manager()
+            theme_manager.apply_theme(ThemeType(theme_type))
+            self._update_theme_menu_state(theme_type)
+            logger.info(f"主题已切换: {theme_type}")
+        except Exception as e:
+            logger.error(f"主题切换失败: {e}")
+
+    def _toggle_theme(self) -> None:
+        """切换主题"""
+        try:
+            from ..core.theme_manager import get_theme_manager
+            theme_manager = get_theme_manager()
+            theme_manager.toggle_theme()
+            current_theme = theme_manager.get_current_theme().value
+            self._update_theme_menu_state(current_theme)
+            logger.info(f"主题已切换: {current_theme}")
+        except Exception as e:
+            logger.error(f"主题切换失败: {e}")
+
+    def _update_theme_menu_state(self, current_theme: str) -> None:
+        """更新主题菜单状态"""
+        self.light_theme_action.setChecked(current_theme == "light")
+        self.dark_theme_action.setChecked(current_theme == "dark")
+
+    def _show_preferences(self) -> None:
+        """显示偏好设置"""
+        # 切换到主题设置页面
+        self.nav_list.setCurrentRow(9)  # 主题设置
+        logger.info("打开偏好设置")
 
     def _update_status(self) -> None:
         """更新状态栏"""

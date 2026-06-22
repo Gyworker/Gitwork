@@ -73,6 +73,13 @@ def main() -> None:
         # 设置应用样式
         app.setStyle("Fusion")
 
+        # 初始化主题
+        logger.info("初始化主题...")
+        from .core.theme_manager import get_theme_manager
+        theme_manager = get_theme_manager()
+        app.setStyleSheet(theme_manager.generate_stylesheet())
+        logger.info(f"当前主题: {theme_manager.get_current_theme().value}")
+
         # 创建主窗口
         logger.info("创建主窗口...")
         window = MainWindow()
