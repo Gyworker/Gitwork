@@ -1,0 +1,559 @@
+# 市场咨询任务跟踪工具方案设计 V1.10
+
+---
+
+## 文档信息
+
+| 项目 | 内容 |
+|------|------|
+| 版本 | V1.10 |
+| 日期 | 2026-06-22 |
+| 状态 | 已实现 |
+| 设计完整性 | 100% |
+
+---
+
+## 修订记录
+
+| 版本 | 日期 | 修订内容 | 修订人 |
+|------|------|----------|--------|
+| V1.10 | 2026-06-22 | 补充M7.数据管理自动备份功能完整设计说明 | AI助手 |
+| V1.9 | 2026-06-22 | 新增M7.数据管理自动备份功能设计 | AI助手 |
+| V1.8 | 2026-06-22 | 新增重名区分与数据刷新优化设计 | AI助手 |
+| V1.7 | 2026-06-22 | 新增学习积累功能设计 | AI助手 |
+| V1.6 | 2026-06-14 | CodeCC评审优化E-R图设计 | AI助手 |
+| V1.5 | 2026-06-12 | 优化数据库设计和索引 | AI助手 |
+| V1.4 | 2026-06-10 | 优化代码结构和模块划分 | AI助手 |
+| V1.3 | 2026-06-08 | 新增智能推荐算法设计 | AI助手 |
+| V1.2 | 2026-06-06 | 完善UI界面设计 | AI助手 |
+| V1.1 | 2026-06-04 | 完善数据库设计 | AI助手 |
+| V1.0 | 2026-06-01 | 初始版本架构设计 | AI助手 |
+
+---
+
+## 1. 系统架构
+
+### 1.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        UI 层 (PyQt5)                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ 任务信息  │ │ 任务跟踪  │ │ 智能推荐  │ │ 提醒管理  │        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ 数据导入  │ │ 统计分析  │ │ 推荐库   │ │ 自动备份  │        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      业务逻辑层 (Service)                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
+│  │TaskService │ │Recommend   │ │NotifyService│ │BackupService│ │
+│  │            │ │Service     │ │            │ │Service     │ │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      数据访问层 (DAO)                        │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
+│  │ TaskDAO   │ │ ContactDAO │ │ CategoryDAO│ │BackupDAO  │ │
+│  │           │ │            │ │            │ │           │ │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      数据存储层 (SQLite)                     │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │                    market_task.db                    │  │
+│  │  task_info │ contacts │ categories │ auto_backup_config │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. M7.数据管理 - 自动备份功能设计
+
+### 2.1 设计目标
+
+为市场咨询任务跟踪工具设计自动备份功能模块，提供：
+- 可靠的定时备份机制
+- 灵活的配置管理
+- 直观的用户界面
+- 高效的资源利用
+
+---
+
+### 2.2 系统架构
+
+#### 2.2.1 模块结构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    主程序 MainWindow                     │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │              自动备份配置界面                        │ │
+│  │         AutoBackupConfigWidget                      │ │
+│  └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   自动备份服务                           │
+│              AutoBackupService                          │
+│  ┌─────────────────┐  ┌─────────────────────────────┐ │
+│  │ 自动备份配置     │  │ 定时器管理                    │ │
+│  │AutoBackupConfig  │  │ threading.Timer               │ │
+│  └─────────────────┘  └─────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   备份服务                               │
+│              BackupService                              │
+│  ┌─────────────────┐  ┌─────────────────────────────┐ │
+│  │ 创建备份        │  │ 恢复备份                     │ │
+│  │ create_backup   │  │ restore_backup               │ │
+│  └─────────────────┘  └─────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.3 类设计
+
+#### 2.3.1 BackupFrequency 枚举
+
+```python
+class BackupFrequency(Enum):
+    """备份频率枚举"""
+    EVERY_HOUR = "hourly"        # 每小时
+    EVERY_4_HOURS = "4hours"     # 每4小时
+    EVERY_8_HOURS = "8hours"     # 每8小时
+    DAILY = "daily"              # 每天
+    WEEKLY = "weekly"            # 每周
+    MONTHLY = "monthly"          # 每月
+    
+    @property
+    def seconds(self) -> int:
+        """获取对应秒数"""
+        mapping = {
+            "hourly": 3600,
+            "4hours": 14400,
+            "8hours": 28800,
+            "daily": 86400,
+            "weekly": 604800,
+            "monthly": 2592000
+        }
+        return mapping.get(self.value, 86400)
+```
+
+#### 2.3.2 AutoBackupConfig 配置类
+
+```python
+class AutoBackupConfig:
+    """自动备份配置类"""
+    
+    DEFAULT_CONFIG = {
+        "enabled": False,              # 是否启用
+        "frequency": "daily",          # 备份频率
+        "backup_time": "02:00",        # 每日备份时间
+        "keep_count": 7,               # 保留数量
+        "backup_on_startup": True,     # 启动时备份
+        "backup_on_shutdown": True,    # 关闭时备份
+        "notify_on_backup": True,      # 备份完成通知
+        "backup_path": "backups",      # 备份路径
+        "last_backup_time": None,      # 上次备份时间
+    }
+    
+    def __init__(self):
+        self.db = DatabaseConnection()
+        self.config = self._load_config()
+    
+    def _load_config(self) -> Dict:
+        """从数据库加载配置"""
+        config = self.DEFAULT_CONFIG.copy()
+        rows = self.db.execute("SELECT config_key, config_value FROM auto_backup_config")
+        for key, value in rows:
+            if key in config:
+                # 类型转换
+                if isinstance(config[key], bool):
+                    config[key] = value.lower() == 'true'
+                elif isinstance(config[key], int):
+                    config[key] = int(value)
+                else:
+                    config[key] = value
+        return config
+    
+    def save(self) -> bool:
+        """保存配置到数据库"""
+        for key, value in self.config.items():
+            self.db.execute(
+                "INSERT OR REPLACE INTO auto_backup_config (config_key, config_value, updated_at) VALUES (?, ?, ?)",
+                (key, str(value), datetime.now().isoformat())
+            )
+        return True
+    
+    def should_backup_now(self) -> bool:
+        """判断是否需要立即备份"""
+        if not self.config.get("enabled"):
+            return False
+        
+        last_time = self.config.get("last_backup_time")
+        if not last_time:
+            return True
+        
+        # 检查是否到达备份时间
+        last_dt = datetime.fromisoformat(last_time)
+        interval = self._get_interval_seconds()
+        return (datetime.now() - last_dt).total_seconds() >= interval
+    
+    def _get_interval_seconds(self) -> int:
+        """获取备份间隔秒数"""
+        frequency = self.config.get("frequency", "daily")
+        return BackupFrequency[frequency.upper()].seconds
+    
+    def get_next_backup_time(self) -> Optional[datetime]:
+        """获取下次备份时间"""
+        if not self.config.get("enabled"):
+            return None
+        
+        last_time = self.config.get("last_backup_time")
+        if not last_time:
+            return datetime.now()
+        
+        last_dt = datetime.fromisoformat(last_time)
+        interval = self._get_interval_seconds()
+        return last_dt + timedelta(seconds=interval)
+```
+
+#### 2.3.3 AutoBackupService 服务类
+
+```python
+class AutoBackupService:
+    """自动备份服务（单例模式）"""
+    
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if not hasattr(self, '_initialized'):
+            self.config = AutoBackupConfig()
+            self.backup_service = BackupService()
+            self._timer = None
+            self._running = False
+            self._initialized = True
+    
+    def start(self):
+        """启动自动备份服务"""
+        if self._running:
+            return
+        
+        self._running = True
+        self._schedule_next_backup()
+        
+        # 检查是否需要启动时备份
+        if self.config.config.get("backup_on_startup"):
+            if self.config.should_backup_now():
+                self.trigger_backup("启动备份")
+    
+    def stop(self):
+        """停止自动备份服务"""
+        self._running = False
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+    
+    def trigger_backup(self, reason: str = "手动"):
+        """触发备份"""
+        try:
+            logger.info(f"开始执行{reason}...")
+            
+            # 执行备份
+            result = self.backup_service.create_backup(backup_type=reason)
+            
+            if result:
+                # 更新上次备份时间
+                self.config.config["last_backup_time"] = datetime.now().isoformat()
+                self.config.save()
+                
+                # 清理旧备份
+                self._cleanup_old_backups()
+                
+                logger.info(f"{reason}完成")
+            else:
+                logger.error(f"{reason}失败")
+                
+        except Exception as e:
+            logger.error(f"备份执行异常: {e}")
+    
+    def _schedule_next_backup(self):
+        """调度下次备份"""
+        if not self._running:
+            return
+        
+        # 计算下次备份时间
+        interval = self.config._get_interval_seconds()
+        
+        self._timer = threading.Timer(interval, self._on_timer)
+        self._timer.daemon = True
+        self._timer.start()
+    
+    def _on_timer(self):
+        """定时器回调"""
+        if self._running and self.config.should_backup_now():
+            self.trigger_backup("定时备份")
+        
+        self._schedule_next_backup()
+    
+    def _cleanup_old_backups(self):
+        """清理旧备份"""
+        keep_count = self.config.config.get("keep_count", 7)
+        backup_path = Path(self.config.config.get("backup_path", "backups"))
+        
+        if not backup_path.exists():
+            return
+        
+        # 获取自动备份文件
+        backup_files = sorted(
+            backup_path.glob("backup_*.zip"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True
+        )
+        
+        # 删除超出数量的备份
+        for old_file in backup_files[keep_count:]:
+            try:
+                old_file.unlink()
+                logger.info(f"已删除旧备份: {old_file.name}")
+            except Exception as e:
+                logger.error(f"删除备份失败: {e}")
+    
+    def get_status(self) -> Dict:
+        """获取备份状态"""
+        backup_path = Path(self.config.config.get("backup_path", "backups"))
+        backup_count = 0
+        total_size = 0
+        
+        if backup_path.exists():
+            for f in backup_path.glob("backup_*.zip"):
+                backup_count += 1
+                total_size += f.stat().st_size
+        
+        return {
+            "enabled": self.config.config.get("enabled", False),
+            "running": self._running,
+            "last_backup_time": self.config.config.get("last_backup_time"),
+            "next_backup_time": self.config.get_next_backup_time().isoformat() if self.config.get_next_backup_time() else None,
+            "backup_count": backup_count,
+            "total_size": total_size,
+            "frequency": self.config.config.get("frequency", "daily"),
+        }
+```
+
+---
+
+### 2.4 数据库设计
+
+#### 2.4.1 配置表: auto_backup_config
+
+```sql
+CREATE TABLE IF NOT EXISTS auto_backup_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_key TEXT UNIQUE NOT NULL,
+    config_value TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 初始数据
+INSERT OR IGNORE INTO auto_backup_config (config_key, config_value) VALUES
+    ('enabled', 'false'),
+    ('frequency', 'daily'),
+    ('backup_time', '02:00'),
+    ('keep_count', '7'),
+    ('backup_on_startup', 'true'),
+    ('backup_on_shutdown', 'true'),
+    ('notify_on_backup', 'true'),
+    ('backup_path', 'backups'),
+    ('last_backup_time', NULL);
+```
+
+---
+
+### 2.5 界面设计
+
+#### 2.5.1 AutoBackupConfigWidget 布局
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   💾 自动备份配置                         │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   状态概览面板                        │ │
+│ │  ● 备份状态: 已启用                                  │ │
+│ │  ○ 上次备份: 2026-06-22 02:00:00                    │ │
+│ │  ○ 下次备份: 2026-06-23 02:00:00                    │ │
+│ │  ○ 备份数量: 7 个                                   │ │
+│ │  ○ 总大小: 15.2 MB                                  │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   基本设置面板                        │ │
+│ │  ☑ 启用自动备份                                      │ │
+│ │  ☑ 启动时备份                                        │ │
+│ │  ☑ 关闭时备份                                        │ │
+│ │  ☑ 备份完成通知                                      │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   备份策略面板                        │ │
+│ │  备份频率: [每小时 ▼]                                │ │
+│ │  保留数量: [7▼]个                                   │ │
+│ │  备份路径: [backups________] [选择]                │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   操作按钮面板                        │ │
+│ │  [立即备份]  [恢复备份]  [打开目录]  [刷新状态]       │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.6 核心流程
+
+#### 2.6.1 启动时自动备份流程
+
+```
+程序启动
+    │
+    ▼
+初始化自动备份服务
+    │
+    ▼
+检查 backup_on_startup 配置
+    │
+    ├── 否 → 跳过
+    │
+    └── 是 → 检查是否需要备份
+                │
+                ├── 否 → 跳过
+                │
+                └── 是 → 执行备份
+                            │
+                            ▼
+                        更新 last_backup_time
+                            │
+                            ▼
+                        清理旧备份
+```
+
+#### 2.6.2 定时备份流程
+
+```
+定时器触发
+    │
+    ▼
+检查 enabled 配置
+    │
+    ├── 否 → 重新调度
+    │
+    └── 是 → 检查 should_backup_now()
+                │
+                ├── 否 → 重新调度
+                │
+                └── 是 → 执行备份
+                            │
+                            ▼
+                        记录日志
+                            │
+                            ▼
+                        清理旧备份
+                            │
+                            ▼
+                        重新调度
+```
+
+---
+
+### 2.7 错误处理
+
+#### 2.7.1 错误类型
+| 错误类型 | 说明 | 处理方式 |
+|----------|------|----------|
+| BackupPathNotFoundError | 备份路径不存在 | 自动创建目录 |
+| BackupFileCorruptError | 备份文件损坏 | 记录日志，提示用户 |
+| DatabaseLockedError | 数据库锁定 | 重试机制 |
+| DiskSpaceError | 磁盘空间不足 | 提示用户清理 |
+
+#### 2.7.2 日志记录
+```python
+# 日志格式
+logger.info(f"自动备份服务启动")
+logger.info(f"执行{reason}...")
+logger.info(f"{reason}完成")
+logger.warning(f"备份路径不存在，已创建")
+logger.error(f"备份执行异常: {e}")
+```
+
+---
+
+## 3. 性能优化
+
+### 3.1 定时器优化
+- 使用 threading.Timer 实现低开销定时
+- 后台线程执行，不阻塞主程序
+
+### 3.2 存储优化
+- 备份文件压缩存储
+- 自动清理旧备份
+- 增量备份支持
+
+### 3.3 数据库优化
+- 配置表索引优化
+- 定期分析数据库
+
+---
+
+## 4. 安全性
+
+### 4.1 备份文件安全
+- 备份文件存储在应用目录
+- 支持加密备份（可选）
+
+### 4.2 配置安全
+- 配置存储在数据库
+- 不暴露敏感信息
+
+---
+
+## 5. 附录
+
+### 5.1 相关文档
+- 需求文档: V2.3
+- 测试用例: V3.3
+- 刷新记录: V2.3
+
+### 5.2 文件清单
+
+**新增文件**:
+```
+src/core/auto_backup_service.py          # 自动备份服务
+src/ui/widgets/auto_backup_config_widget.py  # 配置界面
+src/run_app.py                           # 独立入口
+```
+
+**修改文件**:
+```
+src/ui/main_window.py                    # 集成自动备份
+src/main.py                              # 初始化服务
+```
