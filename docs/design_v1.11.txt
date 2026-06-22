@@ -1,0 +1,418 @@
+# 市场咨询任务跟踪工具方案设计 V1.11
+
+---
+
+## 文档信息
+
+| 项目 | 内容 |
+|------|------|
+| 版本 | V1.11 |
+| 日期 | 2026-06-22 |
+| 状态 | 已实现 |
+| 设计完整性 | 100% |
+
+---
+
+## 修订记录
+
+| 版本 | 日期 | 修订内容 | 修订人 |
+|------|------|----------|--------|
+| V1.11 | 2026-06-22 | 新增M8.系统功能 - 主题切换功能设计 | AI助手 |
+| V1.10 | 2026-06-22 | M7.数据管理 - 自动备份功能完整设计 | AI助手 |
+| V1.9 | 2026-06-22 | M7.数据管理 - 自动备份功能设计 | AI助手 |
+| V1.8 | 2026-06-22 | 重名区分与数据刷新优化设计 | AI助手 |
+| V1.7 | 2026-06-22 | 学习积累功能设计 | AI助手 |
+| V1.6 | 2026-06-14 | CodeCC评审优化E-R图设计 | AI助手 |
+| V1.5 | 2026-06-12 | 优化数据库设计和索引 | AI助手 |
+| V1.4 | 2026-06-10 | 优化代码结构和模块划分 | AI助手 |
+| V1.3 | 2026-06-08 | 新增智能推荐算法设计 | AI助手 |
+| V1.2 | 2026-06-06 | 完善UI界面设计 | AI助手 |
+| V1.1 | 2026-06-04 | 完善数据库设计 | AI助手 |
+| V1.0 | 2026-06-01 | 初始版本架构设计 | AI助手 |
+
+---
+
+## 1. 系统架构
+
+### 1.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        UI 层 (PyQt5)                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ 任务信息  │ │ 任务跟踪  │ │ 智能推荐  │ │ 提醒管理  │        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ 数据导入  │ │ 统计分析  │ │ 推荐库   │ │ 主题设置  │        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      业务逻辑层 (Service)                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
+│  │TaskService │ │Recommend   │ │NotifyService│ │ThemeManager│ │
+│  │            │ │Service     │ │            │ │            │ │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      数据访问层 (DAO)                        │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐              │
+│  │ TaskDAO   │ │ ContactDAO │ │ CategoryDAO│              │
+│  │           │ │            │ │            │              │
+│  └────────────┘ └────────────┘ └────────────┘              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. M8.系统功能 - 主题切换功能设计
+
+### 2.1 设计目标
+
+为市场咨询任务跟踪工具设计主题切换功能模块，提供：
+- 灵活的浅色/深色主题切换
+- 完整的QSS样式表覆盖
+- 持久化的主题配置
+- 良好的用户体验
+
+---
+
+### 2.2 系统架构
+
+#### 2.2.1 模块结构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    主程序 MainWindow                     │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │              主题配置界面                           │ │
+│  │            ThemeConfigWidget                        │ │
+│  └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                   主题管理器                             │
+│              ThemeManager (Singleton)                    │
+│  ┌─────────────────┐  ┌─────────────────────────────┐ │
+│  │ 主题配置        │  │ 主题颜色                     │ │
+│  │ ThemeConfig     │  │ ThemeColors                  │ │
+│  └─────────────────┘  └─────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.3 类设计
+
+#### 2.3.1 ThemeType 枚举
+
+```python
+class ThemeType(Enum):
+    """主题类型枚举"""
+    LIGHT = "light"      # 浅色主题
+    DARK = "dark"        # 深色主题
+    AUTO = "auto"        # 自动（跟随系统）
+
+    @property
+    def display_name(self) -> str:
+        """获取显示名称"""
+        names = {
+            "light": "浅色主题",
+            "dark": "深色主题",
+            "auto": "自动切换"
+        }
+        return names.get(self.value, self.value)
+```
+
+#### 2.3.2 ThemeColors 颜色配置
+
+```python
+class ThemeColors:
+    """主题颜色配置"""
+
+    # 浅色主题颜色
+    LIGHT = {
+        # 主色
+        "primary": "#1976D2",
+        "primary_dark": "#1565C0",
+        "primary_light": "#42A5F5",
+        "accent": "#FF5722",
+
+        # 背景色
+        "bg_main": "#FFFFFF",
+        "bg_secondary": "#F5F5F5",
+        "bg_tertiary": "#EEEEEE",
+        "bg_card": "#FFFFFF",
+
+        # 文字颜色
+        "text_primary": "#212121",
+        "text_secondary": "#757575",
+        "text_disabled": "#BDBDBD",
+        "text_on_primary": "#FFFFFF",
+
+        # 边框颜色
+        "border": "#E0E0E0",
+        "border_focus": "#1976D2",
+
+        # 状态颜色
+        "success": "#4CAF50",
+        "warning": "#FF9800",
+        "error": "#F44336",
+        "info": "#2196F3",
+
+        # ... 更多颜色
+    }
+
+    # 深色主题颜色
+    DARK = {
+        # 主色
+        "primary": "#90CAF9",
+        "primary_dark": "#64B5F6",
+        "primary_light": "#BBDEFB",
+
+        # 背景色
+        "bg_main": "#121212",
+        "bg_secondary": "#1E1E1E",
+        "bg_tertiary": "#2D2D2D",
+
+        # 文字颜色
+        "text_primary": "#FFFFFF",
+        "text_secondary": "#B0B0B0",
+
+        # ... 更多颜色
+    }
+```
+
+#### 2.3.3 ThemeConfig 配置管理
+
+```python
+class ThemeConfig:
+    """主题配置管理"""
+
+    DEFAULT_CONFIG = {
+        "theme_type": "light",
+        "font_size": 10,
+        "font_family": "Microsoft YaHei",
+        "window_opacity": 1.0,
+        "animations_enabled": True,
+    }
+
+    def __init__(self) -> None:
+        """初始化配置"""
+        self.config_dir = Path(__file__).parent.parent.parent.parent / "config"
+        self.config_file = self.config_dir / "theme_config.json"
+        self.config = self._load_config()
+
+    def _load_config(self) -> Dict:
+        """加载配置"""
+        if self.config_file.exists():
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                merged = self.DEFAULT_CONFIG.copy()
+                merged.update(config)
+                return merged
+        return self.DEFAULT_CONFIG.copy()
+
+    def save(self) -> bool:
+        """保存配置"""
+        with open(self.config_file, 'w', encoding='utf-8') as f:
+            json.dump(self.config, f, indent=2, ensure_ascii=False)
+        return True
+```
+
+#### 2.3.4 ThemeManager 主题管理器
+
+```python
+class ThemeManager:
+    """主题管理器（单例模式）"""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, '_initialized'):
+            self.config = ThemeConfig()
+            self.current_theme = self.config.theme_type
+            self.colors = self._get_colors()
+            self._initialized = True
+
+    def apply_theme(self, theme_type: ThemeType) -> None:
+        """应用主题"""
+        self.current_theme = theme_type
+        self.config.set("theme_type", theme_type.value)
+        self.colors = self._get_colors()
+
+        # 应用到QApplication
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(self.generate_stylesheet())
+
+    def generate_stylesheet(self) -> str:
+        """生成完整的QSS样式表"""
+        colors = self.colors
+        font_size = self.config.get("font_size", 10)
+        font_family = self.config.get("font_family", "Microsoft YaHei")
+
+        return f"""
+        /* 全局样式 */
+        * {{
+            font-family: "{font_family}", Arial, sans-serif;
+            font-size: {font_size}pt;
+        }}
+
+        QMainWindow {{
+            background-color: {colors['bg_main']};
+            color: {colors['text_primary']};
+        }}
+
+        /* 按钮样式 */
+        QPushButton {{
+            background-color: {colors['btn_primary_bg']};
+            color: {colors['btn_primary_text']};
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+        }}
+
+        /* 更多样式... */
+        """
+```
+
+---
+
+### 2.4 配置文件
+
+#### 2.4.1 主题配置文件
+
+```json
+{
+  "theme_type": "light",
+  "font_size": 10,
+  "font_family": "Microsoft YaHei",
+  "window_opacity": 1.0,
+  "animations_enabled": true
+}
+```
+
+**文件位置**: `config/theme_config.json`
+
+---
+
+### 2.5 界面设计
+
+#### 2.5.1 ThemeConfigWidget 布局
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   🎨 主题设置                            │
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   当前状态                           │ │
+│ │  当前主题: 浅色主题                                  │ │
+│ │  主题类型: light                                     │ │
+│ │  字体大小: 10 pt                                     │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   主题选择                           │ │
+│ │  选择主题: [浅色主题 ▼]                              │ │
+│ │  💡 提示: 浅色主题适合白天使用，深色主题适合夜间使用   │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   字体设置                           │ │
+│ │  字体大小: [======|----] 10 pt                      │ │
+│ │  预设: [9] [10] [11] [12]                           │ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │                   效果预览                           │ │
+│ │  ┌─────────────────────────────────────────────────┐│ │
+│ │  │ 预览标题                                         ││ │
+│ │  │ 这是一段预览文字...                              ││ │
+│ │  │ [主要按钮] [次要按钮] [危险按钮]                  ││ │
+│ │  └─────────────────────────────────────────────────┘│ │
+│ └─────────────────────────────────────────────────────┘ │
+│                                                         │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │  [🌙 切换到深色主题] [✅ 应用主题] [🔄 重置]          │ │
+│ └─────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.6 快捷键设计
+
+| 快捷键 | 功能 | 说明 |
+|--------|------|------|
+| Ctrl+T | 切换主题 | 在浅色和深色主题之间切换 |
+
+---
+
+### 2.7 菜单设计
+
+```
+视图(&V)
+├── 刷新(&R)                          F5
+├── ─────────────────────────
+├── 主题切换(&T)
+│   ├── ☀️ 浅色主题                   ← 可选中
+│   ├── 🌙 深色主题                   ← 可选中
+│   ├── ─────────────────────────
+│   └── 🔄 切换主题                   Ctrl+T
+```
+
+---
+
+## 3. 性能优化
+
+### 3.1 样式表优化
+- 使用CSS变量风格的颜色定义
+- 统一的样式覆盖
+- 高效的样式应用
+
+### 3.2 配置优化
+- 配置文件轻量化
+- 懒加载配置
+- 缓存主题颜色
+
+---
+
+## 4. 安全性
+
+### 4.1 配置安全
+- 配置文件存储在应用目录
+- 不暴露敏感信息
+- 配置文件格式验证
+
+---
+
+## 5. 附录
+
+### 5.1 相关文档
+- 需求文档: V2.4
+- 测试用例: V3.4
+- 刷新记录: V2.4
+
+### 5.2 文件清单
+
+**新增文件**:
+```
+src/core/theme_manager.py              # 主题管理器
+src/ui/widgets/theme_config_widget.py   # 主题配置界面
+```
+
+**修改文件**:
+```
+src/ui/main_window.py                  # 集成主题配置
+src/main.py                            # 初始化主题
+```
