@@ -1566,13 +1566,48 @@
             min-width: 40px;
             text-align: right;
         }
+
+        /* V1.9新增：智能学习&应答弹窗样式 */
+        .doc-import-zone {
+            background: #F5F5F5;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .similar-task-item {
+            transition: all 0.2s;
+        }
+
+        .similar-task-item:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+        }
+
+        .tab-btn {
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: #4CAF50;
+        }
+
+        /* 按钮颜色 */
+        .btn-warning {
+            background: linear-gradient(to bottom, #FFC107, #FF9800);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(to bottom, #FFD54F, #FFC107);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>市场咨询任务跟踪工具 <span class="v1-9-badge">V1.9</span> - 界面原型预览</h1>
-            <p>基于PyQt5的Windows桌面应用界面设计 - V1.9更新版（MSG导入功能融入内容导入区）</p>
+            <p>基于PyQt5的Windows桌面应用界面设计 - V1.9更新版（智能学习&应答功能升级）</p>
         </div>
 
         <div class="main-window">
@@ -1607,9 +1642,9 @@
                 <button class="toolbar-btn primary" onclick="showRecommendImport()">📥 导入推荐库</button>
                 <button class="toolbar-btn primary" onclick="showReminderConfig()">⏰ 提醒周期</button>
                 <!-- V1.9修改：移除独立的MSG导入按钮，MSG已整合到内容导入区的导入方式中 -->
-                <!-- V1.9新增：备份和学习按钮 -->
+                <!-- V1.9新增：备份和智能学习按钮 -->
                 <button class="toolbar-btn backup-btn" onclick="showBackupPage()">💾 自动备份</button>
-                <button class="toolbar-btn learning-btn" onclick="showLearningPage()">📚 学习积累</button>
+                <button class="toolbar-btn learning-btn" onclick="showSmartLearningPage()">🧠 智能学习&应答</button>
                 <!-- V1.8新增：主题切换按钮 -->
                 <button class="toolbar-btn theme-btn" onclick="toggleTheme()">🎨 切换主题</button>
                 <button class="toolbar-btn">⚙️ 设置</button>
@@ -1641,7 +1676,7 @@
                         📚 推荐库
                     </div>
                     <div class="nav-item" onclick="switchNav(this, 'learning')" style="color: #4CAF50;">
-                        📚 学习积累
+                        🧠 智能学习&应答
                     </div>
                     <div class="nav-item" onclick="switchNav(this, 'backup')" style="color: #FF9800;">
                         💾 自动备份
@@ -2329,90 +2364,337 @@
         </div>
     </div>
 
-    <!-- V1.8新增：学习积累弹窗 -->
-    <div class="modal-overlay hidden" id="learningModal">
-        <div class="modal" style="width: 600px;">
+    <!-- V1.9新增：智能学习&应答弹窗 -->
+    <div class="modal-overlay hidden" id="smartLearningModal">
+        <div class="modal" style="width: 850px; max-height: 88vh;">
             <div class="modal-header">
-                <h3>📚 学习积累</h3>
-                <button class="modal-close" onclick="closeLearningModal()">×</button>
+                <h3>🧠 智能学习&应答</h3>
+                <button class="modal-close" onclick="closeSmartLearningModal()">×</button>
             </div>
-            <div class="modal-body">
-                <!-- 学习记录统计 -->
-                <div class="theme-config-section">
-                    <h4>📊 学习统计</h4>
-                    <div style="display: flex; gap: 15px;">
-                        <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
-                            <div style="font-size: 20px; color: #4CAF50; font-weight: bold;">128</div>
-                            <div style="font-size: 10px; color: #666;">总记录数</div>
+            <div class="modal-body" style="max-height: 78vh; overflow-y: auto;">
+                <!-- 任务关联提示 - V1.9新增 -->
+                <div class="theme-config-section" id="taskLinkSection" style="background: #E8F5E9; border: 1px solid #A5D6A7;">
+                    <h4 style="color: #2E7D32;">📌 任务关联</h4>
+                    <div style="font-size: 12px; color: #333; margin-bottom: 8px;">
+                        当前关联任务：<strong id="linkedTaskName">产品报价咨询</strong>
+                        <span style="color: #666;">（关键模块：SmartBox Pro）</span>
+                    </div>
+                    <div style="font-size: 11px; color: #666;">
+                        💡 基于"关键模块"智能匹配相似任务，提供学习参考
+                    </div>
+                </div>
+
+                <!-- 多选任务警告 - V1.9新增 -->
+                <div class="theme-config-section hidden" id="multiSelectWarning" style="background: #FFF3E0; border: 1px solid #FFCC80;">
+                    <h4 style="color: #E65100;">⚠️ 多选任务警告</h4>
+                    <div style="font-size: 12px; color: #333;">
+                        您已选择 <strong id="selectedCount">3</strong> 个任务。<br>
+                        "智能学习&应答"功能仅支持关联<strong>单个任务</strong>，请取消部分选择后重试。
+                    </div>
+                </div>
+
+                <!-- 标签页切换 - V1.9新增 -->
+                <div style="display: flex; gap: 10px; margin: 15px 0; border-bottom: 2px solid #e0e0e0;">
+                    <button class="tab-btn active" id="tab-btn-add" onclick="switchLearningTab('add')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid #4CAF50; color: #4CAF50; font-weight: bold;">➕ 添加学习</button>
+                    <button class="tab-btn" id="tab-btn-similar" onclick="switchLearningTab('similar')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">📋 相似任务</button>
+                    <button class="tab-btn" id="tab-btn-history" onclick="switchLearningTab('history')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">📚 历史记录</button>
+                </div>
+
+                <!-- 添加学习标签页 - V1.9大改 -->
+                <div id="tab-add" class="learning-tab-content">
+                    <!-- 文档导入方式 - V1.9新增 -->
+                    <div class="theme-config-section">
+                        <h4>📥 文档导入方式</h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                            <label class="radio-item">
+                                <input type="radio" name="doc-type" checked onchange="updateDocImportZone('txt')"> 📄 TXT文本
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="doc-type" onchange="updateDocImportZone('image')"> 📷 图片(OCR)
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="doc-type" onchange="updateDocImportZone('excel')"> 📊 Excel
+                            </label>
                         </div>
-                        <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
-                            <div style="font-size: 20px; color: #2196F3; font-weight: bold;">15</div>
-                            <div style="font-size: 10px; color: #666;">本月新增</div>
+
+                        <!-- TXT导入区域 - 默认显示 -->
+                        <div id="doc-zone-txt" class="doc-import-zone">
+                            <div class="form-group">
+                                <label class="form-label">📄 输入学习内容 (TXT文本)</label>
+                                <textarea class="form-textarea" placeholder="请输入或粘贴学习内容..." style="min-height: 120px; font-size: 11px;">今天学习了一个重要的产品报价流程：
+1. 标准产品价格查询 → 产品库
+2. 批量折扣计算 → 折扣表
+3. 交货周期确认 → 供应链系统
+4. 报价单生成 → CRM系统</textarea>
+                            </div>
                         </div>
-                        <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
-                            <div style="font-size: 20px; color: #FF9800; font-weight: bold;">8</div>
-                            <div style="font-size: 10px; color: #666;">待审核</div>
+
+                        <!-- 图片导入区域 - V1.9新增 -->
+                        <div id="doc-zone-image" class="doc-import-zone" style="display: none;">
+                            <div style="background: #FFF8E1; border: 2px dashed #FFC107; border-radius: 8px; padding: 25px; text-align: center;">
+                                <div style="font-size: 40px; margin-bottom: 10px;">📷</div>
+                                <div style="font-size: 12px; color: #F57C00; margin-bottom: 8px;">拖拽图片到此处，或点击选择</div>
+                                <div style="font-size: 10px; color: #666; margin-bottom: 12px;">支持 JPG、PNG、BMP 格式，将自动进行OCR识别</div>
+                                <button class="btn btn-warning" onclick="selectImageFile()">🖼️ 选择图片</button>
+                            </div>
+                            <!-- 图片预览 -->
+                            <div id="imagePreview" class="doc-import-zone" style="display: none; margin-top: 10px; background: #FFFDE7;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 30px;">📄</span>
+                                    <div style="text-align: left;">
+                                        <div style="font-size: 11px; color: #333; font-weight: bold;">报价流程图.jpg</div>
+                                        <div style="font-size: 10px; color: #666;">245 KB</div>
+                                    </div>
+                                    <button class="btn btn-warning" style="margin-left: auto;" onclick="processImageOCR()">🔍 OCR识别</button>
+                                </div>
+                            </div>
+                            <!-- OCR结果 -->
+                            <div id="ocrResult" class="theme-config-section" style="display: none; margin-top: 10px; background: #E8F5E9;">
+                                <h4 style="color: #2E7D32;">✅ OCR识别结果</h4>
+                                <textarea class="form-textarea" style="min-height: 80px; font-size: 11px;" readonly>产品报价流程说明：
+1. 客户需求确认
+2. 产品选型与配置
+3. 价格核算与折扣申请
+4. 报价单制作与发送
+5. 客户反馈跟进</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Excel导入区域 - V1.9新增 -->
+                        <div id="doc-zone-excel" class="doc-import-zone" style="display: none;">
+                            <div style="background: #E3F2FD; border: 2px dashed #2196F3; border-radius: 8px; padding: 25px; text-align: center;">
+                                <div style="font-size: 40px; margin-bottom: 10px;">📊</div>
+                                <div style="font-size: 12px; color: #1565C0; margin-bottom: 8px;">拖拽Excel文件到此处，或点击选择</div>
+                                <div style="font-size: 10px; color: #666; margin-bottom: 12px;">支持 .xlsx、.xls 格式，自动解析表格内容</div>
+                                <button class="btn btn-primary" onclick="selectExcelFile()">📂 选择Excel</button>
+                            </div>
+                            <!-- Excel预览 -->
+                            <div id="excelPreview" class="theme-config-section" style="display: none; margin-top: 10px;">
+                                <h4 style="color: #1565C0;">📊 已选择的Excel文件</h4>
+                                <div style="display: flex; align-items: center; gap: 10px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px;">
+                                    <span style="font-size: 24px;">📊</span>
+                                    <div style="text-align: left; flex: 1;">
+                                        <div style="font-size: 11px; color: #333; font-weight: bold;">学习知识库.xlsx</div>
+                                        <div style="font-size: 10px; color: #666;">3个工作表，共 128 条记录</div>
+                                    </div>
+                                    <button class="btn btn-primary" onclick="parseExcelFile()">📖 解析内容</button>
+                                </div>
+                            </div>
+                            <!-- Excel数据预览 -->
+                            <div id="excelDataPreview" class="theme-config-section" style="display: none; margin-top: 10px; background: #F5F5F5;">
+                                <h4>📋 Excel内容预览</h4>
+                                <table class="demo-table" style="font-size: 10px;">
+                                    <thead>
+                                        <tr>
+                                            <th>关键词</th>
+                                            <th>问题/场景</th>
+                                            <th>解决方案</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>产品报价</td>
+                                            <td>批量采购询价</td>
+                                            <td>标准报价+折扣表</td>
+                                        </tr>
+                                        <tr>
+                                            <td>技术支持</td>
+                                            <td>系统部署咨询</td>
+                                            <td>技术方案文档</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 学习信息填写 -->
+                    <div class="theme-config-section">
+                        <h4>📝 学习信息</h4>
+                        <div class="form-group">
+                            <label class="form-label">关键词</label>
+                            <input type="text" class="form-input" value="产品报价, SmartBox Pro, 批量折扣" placeholder="请输入关键词，多个用逗号分隔..." style="font-size: 11px;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">问题/场景</label>
+                            <input type="text" class="form-input" value="客户咨询SmartBox Pro批量采购价格" placeholder="请输入问题或场景描述..." style="font-size: 11px;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">解决方案/知识</label>
+                            <textarea class="form-textarea" style="min-height: 80px; font-size: 11px;">标准价格：¥2,800/台
+批量折扣：
+- 10-50台：9.5折
+- 51-100台：9折
+- 100台以上：8.5折
+交货周期：7-15个工作日</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 批量导入选项 -->
+                    <div class="theme-config-section">
+                        <h4>⚙️ 导入选项</h4>
+                        <div class="form-group" style="margin-bottom: 6px;">
+                            <label style="font-size: 11px; color: #666;">
+                                <input type="checkbox" checked style="margin-right: 5px;">自动提取关键词
+                            </label>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 11px; color: #666;">
+                                <input type="checkbox" checked style="margin-right: 5px;">同时添加到推荐库
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- 添加学习记录 -->
-                <div class="theme-config-section">
-                    <h4>➕ 添加记录</h4>
-                    <div class="form-group">
-                        <label class="form-label">问题/场景</label>
-                        <input type="text" class="form-input" placeholder="请输入问题或场景描述..." style="font-size: 11px;">
+                <!-- 相似任务标签页 - V1.9新增 -->
+                <div id="tab-similar" class="learning-tab-content" style="display: none;">
+                    <div class="theme-config-section">
+                        <h4>📋 基于"SmartBox Pro"的相似任务</h4>
+                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                            共找到 <strong>15</strong> 个相似任务，显示 1-5 项
+                        </div>
+                        
+                        <!-- 相似任务列表 -->
+                        <div class="similar-task-list">
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro技术方案咨询</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #4CAF50;">相似度 95%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                                    📅 2026-06-20 | 👤 张经理 | 📊 高优先级 | ✅ 已完成
+                                </div>
+                            </div>
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro批量报价请求</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #4CAF50;">相似度 92%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                                    📅 2026-06-18 | 👤 李经理 | 📊 中优先级 | 🔄 处理中
+                                </div>
+                            </div>
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro交货周期确认</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #FF9800;">相似度 85%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                                    📅 2026-06-15 | 👤 王经理 | 📊 高优先级 | ✅ 已完成
+                                </div>
+                            </div>
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox系列售后服务咨询</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #FF9800;">相似度 78%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                                    📅 2026-06-10 | 👤 赵经理 | 📊 低优先级 | ✅ 已完成
+                                </div>
+                            </div>
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro升级方案</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #FF9800;">相似度 72%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                                    📅 2026-06-05 | 👤 陈经理 | 📊 中优先级 | ✅ 已完成
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 分页控件 - V1.9新增 -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                            <div style="font-size: 11px; color: #666;">
+                                第 <strong>1</strong> / <strong>3</strong> 页，每页 5 条
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" disabled style="padding: 5px 12px; font-size: 11px;">◀ 上一页</button>
+                                <button class="btn btn-secondary" onclick="goToNextSimilarPage()" style="padding: 5px 12px; font-size: 11px;">下一页 ▶</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">解决方案/知识</label>
-                        <textarea class="form-textarea" placeholder="请输入解决方案或知识要点..." style="min-height: 60px; font-size: 11px;"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">关键词</label>
-                        <input type="text" class="form-input" placeholder="请输入关键词，多个用逗号分隔..." style="font-size: 11px;">
-                    </div>
-                    <button class="btn btn-learning" style="margin-top: 10px;">✅ 保存记录</button>
                 </div>
 
-                <!-- 学习记录列表 -->
-                <div class="theme-config-section">
-                    <h4>📋 最近记录</h4>
-                    <table class="demo-table" style="font-size: 10px;">
-                        <thead>
-                            <tr>
-                                <th>时间</th>
-                                <th>关键词</th>
-                                <th>摘要</th>
-                                <th>状态</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>2026-06-22</td>
-                                <td>产品报价</td>
-                                <td>报价流程优化...</td>
-                                <td><span style="color: #4CAF50;">已审核</span></td>
-                            </tr>
-                            <tr>
-                                <td>2026-06-21</td>
-                                <td>技术支持</td>
-                                <td>常见问题解答...</td>
-                                <td><span style="color: #FF9800;">待审核</span></td>
-                            </tr>
-                            <tr>
-                                <td>2026-06-20</td>
-                                <td>合同条款</td>
-                                <td>标准合同模板...</td>
-                                <td><span style="color: #4CAF50;">已审核</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- 历史记录标签页 -->
+                <div id="tab-history" class="learning-tab-content" style="display: none;">
+                    <div class="theme-config-section">
+                        <h4>📚 学习记录统计</h4>
+                        <div style="display: flex; gap: 15px;">
+                            <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
+                                <div style="font-size: 20px; color: #4CAF50; font-weight: bold;">128</div>
+                                <div style="font-size: 10px; color: #666;">总记录数</div>
+                            </div>
+                            <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
+                                <div style="font-size: 20px; color: #2196F3; font-weight: bold;">15</div>
+                                <div style="font-size: 10px; color: #666;">本月新增</div>
+                            </div>
+                            <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; text-align: center;">
+                                <div style="font-size: 20px; color: #FF9800; font-weight: bold;">8</div>
+                                <div style="font-size: 10px; color: #666;">待审核</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="theme-config-section">
+                        <h4>📋 最近学习记录</h4>
+                        <table class="demo-table" style="font-size: 10px;">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>关键词</th>
+                                    <th>关联任务</th>
+                                    <th>摘要</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2026-06-22</td>
+                                    <td>产品报价</td>
+                                    <td>产品报价咨询</td>
+                                    <td>报价流程优化...</td>
+                                    <td><span style="color: #4CAF50;">已审核</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-06-21</td>
+                                    <td>技术支持</td>
+                                    <td>技术支持请求</td>
+                                    <td>常见问题解答...</td>
+                                    <td><span style="color: #FF9800;">待审核</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2026-06-20</td>
+                                    <td>合同条款</td>
+                                    <td>合同确认</td>
+                                    <td>标准合同模板...</td>
+                                    <td><span style="color: #4CAF50;">已审核</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-learning" onclick="showAllLearning()">📚 查看全部</button>
-                <button class="btn btn-secondary" onclick="exportLearning()">📤 导出</button>
-                <button class="btn btn-secondary" onclick="closeLearningModal()">关闭</button>
+                <button class="btn btn-learning" onclick="saveSmartLearning()">💾 保存学习</button>
+                <button class="btn btn-secondary" onclick="showAllLearning()">📚 查看全部</button>
+                <button class="btn btn-secondary" onclick="exportSmartLearning()">📤 导出</button>
+                <button class="btn btn-secondary" onclick="closeSmartLearningModal()">关闭</button>
             </div>
         </div>
     </div>
@@ -2798,7 +3080,7 @@ CREATE TABLE recommendations (
             } else if (page === 'backup') {
                 showBackupModal();
             } else if (page === 'learning') {
-                showLearningModal();
+                showSmartLearningPage();
             }
         }
 
@@ -2898,30 +3180,132 @@ CREATE TABLE recommendations (
             }
         }
 
-        // V1.8新增：学习积累功能
-        function showLearningPage() {
-            showLearningModal();
+        // V1.9新增：智能学习&应答功能
+        function showSmartLearningPage() {
+            // 检查选中任务数量
+            const selectedTasks = document.querySelectorAll('.task-item.selected');
+            const selectedCount = selectedTasks.length;
+
+            if (selectedCount === 0) {
+                alert('⚠️ 请先选中一个任务，再使用"智能学习&应答"功能');
+                return;
+            }
+
+            if (selectedCount > 1) {
+                // 显示多选警告
+                document.getElementById('multiSelectWarning').classList.remove('hidden');
+                document.getElementById('selectedCount').textContent = selectedCount;
+                document.getElementById('taskLinkSection').classList.add('hidden');
+            } else {
+                // 单选，显示正常
+                document.getElementById('multiSelectWarning').classList.add('hidden');
+                document.getElementById('taskLinkSection').classList.remove('hidden');
+
+                // 获取选中任务的名称和关键模块
+                const taskName = selectedTasks[0].querySelector('.task-name')?.textContent || '未知任务';
+                const taskModule = selectedTasks[0].querySelector('.task-module')?.textContent || '通用';
+                document.getElementById('linkedTaskName').textContent = taskName;
+            }
+
+            // 显示弹窗
+            showSmartLearningModal();
         }
 
-        function showLearningModal() {
-            document.getElementById('learningModal').classList.remove('hidden');
-            document.getElementById('learningModal').style.display = 'flex';
+        function showSmartLearningModal() {
+            document.getElementById('smartLearningModal').classList.remove('hidden');
+            document.getElementById('smartLearningModal').style.display = 'flex';
         }
 
-        function closeLearningModal() {
-            document.getElementById('learningModal').classList.add('hidden');
-            document.getElementById('learningModal').style.display = 'none';
+        function closeSmartLearningModal() {
+            document.getElementById('smartLearningModal').classList.add('hidden');
+            document.getElementById('smartLearningModal').style.display = 'none';
+        }
+
+        // V1.9新增：标签页切换
+        function switchLearningTab(tabName) {
+            // 隐藏所有标签页
+            document.getElementById('tab-add').style.display = 'none';
+            document.getElementById('tab-similar').style.display = 'none';
+            document.getElementById('tab-history').style.display = 'none';
+
+            // 重置所有标签按钮样式
+            document.getElementById('tab-btn-add').style.borderBottom = '2px solid transparent';
+            document.getElementById('tab-btn-add').style.color = '#666';
+            document.getElementById('tab-btn-similar').style.borderBottom = '2px solid transparent';
+            document.getElementById('tab-btn-similar').style.color = '#666';
+            document.getElementById('tab-btn-history').style.borderBottom = '2px solid transparent';
+            document.getElementById('tab-btn-history').style.color = '#666';
+
+            // 显示选中的标签页
+            document.getElementById('tab-' + tabName).style.display = 'block';
+
+            // 高亮当前标签按钮
+            document.getElementById('tab-btn-' + tabName).style.borderBottom = '2px solid #4CAF50';
+            document.getElementById('tab-btn-' + tabName).style.color = '#4CAF50';
+            document.getElementById('tab-btn-' + tabName).style.fontWeight = 'bold';
+        }
+
+        // V1.9新增：文档导入区域切换
+        function updateDocImportZone(docType) {
+            // 隐藏所有导入区域
+            document.getElementById('doc-zone-txt').style.display = 'none';
+            document.getElementById('doc-zone-image').style.display = 'none';
+            document.getElementById('doc-zone-excel').style.display = 'none';
+
+            // 重置图片和Excel预览
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('ocrResult').style.display = 'none';
+            document.getElementById('excelPreview').style.display = 'none';
+            document.getElementById('excelDataPreview').style.display = 'none';
+
+            // 显示选中的导入区域
+            document.getElementById('doc-zone-' + docType).style.display = 'block';
+        }
+
+        // V1.9新增：选择图片文件
+        function selectImageFile() {
+            alert('📷 图片选择对话框\n\n请选择要导入的图片文件\n（支持 JPG、PNG、BMP 格式）\n\n已选择：报价流程图.jpg\n\n点击"OCR识别"进行文字提取');
+            document.getElementById('imagePreview').style.display = 'block';
+        }
+
+        // V1.9新增：OCR识别处理
+        function processImageOCR() {
+            alert('🔍 正在进行OCR识别...\n\n[##########] 100%\n\n✅ OCR识别完成！\n已提取文本内容。');
+            document.getElementById('ocrResult').style.display = 'block';
+        }
+
+        // V1.9新增：选择Excel文件
+        function selectExcelFile() {
+            alert('📊 Excel文件选择对话框\n\n请选择要导入的Excel文件\n（支持 .xlsx、.xls 格式）\n\n已选择：学习知识库.xlsx\n包含 3 个工作表，共 128 条记录');
+            document.getElementById('excelPreview').style.display = 'block';
+        }
+
+        // V1.9新增：解析Excel文件
+        function parseExcelFile() {
+            alert('📖 正在解析Excel文件...\n\n[##########] 100%\n\n✅ 解析完成！\n已识别 128 条学习记录。');
+            document.getElementById('excelDataPreview').style.display = 'block';
+        }
+
+        // V1.9新增：相似任务翻页
+        let similarPage = 1;
+        function goToNextSimilarPage() {
+            similarPage++;
+            alert('📄 正在加载第 ' + similarPage + ' 页相似任务...\n\n[##########] 100%\n\n已加载第 ' + similarPage + ' 页，共 3 页');
+        }
+
+        // V1.9新增：保存学习记录
+        function saveSmartLearning() {
+            alert('💾 正在保存学习记录...\n\n[##########] 100%\n\n✅ 保存成功！\n学习记录已添加到知识库。');
+            closeSmartLearningModal();
+        }
+
+        // V1.9新增：导出学习记录
+        function exportSmartLearning() {
+            alert('📤 正在导出学习记录...\n\n[##########] 100%\n\n✅ 导出完成！\n文件已保存到：\n./export/smart_learning_20260622.xlsx');
         }
 
         function showAllLearning() {
-            alert('📚 打开学习积累完整列表页面...');
-        }
-
-        function exportLearning() {
-            alert('📤 正在导出学习记录...');
-            setTimeout(() => {
-                alert('✅ 导出完成！文件已保存到 ./export/learning_20260622.xlsx');
-            }, 1000);
+            alert('📚 打开智能学习完整列表页面...\n\n共 128 条学习记录');
         }
 
         // V1.9修改：MSG导入功能已整合到内容导入区，移除独立的MSG导入页面函数
@@ -3057,7 +3441,7 @@ CREATE TABLE recommendations (
         // 点击弹窗外部关闭
         const modals = ['detailModal', 'reminderModal', 'contactDemoModal', 'recommendDemoModal',
                        'recommendImportModal', 'reminderConfigModal', 'themeModal', 'backupModal',
-                       'learningModal'];
+                       'smartLearningModal'];
         modals.forEach(modalId => {
             document.getElementById(modalId).addEventListener('click', function(e) {
                 if (e.target === this) {
