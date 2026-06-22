@@ -58,6 +58,13 @@ def main() -> None:
             return
         logger.info("数据库初始化成功")
 
+        # 初始化自动备份服务
+        logger.info("初始化自动备份服务...")
+        from .core.auto_backup_service import get_auto_backup_service
+        auto_backup_service = get_auto_backup_service()
+        auto_backup_service.start()  # 启动自动备份定时器
+        logger.info("自动备份服务初始化完成")
+
         # 创建应用
         app = QApplication(sys.argv)
         app.setApplicationName(config.app_name)

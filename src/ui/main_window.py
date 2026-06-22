@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 主窗口模块
 Main Window Module
@@ -29,11 +29,16 @@ from PyQt5.QtWidgets import (
 
 from ..config import get_config
 from ..utils.logger import get_logger
-from ..core.statistics_service import get_statistics_service
+from ..database.models import Task
 from .widgets.task_info_widget import TaskInfoWidget
 from .widgets.task_track_widget import TaskTrackWidget
 from .widgets.recommendation_widget import RecommendationWidget
 from .widgets.notification_widget import NotificationWidget
+from .widgets.import_export_widget import ImportExportWidget
+from .widgets.statistics_widget import StatisticsWidget
+from .widgets.library_widget import LibraryWidget
+from .widgets.learning_widget import LearningWidget
+from .widgets.auto_backup_config_widget import AutoBackupConfigWidget
 
 logger = get_logger(__name__)
 
@@ -86,6 +91,8 @@ class MainWindow(QMainWindow):
             "📁 数据导入",
             "📈 统计分析",
             "📚 推荐库",
+            "📚 学习积累",
+            "💾 自动备份",  # 新增
         ]
 
         for item_text in nav_items:
@@ -100,25 +107,22 @@ class MainWindow(QMainWindow):
         self.task_track_widget = TaskTrackWidget()
         self.recommendation_widget = RecommendationWidget()
         self.notification_widget = NotificationWidget()
-
-        # 占位组件
-        self.import_placeholder = QLabel("📁 数据导入功能开发中...")
-        self.import_placeholder.setAlignment(Qt.AlignCenter)
-
-        self.stats_placeholder = QLabel("📈 统计分析功能开发中...")
-        self.stats_placeholder.setAlignment(Qt.AlignCenter)
-
-        self.library_placeholder = QLabel("📚 推荐库管理功能开发中...")
-        self.library_placeholder.setAlignment(Qt.AlignCenter)
+        self.import_export_widget = ImportExportWidget()
+        self.statistics_widget = StatisticsWidget()
+        self.library_widget = LibraryWidget()
+        self.learning_widget = LearningWidget()
+        self.auto_backup_config_widget = AutoBackupConfigWidget()  # 自动备份配置
 
         # 添加到工作区
         self.work_area.addWidget(self.task_info_widget)
         self.work_area.addWidget(self.task_track_widget)
         self.work_area.addWidget(self.recommendation_widget)
         self.work_area.addWidget(self.notification_widget)
-        self.work_area.addWidget(self.import_placeholder)
-        self.work_area.addWidget(self.stats_placeholder)
-        self.work_area.addWidget(self.library_placeholder)
+        self.work_area.addWidget(self.import_export_widget)
+        self.work_area.addWidget(self.statistics_widget)
+        self.work_area.addWidget(self.library_widget)
+        self.work_area.addWidget(self.learning_widget)
+        self.work_area.addWidget(self.auto_backup_config_widget)  # 自动备份配置
 
         # 添加到分割器
         splitter.addWidget(self.nav_list)
@@ -159,6 +163,20 @@ class MainWindow(QMainWindow):
         logger.info(f"新任务创建: {task_id}")
         self.statusBar().showMessage(f"新任务创建成功: {task_id}", 3000)
 
+        # 自动学习任务信息
+        try:
+            from ..core.learning_service import get_learning_service
+            task = Task.get_by_id(task_id)
+            if task:
+                task_data = task.to_dict()
+                task_data["respondent_phone"] = ""
+                task_data["respondent_email"] = ""
+                learning_service = get_learning_service()
+                learning_service.learn_from_task(task_data)
+                logger.info(f"任务信息已自动学习: {task_id}")
+        except Exception as e:
+            logger.error(f"自动学习失败: {e}")
+
     def _on_task_updated(self, task_id: str) -> None:
         """任务更新事件"""
         logger.info(f"任务更新: {task_id}")
@@ -180,153 +198,6 @@ class MainWindow(QMainWindow):
         logger.info(f"提醒触发: {task_id}")
         self.nav_list.setCurrentRow(0)  # 切换到任务信息页面
         self.task_info_widget._load_task_detail(task_id)
-
-    def _on_export_statistics(self) -> None:
-        """导出统计报表"""
-        from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog
-        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
-
-        logger.info("打开统计报表导出对话框")
-
-        # 弹出格式选择对话框
-        format_items = ["Excel (.xlsx)", "JSON (.json)", "CSV (.csv)", "文本 (.txt)"]
-        format_map = {
-            "Excel (.xlsx)": ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"),
-            "JSON (.json)": ("json", ExportExtension.JSON, "JSON Files (*.json)"),
-            "CSV (.csv)": ("csv", ExportExtension.CSV, "CSV Files (*.csv)"),
-            "文本 (.txt)": ("txt", ExportExtension.TXT, "Text Files (*.txt)")
-        }
-
-        # 选择格式
-        selected_format, ok = QInputDialog.getItem(
-            self,
-            "导出统计报表",
-            "请选择导出格式:",
-            format_items,
-            0,
-            False
-        )
-
-        if not ok or not selected_format:
-            return
-
-        format_type, extension, file_filter = format_map.get(selected_format, 
-                                                             ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"))
-
-        # 生成带时间戳的默认文件名
-        default_name = generate_export_filename(ExportPrefix.STATISTICS_REPORT, extension)
-
-        filepath, _ = QFileDialog.getSaveFileName(
-            self,
-            "保存统计报表",
-            default_name,
-            file_filter
-        )
-
-        if not filepath:
-            return
-
-        try:
-            # 获取统计服务
-            stats_service = get_statistics_service()
-
-            # 导出报告
-            result = stats_service.export_report(format=format_type, filepath=filepath)
-
-            # 显示成功消息
-            QMessageBox.information(
-                self,
-                "导出成功",
-                f"统计报表已导出到:\n{result}",
-                QMessageBox.Ok
-            )
-            logger.info(f"统计报表导出成功: {result}")
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "导出失败",
-                f"导出统计报表时出错:\n{str(e)}",
-                QMessageBox.Ok
-            )
-            logger.error(f"导出统计报表失败: {e}")
-
-    def _on_export_tasks(self) -> None:
-        """导出任务列表"""
-        from PyQt5.QtWidgets import QFileDialog
-        from src.utils.export_utils import generate_export_filename, ExportPrefix, ExportExtension
-        from src.core.data_export import DataExportService
-        from src.database.task_info import TaskInfoDB
-
-        logger.info("打开任务导出对话框")
-
-        # 格式选择
-        format_items = ["Excel (.xlsx)", "CSV (.csv)"]
-        format_map = {
-            "Excel (.xlsx)": ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"),
-            "CSV (.csv)": ("csv", ExportExtension.CSV, "CSV Files (*.csv)")
-        }
-
-        from PyQt5.QtWidgets import QInputDialog
-        selected_format, ok = QInputDialog.getItem(
-            self,
-            "导出任务",
-            "请选择导出格式:",
-            format_items,
-            0,
-            False
-        )
-
-        if not ok or not selected_format:
-            return
-
-        format_type, extension, file_filter = format_map.get(selected_format,
-                                                             ("excel", ExportExtension.EXCEL, "Excel Files (*.xlsx)"))
-
-        # 生成带时间戳的默认文件名
-        default_name = generate_export_filename(ExportPrefix.TASK_EXPORT, extension)
-
-        filepath, _ = QFileDialog.getSaveFileName(
-            self,
-            "导出任务",
-            default_name,
-            file_filter
-        )
-
-        if not filepath:
-            return
-
-        try:
-            # 获取任务数据
-            db = TaskInfoDB()
-            tasks = db.get_all_tasks()
-
-            # 导出
-            exporter = DataExportService(db)
-            if format_type == "excel":
-                success = exporter.export_tasks_to_excel(tasks, filepath)
-            else:
-                success = exporter.export_tasks_to_csv(tasks, filepath)
-
-            if success:
-                QMessageBox.information(
-                    self,
-                    "导出成功",
-                    f"任务列表已导出到:\n{filepath}",
-                    QMessageBox.Ok
-                )
-                logger.info(f"任务导出成功: {filepath}")
-            else:
-                raise Exception("导出失败")
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "导出失败",
-                f"导出任务时出错:\n{str(e)}",
-                QMessageBox.Ok
-            )
-            logger.error(f"任务导出失败: {e}")
 
     def _init_menu(self) -> None:
         """初始化菜单栏"""
@@ -400,14 +271,7 @@ class MainWindow(QMainWindow):
         # 导出按钮
         export_btn = QPushButton("导出")
         export_btn.setMaximumWidth(80)
-        export_btn.clicked.connect(self._on_export_tasks)
         toolbar.addWidget(export_btn)
-
-        # 统计报表按钮
-        stats_btn = QPushButton("📊 统计报表")
-        stats_btn.setMaximumWidth(100)
-        stats_btn.clicked.connect(self._on_export_statistics)
-        toolbar.addWidget(stats_btn)
 
         toolbar.addSeparator()
 
@@ -480,6 +344,17 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         """关闭事件"""
+        # 关闭时自动备份
+        try:
+            from ..core.auto_backup_service import get_auto_backup_service
+            auto_backup = get_auto_backup_service()
+            if auto_backup.config.get("backup_on_shutdown", True):
+                if auto_backup.config.should_backup_now():
+                    logger.info("执行关闭时自动备份...")
+                    auto_backup.trigger_backup("关闭备份")
+        except Exception as e:
+            logger.error(f"关闭时备份失败: {e}")
+
         self._save_window_state()
         logger.info("应用关闭")
         event.accept()
