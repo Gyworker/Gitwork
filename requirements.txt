@@ -1,44 +1,31 @@
-# 市场咨询任务跟踪工具 - 依赖清单
-# 版本：V2.0
-# 日期：2026-06-16
-# 新增：OCR、Tesseract支持
+# 市场咨询任务跟踪工具 - Python依赖
+# 版本: V4.5
+# 日期: 2026-06-22
 
-# GUI框架 - 使用预编译wheel避免编译问题
+# PyQt5 GUI框架
 PyQt5>=5.15.0
 
-# 数据库
-# 使用Python内置sqlite3，无需额外安装
-
 # 数据处理
-pandas>=2.0.0
-openpyxl>=3.1.0
-numpy>=1.24.0
+pandas>=1.3.0
+openpyxl>=3.0.0
 
-# OCR识别
-Pillow>=10.0.0
-pytesseract>=0.3.10
+# 网络请求 (企业微信Webhook)
+requests>=2.25.0
 
-# MSG邮件解析
-extract-msg>=0.45.0
+# 图片处理和OCR
+Pillow>=8.0.0
 
-# 日志
-colorlog>=6.7.0
+# 数据库
+# (使用Python内置sqlite3)
 
-# 配置管理
-PyYAML>=6.0.1
+# 日期时间处理
+# (使用Python内置datetime)
 
-# 日期时间
-python-dateutil>=2.8.2
+# 编码转换
+chardet>=3.0.0
 
-# 系统监控
-psutil>=5.9.0
+# 日志配置
+# (使用Python内置logging)
 
-# 单元测试
-pytest>=7.4.0
-pytest-cov>=4.1.0
-
-# 代码检查
-pylint>=3.0.0
-
-# 打包工具
-pyinstaller>=6.0.0
+# 类型检查 (开发依赖)
+typing-extensions>=3.10.0
