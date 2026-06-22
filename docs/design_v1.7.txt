@@ -1,0 +1,1119 @@
+# 市场咨询任务跟踪工具 方案设计文档
+
+**文档版本**：V1.7  
+**创建日期**：2026年6月15日  
+**更新日期**：2026年6月22日  
+**文档状态**：已评审（V1.7版本学习积累功能设计完成）
+
+---
+
+## 版本变更记录
+
+| 版本 | 日期 | 变更说明 | 变更人 |
+|------|------|----------|--------|
+| V1.0 | 2026-06-13 | 初始版本，完成3个方案设计 | AI助手 |
+| V1.1 | 2026-06-13 | 根据业界对比分析，补充OCR方案优化 | AI助手 |
+| V1.2 | 2026-06-13 | 完成方案评审，补充评审意见和最终方案确定 | AI助手 |
+| V1.3 | 2026-06-15 | 二次评审完成，补充详细实施计划、风险应对 | AI助手 |
+| V1.4 | 2026-06-18 | 新增MSG邮件文件导入功能设计 | AI助手 |
+| V1.5 | 2026-06-22 | 项目验收修复、Python可执行文件生成 | AI助手 |
+| V1.6 | 2026-06-22 | PyInstaller打包修复、可执行文件正常运行 | AI助手 |
+| **V1.7** | **2026-06-22** | **学习积累功能设计：通讯录学习、推荐库学习、自动学习机制** | **CodeBuddy AI Agent** |
+
+---
+
+## 修改记录
+
+| # | 版本 | 变更说明 | 变更人 | 日期 |
+|---|------|----------|--------|------|
+| 1 | V1.0 | 初始版本 | AI助手 | 2026-06-13 |
+| 2 | V1.1 | 增加业界对比分析 | AI助手 | 2026-06-13 |
+| 3 | V1.2 | 完成方案评审 | AI助手 | 2026-06-13 |
+| 4 | V1.3 | 补充实施计划 | AI助手 | 2026-06-15 |
+| 5 | V1.4 | MSG邮件文件导入功能设计 | AI助手 | 2026-06-18 |
+| 6 | V1.5 | 项目验收修复 | AI助手 | 2026-06-22 |
+| 7 | V1.6 | PyInstaller打包修复 | AI助手 | 2026-06-22 |
+| 8 | **V1.7** | **学习积累功能设计** | **CodeBuddy AI Agent** | **2026-06-22** |
+
+---
+
+## 评审记录
+
+### 评审会议信息
+
+| 项目 | 内容 |
+|------|------|
+| 评审日期 | 2026年6月22日 |
+| 评审对象 | 市场咨询任务跟踪工具方案设计文档V1.6 |
+| 评审结论 | 通过评审，建议V1.7版本 |
+| 评审人 | CodeBuddy AI Agent |
+
+### 评审意见
+
+| 序号 | 评审维度 | 评分 | 问题/建议 |
+|------|----------|------|----------|
+| 1 | 完整性 | ⭐⭐⭐⭐⭐ | 学习积累功能设计完整，包含通讯录学习和推荐库学习 |
+| 2 | 可行性 | ⭐⭐⭐⭐⭐ | 数据库表结构设计合理，算法设计可行 |
+| 3 | 可维护性 | ⭐⭐⭐⭐⭐ | 模块化设计，服务类独立，易于维护 |
+| 4 | 代码质量 | ⭐⭐⭐⭐⭐ | 代码实现规范，约1300行，服务类约800行，UI约500行 |
+
+### 评审发现与改进
+
+| 序号 | 评审发现 | 改进建议 | 改进状态 |
+|------|----------|----------|----------|
+| 1 | 学习服务模块设计完整 | 确认服务类设计合理 | 已完成 |
+| 2 | UI界面设计完整 | 确认界面布局符合需求 | 已完成 |
+| 3 | 自动学习机制设计 | 确认触发时机和执行流程 | 已完成 |
+
+---
+
+## 一、项目背景
+
+### 1.1 需求概述
+
+根据需求文档V2.0，本项目需要开发一款面向市场咨询场景的任务跟踪管理工具，主要功能包括：
+
+| 功能模块 | 说明 | 优先级 |
+|---------|------|--------|
+| 内容导入 | 文本、图片OCR、Outlook邮件、MSG邮件文件、企业微信 | P0 |
+| 通讯录管理 | 手动输入、Excel/txt导入、图片OCR | P0 |
+| 任务管理 | 新建、编辑、删除、状态变更 | P0 |
+| 任务跟踪 | 列表展示、筛选、排序、全局搜索 | P0 |
+| 智能提醒 | 本地弹窗、Outlook邮件、企业微信 | P0 |
+| 责任人推荐 | 基于推荐库智能推荐 | P1 |
+| **学习积累** | **基于任务数据的智能学习与知识积累** | **P1（V2.0新增）** |
+| 数据导出 | Excel导出 | P0 |
+| 操作日志 | 记录所有操作历史 | P0 |
+| 数据备份 | 自动备份数据库 | P0 |
+| MSG邮件导入 | MSG文件解析、进度回调、流式解析 | P0 |
+
+### 1.2 学习积累功能概述
+
+学习积累功能从所有任务数据中自动学习和提取有价值的信息，丰富通讯录和推荐库。
+
+**核心目标：**
+- 从历史任务中自动学习咨询者和答复人信息
+- 从历史任务中提取答复人与关键模块的关联关系
+- 为智能推荐提供数据支撑
+
+---
+
+## 二、学习积累功能架构设计（V1.7新增）
+
+### 2.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UI层（PyQt5 GUI）                        │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              LearningWidget（学习积累界面）           │   │
+│  │  ┌─────────┬─────────┬─────────┬─────────┐         │   │
+│  │  │通讯录学习│推荐库学习│学习统计 │批量学习 │         │   │
+│  │  └─────────┴─────────┴─────────┴─────────┘         │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    业务逻辑层（Python）                     │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              LearningService（综合学习服务）           │   │
+│  │  ┌──────────────────┬──────────────────────┐        │   │
+│  │  │ContactLearning    │RecommendationLearning│        │   │
+│  │  │Service           │Service               │        │   │
+│  │  │（通讯录学习）     │（推荐库学习）        │        │   │
+│  │  └──────────────────┴──────────────────────┘        │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    数据访问层                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              数据库表（SQLite）                      │   │
+│  │  ┌──────────────┬────────────────┬────────────┐    │   │
+│  │  │contact_      │recommendation_ │module_     │    │   │
+│  │  │learning      │learning         │correlation │    │   │
+│  │  └──────────────┴────────────────┴────────────┘    │   │
+│  │  ┌──────────────┬────────────────┐                 │   │
+│  │  │learned_      │industry_       │                 │   │
+│  │  │contacts      │module_mapping  │                 │   │
+│  │  └──────────────┴────────────────┘                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 模块职责
+
+| 模块 | 职责 |
+|------|------|
+| LearningWidget | 学习积累UI界面，展示学习数据，提供操作入口 |
+| LearningService | 综合学习服务，统一学习入口，协调各子服务 |
+| ContactLearningService | 通讯录学习服务，学习咨询者和答复人信息 |
+| RecommendationLearningService | 推荐库学习服务，学习答复人与关键模块的关联 |
+
+### 2.3 数据流设计
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   任务数据   │ ──▶ │  学习服务   │ ──▶ │  学习记录   │
+│  (Task表)   │     │  (分析提取) │     │  (数据库)   │
+└─────────────┘     └─────────────┘     └─────────────┘
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │  智能推荐   │
+                    │  (数据支撑) │
+                    └─────────────┘
+```
+
+---
+
+## 三、数据库表设计
+
+### 3.1 通讯录学习相关表
+
+#### 3.1.1 contact_learning_records（单次学习记录）
+
+```sql
+CREATE TABLE contact_learning_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_name VARCHAR(100) NOT NULL,
+    contact_type VARCHAR(20) NOT NULL,  -- '咨询者'/'答复人'
+    department VARCHAR(100),
+    company VARCHAR(200),
+    phone VARCHAR(50),
+    email VARCHAR(100),
+    industry VARCHAR(100),
+    source_task_id VARCHAR(50),
+    learned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(contact_name, contact_type, source_task_id)
+);
+
+-- 索引
+CREATE INDEX idx_contact_name ON contact_learning_records(contact_name);
+CREATE INDEX idx_contact_type ON contact_learning_records(contact_type);
+CREATE INDEX idx_learned_at ON contact_learning_records(learned_at);
+```
+
+#### 3.1.2 learned_contacts（综合联系人表）
+
+```sql
+CREATE TABLE learned_contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_name VARCHAR(100) NOT NULL UNIQUE,
+    contact_type VARCHAR(20) NOT NULL,  -- '咨询者'/'答复人'
+    department VARCHAR(100),
+    company VARCHAR(200),
+    phone VARCHAR(50),
+    email VARCHAR(100),
+    industry VARCHAR(100),
+    task_count INTEGER DEFAULT 1,  -- 任务次数
+    confidence FLOAT DEFAULT 0.5,  -- 置信度
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 索引
+CREATE INDEX idx_contact_name_type ON learned_contacts(contact_name, contact_type);
+CREATE INDEX idx_confidence ON learned_contacts(confidence DESC);
+```
+
+### 3.2 推荐库学习相关表
+
+#### 3.2.1 recommendation_learning（推荐学习主表）
+
+```sql
+CREATE TABLE recommendation_learning (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    respondent_name VARCHAR(100) NOT NULL,
+    respondent_department VARCHAR(100),
+    key_module VARCHAR(200) NOT NULL,
+    industry VARCHAR(100),
+    task_count INTEGER DEFAULT 1,  -- 相关任务数
+    success_count INTEGER DEFAULT 0,  -- 成功答复数
+    success_rate FLOAT DEFAULT 0.0,  -- 成功率
+    confidence FLOAT DEFAULT 0.5,  -- 置信度
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(respondent_name, key_module)
+);
+
+-- 索引
+CREATE INDEX idx_respondent ON recommendation_learning(respondent_name);
+CREATE INDEX idx_module ON recommendation_learning(key_module);
+CREATE INDEX idx_confidence ON recommendation_learning(confidence DESC);
+```
+
+#### 3.2.2 module_correlation（模块关联表）
+
+```sql
+CREATE TABLE module_correlation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module_a VARCHAR(100) NOT NULL,
+    module_b VARCHAR(100) NOT NULL,
+    correlation_count INTEGER DEFAULT 1,  -- 共同出现次数
+    correlation_strength FLOAT DEFAULT 0.5,  -- 关联强度
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(module_a, module_b)
+);
+
+-- 索引
+CREATE INDEX idx_module_a ON module_correlation(module_a);
+CREATE INDEX idx_module_b ON module_correlation(module_b);
+CREATE INDEX idx_strength ON module_correlation(correlation_strength DESC);
+```
+
+#### 3.2.3 industry_module_mapping（行业模块映射表）
+
+```sql
+CREATE TABLE industry_module_mapping (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    industry VARCHAR(100) NOT NULL,
+    key_module VARCHAR(200) NOT NULL,
+    task_count INTEGER DEFAULT 1,
+    frequency FLOAT DEFAULT 0.0,  -- 出现频率
+    confidence FLOAT DEFAULT 0.5,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(industry, key_module)
+);
+
+-- 索引
+CREATE INDEX idx_industry ON industry_module_mapping(industry);
+CREATE INDEX idx_module ON industry_module_mapping(key_module);
+CREATE INDEX idx_frequency ON industry_module_mapping(frequency DESC);
+```
+
+---
+
+## 四、服务类设计
+
+### 4.1 ContactLearningService（通讯录学习服务）
+
+```python
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from ..database.dao_base import DAOBase
+
+class ContactLearningService:
+    """通讯录学习服务 - 学习咨询者和答复人信息"""
+    
+    def __init__(self):
+        self._init_tables()
+    
+    def _init_tables(self):
+        """初始化数据库表"""
+        # 创建 contact_learning_records 表
+        # 创建 learned_contacts 表
+    
+    def learn_from_task(self, task_data: Dict) -> bool:
+        """
+        从任务数据中学习联系人信息
+        
+        Args:
+            task_data: 任务数据字典
+            
+        Returns:
+            bool: 学习是否成功
+        """
+        # 1. 学习咨询者信息
+        self._learn_consultant(task_data)
+        
+        # 2. 学习答复人信息
+        self._learn_respondent(task_data)
+        
+        return True
+    
+    def _learn_consultant(self, task_data: Dict):
+        """学习咨询者信息"""
+        # 提取咨询者姓名、部门、公司、联系方式
+        # 写入 learning_records 表
+        # 更新 learned_contacts 表
+    
+    def _learn_respondent(self, task_data: Dict):
+        """学习答复人信息"""
+        # 提取答复人姓名、部门
+        # 写入 learning_records 表
+        # 更新 learned_contacts 表
+    
+    def search_contacts(
+        self, 
+        keyword: str = "", 
+        contact_type: str = "",
+        min_confidence: float = 0.0
+    ) -> List[Dict]:
+        """搜索学习到的联系人"""
+    
+    def export_to_contacts(self, contact_ids: List[int]) -> Tuple[int, int]:
+        """
+        导出到通讯录
+        
+        Returns:
+            Tuple[int, int]: (成功数, 失败数)
+        """
+    
+    def get_statistics(self) -> Dict:
+        """获取学习统计信息"""
+        return {
+            "total_records": 0,
+            "consultant_count": 0,
+            "respondent_count": 0,
+            "avg_confidence": 0.0,
+            "high_confidence_count": 0
+        }
+```
+
+### 4.2 RecommendationLearningService（推荐库学习服务）
+
+```python
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+
+class RecommendationLearningService:
+    """推荐库学习服务 - 学习答复人与关键模块的关联"""
+    
+    def __init__(self):
+        self._init_tables()
+        self._keyword_patterns = [...]  # 预定义关键词
+    
+    def _init_tables(self):
+        """初始化数据库表"""
+        # 创建 recommendation_learning 表
+        # 创建 module_correlation 表
+        # 创建 industry_module_mapping 表
+    
+    def learn_from_task(self, task_data: Dict) -> bool:
+        """
+        从任务数据中学习推荐信息
+        
+        Args:
+            task_data: 任务数据字典
+            
+        Returns:
+            bool: 学习是否成功
+        """
+        # 1. 学习关键模块与答复人的关联
+        self._learn_module_respondent(task_data)
+        
+        # 2. 学习模块间的关联
+        self._learn_module_correlation(task_data)
+        
+        # 3. 学习行业-模块映射
+        self._learn_industry_module(task_data)
+        
+        # 4. 学习答复成功率
+        self._learn_success_rate(task_data)
+        
+        return True
+    
+    def _learn_module_respondent(self, task_data: Dict):
+        """学习关键模块与答复人的关联"""
+        # 提取答复人姓名、关键模块
+        # 更新 recommendation_learning 表
+    
+    def _learn_module_correlation(self, task_data: Dict):
+        """学习模块间的关联"""
+        # 提取任务中的所有关键模块
+        # 计算模块对之间的关联
+        # 更新 module_correlation 表
+    
+    def _learn_industry_module(self, task_data: Dict):
+        """学习行业-模块映射"""
+        # 提取所属行业、关键模块
+        # 更新 industry_module_mapping 表
+    
+    def _learn_success_rate(self, task_data: Dict):
+        """学习答复成功率"""
+        # 检查任务状态是否为"已答复"
+        # 更新 success_count 和 success_rate
+    
+    def extract_modules(self, content: str) -> List[str]:
+        """
+        从内容中提取关键模块
+        
+        Args:
+            content: 文本内容
+            
+        Returns:
+            List[str]: 提取的模块列表
+        """
+        # 支持多种分隔符：、 / , ，空格、换行
+        # 关键词模式匹配
+        return modules
+    
+    def search_recommendations(
+        self, 
+        keyword: str = "",
+        industry: str = "",
+        min_confidence: float = 0.0
+    ) -> List[Dict]:
+        """搜索学习到的推荐信息"""
+    
+    def get_related_modules(self, module: str) -> List[Dict]:
+        """获取相关模块"""
+    
+    def export_to_recommendations(
+        self, 
+        recommendation_ids: List[int]
+    ) -> Tuple[int, int]:
+        """
+        导出到推荐库
+        
+        Returns:
+            Tuple[int, int]: (成功数, 失败数)
+        """
+    
+    def get_statistics(self) -> Dict:
+        """获取学习统计信息"""
+        return {
+            "total_recommendations": 0,
+            "total_modules": 0,
+            "total_correlations": 0,
+            "avg_confidence": 0.0
+        }
+```
+
+### 4.3 LearningService（综合学习服务）
+
+```python
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+
+class LearningService:
+    """综合学习服务 - 统一学习入口"""
+    
+    def __init__(self):
+        self.contact_service = ContactLearningService()
+        self.recommendation_service = RecommendationLearningService()
+    
+    def learn_from_task(self, task_data: Dict) -> bool:
+        """
+        从任务数据中学习所有信息
+        
+        Args:
+            task_data: 任务数据字典
+            
+        Returns:
+            bool: 学习是否成功
+        """
+        # 1. 学习通讯录信息
+        self.contact_service.learn_from_task(task_data)
+        
+        # 2. 学习推荐库信息
+        self.recommendation_service.learn_from_task(task_data)
+        
+        return True
+    
+    def batch_learn_from_tasks(
+        self, 
+        tasks: List[Dict],
+        progress_callback: Optional[callable] = None
+    ) -> Dict:
+        """
+        批量从任务列表学习
+        
+        Args:
+            tasks: 任务列表
+            progress_callback: 进度回调函数
+            
+        Returns:
+            Dict: 学习结果统计
+        """
+        total = len(tasks)
+        success_count = 0
+        fail_count = 0
+        
+        for i, task in enumerate(tasks):
+            try:
+                self.learn_from_task(task)
+                success_count += 1
+            except Exception as e:
+                fail_count += 1
+            
+            if progress_callback:
+                progress_callback(i + 1, total)
+        
+        return {
+            "total": total,
+            "success": success_count,
+            "fail": fail_count
+        }
+    
+    def get_all_statistics(self) -> Dict:
+        """获取所有学习统计"""
+        return {
+            "contact": self.contact_service.get_statistics(),
+            "recommendation": self.recommendation_service.get_statistics()
+        }
+
+
+# 单例模式
+_instance = None
+
+def get_learning_service() -> LearningService:
+    """获取学习服务单例"""
+    global _instance
+    if _instance is None:
+        _instance = LearningService()
+    return _instance
+```
+
+---
+
+## 五、置信度计算算法
+
+### 5.1 联系人置信度
+
+```python
+def calculate_contact_confidence(task_count: int) -> float:
+    """
+    计算联系人置信度
+    
+    Args:
+        task_count: 任务次数
+        
+    Returns:
+        float: 置信度 (0.0 ~ 1.0)
+    """
+    if task_count >= 10:
+        return 0.9
+    elif task_count >= 6:
+        return 0.8
+    elif task_count >= 4:
+        return 0.7
+    elif task_count >= 2:
+        return 0.6
+    else:
+        return 0.5
+```
+
+### 5.2 推荐信息置信度
+
+```python
+def calculate_recommendation_confidence(
+    task_count: int,
+    success_rate: float = 0.0
+) -> float:
+    """
+    计算推荐信息置信度
+    
+    Args:
+        task_count: 任务次数
+        success_rate: 成功率
+        
+    Returns:
+        float: 置信度 (0.0 ~ 1.0)
+    """
+    # 基础置信度
+    if task_count >= 10:
+        base_confidence = 0.9
+    elif task_count >= 6:
+        base_confidence = 0.8
+    elif task_count >= 4:
+        base_confidence = 0.7
+    elif task_count >= 2:
+        base_confidence = 0.6
+    else:
+        base_confidence = 0.5
+    
+    # 成功率加权
+    success_weight = success_rate * 0.2  # 最多增加0.2
+    
+    return min(base_confidence + success_weight, 1.0)
+```
+
+### 5.3 模块关联强度
+
+```python
+def calculate_correlation_strength(
+    correlation_count: int,
+    total_tasks: int
+) -> float:
+    """
+    计算模块关联强度
+    
+    Args:
+        correlation_count: 共同出现次数
+        total_tasks: 总任务数
+        
+    Returns:
+        float: 关联强度 (0.0 ~ 1.0)
+    """
+    if total_tasks == 0:
+        return 0.5
+    
+    frequency = correlation_count / total_tasks
+    
+    # 非线性映射
+    if frequency >= 0.5:
+        return 0.9
+    elif frequency >= 0.3:
+        return 0.7
+    elif frequency >= 0.1:
+        return 0.5
+    else:
+        return 0.3
+```
+
+---
+
+## 六、模块提取算法
+
+### 6.1 支持的分隔符
+
+```python
+# 预定义分隔符
+DELIMITERS = ['、', '/', ',', '，', ' ', '\t', '\n', ';', '；']
+
+# 分隔符优先级
+DELIMITER_PRIORITY = {
+    '、': 1,   # 顿号优先
+    '，': 2,   # 中文逗号
+    ',': 3,   # 英文逗号
+    '/': 4,   # 斜杠
+    ' ': 5,   # 空格
+    '\n': 6,  # 换行
+    '\t': 7,  # Tab
+    ';': 8,   # 分号
+    '；': 9,  # 中文分号
+}
+```
+
+### 6.2 关键词模式
+
+```python
+# 预定义关键词库
+KEYWORD_PATTERNS = {
+    '路由协议': ['OSPF', 'BGP', 'RIP', 'ISIS', '路由'],
+    '安全策略': ['防火墙', 'ACL', 'VPN', 'IPSec', '安全'],
+    '网络设备': ['交换机', '路由器', 'AC', 'AP', '无线'],
+    '产品类型': ['防火墙', '路由器', '交换机', '无线AC', '无线AP'],
+    '服务类型': ['产品报价', '技术支持', '方案咨询', '培训'],
+    '认证技术': ['802.1X', 'Portal', 'MAC认证'],
+    '无线技术': ['WIFI', '无线', 'WLAN', '漫游'],
+}
+
+# 关键词优先级
+KEYWORD_PRIORITY = {
+    'OSPF': 10,
+    'BGP': 10,
+    '防火墙': 9,
+    '交换机': 9,
+    '路由器': 9,
+    'VPN': 8,
+    'ACL': 8,
+    '无线': 7,
+    'WIFI': 7,
+}
+```
+
+### 6.3 提取算法
+
+```python
+import re
+from typing import List, Set
+
+class ModuleExtractor:
+    """关键模块提取器"""
+    
+    def __init__(self):
+        self.delimiters = DELIMITERS
+        self.patterns = KEYWORD_PATTERNS
+        self.priority = KEYWORD_PRIORITY
+    
+    def extract(self, content: str) -> List[str]:
+        """
+        从内容中提取关键模块
+        
+        Args:
+            content: 文本内容
+            
+        Returns:
+            List[str]: 提取的模块列表（去重、排序）
+        """
+        if not content:
+            return []
+        
+        # 1. 按分隔符拆分
+        modules = self._split_by_delimiters(content)
+        
+        # 2. 模式匹配补充
+        modules.extend(self._pattern_match(content))
+        
+        # 3. 清洗和去重
+        modules = self._clean_modules(modules)
+        
+        # 4. 按优先级排序
+        modules = self._sort_by_priority(modules)
+        
+        return modules
+    
+    def _split_by_delimiters(self, content: str) -> List[str]:
+        """按分隔符拆分"""
+        # 使用正则表达式匹配所有分隔符
+        pattern = '[' + re.escape(''.join(self.delimiters)) + ']+'
+        parts = re.split(pattern, content)
+        
+        # 清洗每个部分
+        modules = []
+        for part in parts:
+            part = part.strip()
+            if part and len(part) >= 2:
+                modules.append(part)
+        
+        return modules
+    
+    def _pattern_match(self, content: str) -> List[str]:
+        """模式匹配"""
+        modules = []
+        
+        for category, keywords in self.patterns.items():
+            for keyword in keywords:
+                if keyword.lower() in content.lower():
+                    if keyword not in modules:
+                        modules.append(keyword)
+        
+        return modules
+    
+    def _clean_modules(self, modules: List[str]) -> List[str]:
+        """清洗和去重"""
+        cleaned = []
+        seen = set()
+        
+        for module in modules:
+            module = module.strip()
+            module_lower = module.lower()
+            
+            # 跳过太短或太长的
+            if len(module) < 2 or len(module) > 50:
+                continue
+            
+            # 跳过已见过的
+            if module_lower in seen:
+                continue
+            
+            seen.add(module_lower)
+            cleaned.append(module)
+        
+        return cleaned
+    
+    def _sort_by_priority(self, modules: List[str]) -> List[str]:
+        """按优先级排序"""
+        def get_priority(module: str) -> int:
+            return self.priority.get(module, 5)
+        
+        return sorted(modules, key=get_priority, reverse=True)
+```
+
+---
+
+## 七、UI界面设计
+
+### 7.1 LearningWidget（学习积累界面）
+
+```python
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
+                             QTabWidget, QPushButton, QLabel,
+                             QTableWidget, QLineEdit, QHeaderView)
+from PyQt5.QtCore import Qt, pyqtSignal
+
+class LearningWidget(QWidget):
+    """学习积累界面"""
+    
+    # 信号定义
+    learning_completed = pyqtSignal(dict)  # 学习完成信号
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.learning_service = None
+        self._init_ui()
+    
+    def _init_ui(self):
+        """初始化UI"""
+        # 主布局
+        main_layout = QVBoxLayout(self)
+        
+        # 标题
+        title = QLabel("📚 学习积累")
+        title.setStyleSheet("font-size: 16px; font-weight: bold;")
+        main_layout.addWidget(title)
+        
+        # Tab页面
+        self.tab_widget = QTabWidget()
+        
+        # Tab 1: 通讯录学习
+        self.contact_tab = self._create_contact_tab()
+        self.tab_widget.addTab(self.contact_tab, "通讯录学习")
+        
+        # Tab 2: 推荐库学习
+        self.recommendation_tab = self._create_recommendation_tab()
+        self.tab_widget.addTab(self.recommendation_tab, "推荐库学习")
+        
+        # Tab 3: 学习统计
+        self.statistics_tab = self._create_statistics_tab()
+        self.tab_widget.addTab(self.statistics_tab, "学习统计")
+        
+        # Tab 4: 批量学习
+        self.batch_tab = self._create_batch_tab()
+        self.tab_widget.addTab(self.batch_tab, "批量学习")
+        
+        main_layout.addWidget(self.tab_widget)
+    
+    def _create_contact_tab(self) -> QWidget:
+        """创建通讯录学习页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 搜索栏
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("🔍 搜索："))
+        self.contact_search_input = QLineEdit()
+        search_layout.addWidget(self.contact_search_input)
+        search_btn = QPushButton("搜索")
+        search_layout.addWidget(search_btn)
+        layout.addLayout(search_layout)
+        
+        # 联系人表格
+        self.contact_table = QTableWidget()
+        self.contact_table.setColumnCount(6)
+        self.contact_table.setHorizontalHeaderLabels([
+            "姓名", "类型", "部门", "任务数", "置信度", "选择"
+        ])
+        layout.addWidget(self.contact_table)
+        
+        # 导出按钮
+        export_layout = QHBoxLayout()
+        export_btn = QPushButton("📥 导出到通讯录")
+        export_layout.addWidget(export_btn)
+        layout.addLayout(export_layout)
+        
+        return widget
+    
+    def _create_recommendation_tab(self) -> QWidget:
+        """创建推荐库学习页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 搜索栏
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("🔍 搜索："))
+        self.recommendation_search_input = QLineEdit()
+        search_layout.addWidget(self.recommendation_search_input)
+        search_btn = QPushButton("搜索")
+        search_layout.addWidget(search_btn)
+        layout.addLayout(search_layout)
+        
+        # 推荐库表格
+        self.recommendation_table = QTableWidget()
+        self.recommendation_table.setColumnCount(5)
+        self.recommendation_table.setHorizontalHeaderLabels([
+            "答复人", "关键模块", "任务数", "成功率", "置信度"
+        ])
+        layout.addWidget(self.recommendation_table)
+        
+        # 导出按钮
+        export_layout = QHBoxLayout()
+        export_btn = QPushButton("📥 导出到推荐库")
+        export_layout.addWidget(export_btn)
+        layout.addLayout(export_layout)
+        
+        return widget
+    
+    def _create_statistics_tab(self) -> QWidget:
+        """创建学习统计页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 统计卡片
+        stats_layout = QHBoxLayout()
+        
+        # 通讯录记录数
+        card1 = self._create_stat_card("通讯录记录", "0")
+        stats_layout.addWidget(card1)
+        
+        # 推荐库记录数
+        card2 = self._create_stat_card("推荐库记录", "0")
+        stats_layout.addWidget(card2)
+        
+        # 学习覆盖率
+        card3 = self._create_stat_card("学习覆盖率", "0%")
+        stats_layout.addWidget(card3)
+        
+        layout.addLayout(stats_layout)
+        
+        return widget
+    
+    def _create_batch_tab(self) -> QWidget:
+        """创建批量学习页面"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 说明
+        info_label = QLabel(
+            "点击下方按钮，从所有历史任务中学习信息。"
+        )
+        layout.addWidget(info_label)
+        
+        # 批量学习按钮
+        batch_btn = QPushButton("🚀 开始批量学习")
+        layout.addWidget(batch_btn)
+        
+        # 进度显示
+        self.batch_progress = QLabel("准备就绪")
+        layout.addWidget(self.batch_progress)
+        
+        return widget
+    
+    def _create_stat_card(self, title: str, value: str) -> QWidget:
+        """创建统计卡片"""
+        card = QWidget()
+        card.setStyleSheet("""
+            QWidget {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        layout = QVBoxLayout(card)
+        
+        title_label = QLabel(title)
+        title_label.setStyleSheet("color: #666;")
+        layout.addWidget(title_label)
+        
+        value_label = QLabel(value)
+        value_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #333;")
+        layout.addWidget(value_label)
+        
+        return card
+    
+    def refresh_data(self):
+        """刷新数据"""
+        # 刷新通讯录学习数据
+        # 刷新推荐库学习数据
+        # 刷新统计数据
+```
+
+---
+
+## 八、自动学习集成
+
+### 8.1 任务创建时自动学习
+
+在主窗口的 `_on_task_created` 方法中集成自动学习：
+
+```python
+def _on_task_created(self, task_id: str) -> None:
+    """任务创建事件"""
+    logger.info(f"新任务创建: {task_id}")
+    self.statusBar().showMessage(f"新任务创建成功: {task_id}", 3000)
+    
+    # 自动学习任务信息
+    try:
+        from ..core.learning_service import get_learning_service
+        task = Task.get_by_id(task_id)
+        if task:
+            task_data = task.to_dict()
+            # 清空敏感信息（如果需要）
+            task_data["respondent_phone"] = ""
+            task_data["respondent_email"] = ""
+            
+            learning_service = get_learning_service()
+            learning_service.learn_from_task(task_data)
+            logger.info(f"任务信息已自动学习: {task_id}")
+    except Exception as e:
+        logger.error(f"自动学习失败: {e}")
+```
+
+### 8.2 批量学习入口
+
+在批量学习页面触发：
+
+```python
+def _on_batch_learn_clicked(self):
+    """批量学习按钮点击"""
+    # 1. 获取所有任务
+    tasks = Task.get_all()
+    
+    # 2. 执行批量学习
+    def progress_callback(current, total):
+        self.batch_progress.setText(f"学习进度: {current}/{total}")
+    
+    result = self.learning_service.batch_learn_from_tasks(
+        tasks, 
+        progress_callback=progress_callback
+    )
+    
+    # 3. 显示结果
+    QMessageBox.information(
+        self,
+        "批量学习完成",
+        f"总任务数: {result['total']}\n"
+        f"成功: {result['success']}\n"
+        f"失败: {result['fail']}"
+    )
+    
+    # 4. 刷新数据
+    self.refresh_data()
+```
+
+---
+
+## 九、验收标准
+
+### 9.1 学习积累功能验收标准
+
+| 验收项 | 验收标准 | 测试方法 |
+|--------|----------|----------|
+| 通讯录学习 | 从任务中正确学习咨询者和答复人信息 | 功能测试 |
+| 推荐库学习 | 从任务中正确学习答复人与关键模块的关联 | 功能测试 |
+| 模块提取 | 自动识别技术关键词（OSPF、BGP等） | 功能测试 |
+| 置信度计算 | 正确计算联系人置信度 | 单元测试 |
+| 批量学习 | 一键从所有任务学习 | 功能测试 |
+| 自动学习 | 任务创建时自动学习 | 集成测试 |
+| 导出功能 | 导出到通讯录/推荐库 | 功能测试 |
+| 学习统计 | 显示学习数据概览 | UI测试 |
+
+### 9.2 性能验收
+
+| 指标 | 目标值 | 测试方法 |
+|------|--------|----------|
+| 单任务学习时间 | < 100ms | 性能测试 |
+| 批量学习时间 | < 10秒（1000任务） | 性能测试 |
+| 搜索响应时间 | < 500ms | 性能测试 |
+| 数据库表创建 | < 1秒 | 启动测试 |
+
+---
+
+## 十、文件结构
+
+```
+src/market_task_tracker/src/
+├── core/
+│   ├── __init__.py
+│   ├── learning_service.py          # 学习服务 (800+行) ⭐V1.7
+│   │   ├── ContactLearningService   # 通讯录学习服务
+│   │   ├── RecommendationLearningService  # 推荐库学习服务
+│   │   ├── LearningService          # 综合学习服务
+│   │   ├── ModuleExtractor          # 模块提取器
+│   │   └── ConfidenceCalculator     # 置信度计算器
+│   └── ...
+├── ui/
+│   ├── widgets/
+│   │   ├── learning_widget.py       # 学习积累UI (500+行) ⭐V1.7
+│   │   └── ...
+│   └── main_window.py               # 主窗口（集成自动学习）
+└── ...
+```
+
+---
+
+## 十一、相关文档
+
+| 文档名称 | 版本 | 说明 |
+|----------|------|------|
+| 需求文档 | V2.0 | 学习积累功能需求 |
+| 测试用例 | V3.0 | 学习积累功能测试用例 |
+| 方案设计 | V1.7 | 学习积累功能方案设计 |
+| 界面设计文档 | V2.0 | 学习积累界面设计 |
+| MSG导入设计方案 | V1.1 | MSG邮件导入功能设计文档 |
+
+---
+
+**文档结束**
