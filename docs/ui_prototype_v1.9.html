@@ -2064,7 +2064,7 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
+                                        <td><input type="checkbox"></td>
                                         <td>1</td>
                                         <td>产品报价咨询</td>
                                         <td><span class="status-tag status-progress">进行中</span></td>
@@ -2076,7 +2076,7 @@
                                         <td><span class="action-link" onclick="showDetail(1)">详情</span><span class="reminder-count" onclick="showReminder(1)">提醒(3/6)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
+                                        <td><input type="checkbox"></td>
                                         <td>2</td>
                                         <td>技术方案确认</td>
                                         <td><span class="status-tag status-pending">挂起</span></td>
@@ -2088,7 +2088,7 @@
                                         <td><span class="action-link" onclick="showDetail(2)">详情</span><span class="reminder-count" onclick="showReminder(2)">提醒(2/4)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
+                                        <td><input type="checkbox"></td>
                                         <td>3</td>
                                         <td>需求调研</td>
                                         <td><span class="status-tag status-replied">已答复</span></td>
@@ -2100,7 +2100,7 @@
                                         <td><span class="action-link" onclick="showDetail(3)">详情</span><span class="reminder-count" onclick="showReminder(3)">提醒(1/6)</span></td>
                                     </tr>
                                     <tr>
-                                        <td><input type="checkbox" onchange="updateTaskSelectionStatus()"></td>
+                                        <td><input type="checkbox"></td>
                                         <td>4</td>
                                         <td>合同条款</td>
                                         <td><span class="status-tag status-done">完成</span></td>
@@ -3274,6 +3274,8 @@ CREATE TABLE recommendations (
                 const warningEl = document.getElementById('trackMultiSelectWarning');
                 document.getElementById('trackSelectedCount').textContent = selectedCount;
                 warningEl.style.display = 'block';
+                // 滚动到警告区域
+                warningEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 // 不打开弹窗，直接返回
                 return;
             } else {
@@ -3320,22 +3322,6 @@ CREATE TABLE recommendations (
 
             // 显示成功提示
             alert('✅ 已取消选择，现在只保留了 1 个任务选择。\n您可以再次点击"智能学习&应答"按钮。');
-        }
-
-        // V1.9新增：实时检测任务选中数量
-        function updateTaskSelectionStatus() {
-            const table = document.querySelector('.table-container table');
-            const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
-            const selectedCount = checkedRows.length;
-
-            // 更新选中状态显示
-            const warningEl = document.getElementById('trackMultiSelectWarning');
-            if (selectedCount > 1) {
-                document.getElementById('trackSelectedCount').textContent = selectedCount;
-                warningEl.style.display = 'block';
-            } else {
-                warningEl.style.display = 'none';
-            }
         }
 
         function showSmartLearningModal() {
