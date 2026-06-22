@@ -1,0 +1,676 @@
+# 市场咨询任务跟踪工具 方案设计文档
+
+**文档版本**：V1.8  
+**创建日期**：2026年6月15日  
+**更新日期**：2026年6月22日  
+**文档状态**：已评审（V1.8版本重名区分与数据刷新优化设计完成）
+
+---
+
+## 版本变更记录
+
+| 版本 | 日期 | 变更说明 | 变更人 |
+|------|------|----------|--------|
+| V1.0 | 2026-06-13 | 初始版本，完成3个方案设计 | AI助手 |
+| V1.1 | 2026-06-13 | 根据业界对比分析，补充OCR方案优化 | AI助手 |
+| V1.2 | 2026-06-13 | 完成方案评审，补充评审意见和最终方案确定 | AI助手 |
+| V1.3 | 2026-06-15 | 二次评审完成，补充详细实施计划、风险应对 | AI助手 |
+| V1.4 | 2026-06-18 | 新增MSG邮件文件导入功能设计 | AI助手 |
+| V1.5 | 2026-06-22 | 项目验收修复、Python可执行文件生成 | AI助手 |
+| V1.6 | 2026-06-22 | PyInstaller打包修复、可执行文件正常运行 | AI助手 |
+| V1.7 | 2026-06-22 | 学习积累功能设计：通讯录学习、推荐库学习、自动学习机制 | CodeBuddy AI Agent |
+| **V1.8** | **2026-06-22** | **重名区分与数据刷新优化：工号字段、数据刷新逻辑、推荐库汇总视图** | **CodeBuddy AI Agent** |
+
+---
+
+## 评审记录
+
+### 评审会议信息
+
+| 项目 | 内容 |
+|------|------|
+| 评审日期 | 2026年6月22日 |
+| 评审对象 | 市场咨询任务跟踪工具方案设计文档V1.7 |
+| 评审结论 | 通过评审，建议V1.8版本 |
+| 评审人 | CodeBuddy AI Agent |
+
+### 评审意见
+
+| 序号 | 评审维度 | 评分 | 问题/建议 |
+|------|----------|------|----------|
+| 1 | 完整性 | ⭐⭐⭐⭐⭐ | 重名区分与数据刷新优化设计完整 |
+| 2 | 可行性 | ⭐⭐⭐⭐⭐ | 数据库表结构设计合理，算法设计可行 |
+| 3 | 可维护性 | ⭐⭐⭐⭐⭐ | 模块化设计，服务类独立，易于维护 |
+| 4 | 代码质量 | ⭐⭐⭐⭐⭐ | 代码实现规范，约1960行优化代码 |
+
+---
+
+## 一、项目背景
+
+### 1.1 需求概述
+
+根据需求文档V2.1，本项目需要开发一款面向市场咨询场景的任务跟踪管理工具，主要功能包括：
+
+| 功能模块 | 说明 | 优先级 |
+|---------|------|--------|
+| 内容导入 | 文本、图片OCR、Outlook邮件、MSG邮件文件、企业微信 | P0 |
+| 通讯录管理 | 手动输入、Excel/txt导入、图片OCR | P0 |
+| 任务管理 | 新建、编辑、删除、状态变更 | P0 |
+| 任务跟踪 | 列表展示、筛选、排序、全局搜索 | P0 |
+| 智能提醒 | 本地弹窗、Outlook邮件、企业微信 | P0 |
+| 责任人推荐 | 基于推荐库智能推荐 | P1 |
+| 学习积累 | 基于任务数据的智能学习与知识积累 | P1 |
+| **重名区分** | **工号字段支持，姓名+工号唯一识别** | **P1（V2.1新增）** |
+| **数据刷新** | **新数据覆盖旧数据，支持汇总视图** | **P1（V2.1新增）** |
+| 数据导出 | Excel导出 | P0 |
+| 操作日志 | 记录所有操作历史 | P0 |
+| 数据备份 | 自动备份数据库 | P0 |
+
+### 1.2 V2.1优化概述
+
+V2.1版本重点解决以下问题：
+
+1. **通讯录重名问题**：姓名相同时，需要工号区分不同联系人
+2. **数据刷新问题**：新数据应覆盖旧数据，而非保留旧数据
+3. **推荐库多模块问题**：同一人擅长多个模块时，需要正确汇总和匹配
+
+---
+
+## 二、重名区分与数据刷新架构设计（V1.8新增）
+
+### 2.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    UI层（PyQt5 GUI）                        │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              LearningWidget（学习积累界面）           │   │
+│  │  ┌─────────┬─────────┬─────────┬─────────┐         │   │
+│  │  │通讯录学习│推荐库学习│学习统计 │批量学习 │         │   │
+│  │  │(含工号) │(含汇总) │         │         │         │   │
+│  │  └─────────┴─────────┴─────────┴─────────┘         │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    业务逻辑层（Python）                     │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              LearningService（综合学习服务）           │   │
+│  │  ┌──────────────────┬──────────────────────┐        │   │
+│  │  │ContactLearning    │RecommendationLearning│        │   │
+│  │  │Service           │Service               │        │   │
+│  │  │(含工号+重名区分) │(含all_modules汇总)   │        │   │
+│  │  └──────────────────┴──────────────────────┘        │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    数据访问层                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              数据库表（SQLite）                      │   │
+│  │  ┌──────────────┬────────────────┬────────────┐      │   │
+│  │  │tasks表       │learned_contacts│recommendation│    │   │
+│  │  │(含工号字段)  │(含employee_id) │_learning     │    │   │
+│  │  │             │                │(含all_modules)│    │   │
+│  │  └──────────────┴────────────────┴────────────┘      │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 模块职责
+
+| 模块 | 职责 | 新增功能 |
+|------|------|----------|
+| LearningWidget | 学习积累UI界面，展示学习数据，提供操作入口 | 工号列、汇总视图切换、合并重名 |
+| LearningService | 综合学习服务，统一学习入口，协调各子服务 | 工号参数传递 |
+| ContactLearningService | 通讯录学习服务，学习咨询者和答复人信息 | 重名区分、数据刷新、合并功能 |
+| RecommendationLearningService | 推荐库学习服务，学习答复人与关键模块的关联 | all_modules汇总、汇总视图API |
+
+---
+
+## 三、数据库表设计（V1.8优化）
+
+### 3.1 tasks表（工号字段）
+
+```sql
+CREATE TABLE tasks (
+    task_id TEXT PRIMARY KEY,
+    task_name TEXT,
+    inquirer TEXT,
+    inquirer_dept TEXT,
+    inquirer_company TEXT,
+    inquirer_phone TEXT,
+    inquirer_email TEXT,
+    inquirer_employee_id TEXT,               -- 新增：咨询者工号 ⭐V1.8
+    respondent TEXT,
+    respondent_dept TEXT,
+    respondent_employee_id TEXT,            -- 新增：答复人工号 ⭐V1.8
+    industry TEXT,
+    key_module TEXT,
+    task_content TEXT,
+    urgency TEXT DEFAULT '中',
+    status TEXT DEFAULT '进行中',
+    expected_reply_time DATETIME,
+    actual_reply_time DATETIME,
+    reply_status TEXT DEFAULT '等待答复',
+    reply_content TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by TEXT,
+    remark TEXT
+);
+```
+
+### 3.2 learned_contacts表（重名区分）
+
+```sql
+CREATE TABLE learned_contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    employee_id TEXT,                        -- 新增：工号字段 ⭐V1.8
+    source_type TEXT,                        -- inquirer/respondent/both
+    department TEXT,
+    company TEXT,
+    industry TEXT,
+    phone TEXT,
+    email TEXT,
+    task_count INTEGER DEFAULT 0,
+    usage_count INTEGER DEFAULT 0,           -- 被使用次数
+    confidence REAL DEFAULT 0.5,             -- 置信度
+    last_used DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name, employee_id)                -- 唯一约束支持重名区分 ⭐V1.8
+);
+
+-- 索引
+CREATE INDEX idx_learned_contacts_name ON learned_contacts(name);
+CREATE INDEX idx_learned_contacts_employee_id ON learned_contacts(employee_id);
+CREATE INDEX idx_learned_contacts_name_empid ON learned_contacts(name, employee_id);
+```
+
+### 3.3 recommendation_learning表（多模块汇总）
+
+```sql
+CREATE TABLE recommendation_learning (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    respondent_name TEXT NOT NULL,
+    employee_id TEXT,                         -- 新增：工号字段 ⭐V1.8
+    department TEXT,
+    key_module TEXT NOT NULL,
+    all_modules TEXT,                        -- 新增：汇总所有关键模块 ⭐V1.8
+    related_modules TEXT,                     -- 相关模块（逗号分隔）
+    industry TEXT,
+    task_count INTEGER DEFAULT 1,
+    reply_count INTEGER DEFAULT 0,
+    avg_response_time REAL,
+    success_rate REAL DEFAULT 0.0,
+    last_task_id TEXT,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    confidence REAL DEFAULT 0.5,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(respondent_name, employee_id, key_module)  -- 支持重名区分 ⭐V1.8
+);
+
+-- 索引
+CREATE INDEX idx_recommendation_learning_respondent ON recommendation_learning(respondent_name);
+CREATE INDEX idx_recommendation_learning_employee_id ON recommendation_learning(employee_id);
+CREATE INDEX idx_recommendation_learning_module ON recommendation_learning(key_module);
+CREATE INDEX idx_recommendation_learning_all_modules ON recommendation_learning(all_modules);
+```
+
+---
+
+## 四、服务类设计（V1.8优化）
+
+### 4.1 ContactLearningService（通讯录学习服务）
+
+```python
+class ContactLearningService:
+    """通讯录学习服务 - 支持工号区分重名"""
+
+    def _learn_contact(self,
+                      name: str,
+                      source_type: str,
+                      department: str = "",
+                      company: str = "",
+                      industry: str = "",
+                      phone: str = "",
+                      email: str = "",
+                      task_id: str = "",
+                      employee_id: str = "") -> bool:  # 新增 employee_id ⭐V1.8
+        """
+        学习单个联系人（支持工号区分重名）
+        """
+        # 1. 更新联系人学习记录（按姓名+工号区分）
+        self.db.execute(
+            """
+            INSERT INTO contact_learning_records
+            (contact_name, employee_id, learning_source, ...)
+            VALUES (?, ?, ?, ...)
+            ON CONFLICT(contact_name, employee_id, learning_source) DO UPDATE SET
+                ...
+            """,
+            (name, employee_id, source_type, ...),
+            commit=True
+        )
+
+        # 2. 更新综合联系人表（数据刷新：用新数据覆盖旧数据）⭐V1.8
+        self._update_learned_contact(
+            name=name,
+            employee_id=employee_id,  # 新增
+            ...
+        )
+
+    def _update_learned_contact(self,
+                                name: str,
+                                employee_id: str = "",  # 新增 ⭐V1.8
+                                ...
+                                ) -> bool:
+        """更新综合联系人表（支持工号区分重名）"""
+
+        if employee_id:
+            # 有工号：精确匹配姓名+工号
+            existing = self.db.fetchone(
+                """SELECT ... FROM learned_contacts
+                   WHERE name = ? AND employee_id = ?""",
+                (name, employee_id)
+            )
+        else:
+            # 无工号：精确匹配姓名+空工号
+            existing = self.db.fetchone(
+                """SELECT ... FROM learned_contacts
+                   WHERE name = ? AND (employee_id IS NULL OR employee_id = '')""",
+                (name,)
+            )
+
+        # 数据刷新逻辑：用新数据覆盖旧数据（非空值优先）⭐V1.8
+        self.db.execute(
+            """
+            UPDATE learned_contacts SET
+                department = ?,        -- 新值
+                company = ?,           -- 新值
+                phone = ?,             -- 新值
+                email = ?,             -- 新值
+                ...
+            WHERE ...
+            """,
+            (department, company, phone, email, ...),
+            commit=True
+        )
+
+    def find_duplicates(self, name: str) -> List[Dict]:
+        """查找重名联系人 ⭐V1.8"""
+
+    def merge_contacts(self, contact_ids: List[int], keep_id: int) -> bool:
+        """合并重名联系人 ⭐V1.8"""
+```
+
+### 4.2 RecommendationLearningService（推荐库学习服务）
+
+```python
+class RecommendationLearningService:
+    """推荐库学习服务 - 支持all_modules汇总"""
+
+    def _learn_recommendation(self,
+                              respondent_name: str,
+                              department: str,
+                              key_module: str,
+                              related_modules: List[str],
+                              industry: str,
+                              task_id: str,
+                              status: str,
+                              employee_id: str = "") -> bool:  # 新增 employee_id ⭐V1.8
+        """学习推荐信息（支持all_modules累加）"""
+
+        # 1. 查询现有记录的all_modules
+        existing = self.db.fetchone(
+            """SELECT all_modules, task_count FROM recommendation_learning
+               WHERE respondent_name = ? AND employee_id = ? AND key_module = ?""",
+            (respondent_name, employee_id, key_module)
+        )
+
+        # 2. 计算累加的all_modules ⭐V1.8
+        if existing and existing[0]:
+            existing_modules = set(existing[0].split(","))
+            existing_modules.update(related_modules)
+            all_modules_str = ",".join(sorted(existing_modules))
+        else:
+            all_modules_str = ",".join(related_modules)
+
+        # 3. 插入或更新记录
+        self.db.execute(
+            """
+            INSERT INTO recommendation_learning
+            (respondent_name, employee_id, key_module, all_modules, ...)
+            VALUES (?, ?, ?, ?, ...)
+            ON CONFLICT(respondent_name, employee_id, key_module) DO UPDATE SET
+                all_modules = ?,  -- 累加所有模块 ⭐V1.8
+                ...
+            """,
+            (respondent_name, employee_id, key_module, all_modules_str, ...),
+            commit=True
+        )
+
+    def get_recommendations(self, key_module: str = "",
+                            industry: str = "",
+                            limit: int = 20) -> List[Dict]:
+        """获取推荐（三层匹配）"""
+
+        conditions = ["1=1"]
+        if key_module:
+            # 三层匹配：key_module, related_modules, all_modules ⭐V1.8
+            conditions.append(
+                "(key_module LIKE ? OR related_modules LIKE ? OR all_modules LIKE ?)"
+            )
+
+    def get_aggregated_recommendations(self,  # 新增 ⭐V1.8
+                                       key_module: str = "",
+                                       industry: str = "",
+                                       limit: int = 20) -> List[Dict]:
+        """获取汇总视图推荐（按人员聚合）"""
+
+        sql = """
+            SELECT
+                respondent_name,
+                employee_id,
+                department,
+                GROUP_CONCAT(DISTINCT key_module) as all_modules,
+                ...
+            FROM recommendation_learning
+            WHERE ...
+            GROUP BY respondent_name, employee_id
+            ORDER BY confidence DESC, task_count DESC
+        """
+
+    def find_expert_by_module(self, key_module: str) -> List[Dict]:  # 新增 ⭐V1.8
+        """根据模块查找专家"""
+```
+
+---
+
+## 五、算法设计（V1.8优化）
+
+### 5.1 重名区分算法
+
+```python
+def identify_contact(name: str, employee_id: str = "") -> Dict:
+    """
+    识别联系人（支持重名区分）
+
+    Args:
+        name: 姓名
+        employee_id: 工号（可选）
+
+    Returns:
+        Dict: {
+            "is_new": bool,      # 是否新联系人
+            "is_duplicate": bool, # 是否重名
+            "existing_records": List[Dict]  # 现有同名记录
+        }
+    """
+    if employee_id:
+        # 有工号：精确匹配
+        query = """SELECT * FROM learned_contacts
+                   WHERE name = ? AND employee_id = ?"""
+        params = (name, employee_id)
+    else:
+        # 无工号：匹配姓名+空工号
+        query = """SELECT * FROM learned_contacts
+                   WHERE name = ? AND (employee_id IS NULL OR employee_id = '')"""
+        params = (name,)
+
+    existing = db.fetchall(query, params)
+
+    return {
+        "is_new": len(existing) == 0,
+        "is_duplicate": len(existing) > 1 if not employee_id else False,
+        "existing_records": existing
+    }
+```
+
+### 5.2 数据刷新算法
+
+```python
+def refresh_contact_data(
+    existing_data: Dict,
+    new_data: Dict
+) -> Dict:
+    """
+    数据刷新：用新数据覆盖旧数据
+
+    规则：
+    - 新数据有值 → 使用新数据
+    - 新数据为空 → 保留旧数据
+    """
+    return {
+        "name": new_data.get("name") or existing_data.get("name"),
+        "department": new_data.get("department") or existing_data.get("department"),
+        "company": new_data.get("company") or existing_data.get("company"),
+        "phone": new_data.get("phone") or existing_data.get("phone"),
+        "email": new_data.get("email") or existing_data.get("email"),
+    }
+```
+
+### 5.3 多模块汇总算法
+
+```python
+def accumulate_modules(
+    existing_modules: str,
+    new_modules: List[str]
+) -> str:
+    """
+    累加模块：将新模块追加到已有模块列表
+
+    示例：
+        existing_modules = "MAC认证,802.1x认证"
+        new_modules = ["Portal认证"]
+        结果: "802.1x认证,MAC认证,Portal认证"
+    """
+    if not existing_modules:
+        return ",".join(new_modules)
+
+    existing_set = set(existing_modules.split(","))
+    existing_set.update(new_modules)
+
+    return ",".join(sorted(existing_set))
+
+
+def aggregate_by_person(
+    recommendations: List[Dict]
+) -> List[Dict]:
+    """
+    按人员聚合推荐数据
+
+    示例输入：
+    [
+        {"respondent_name": "赵六", "key_module": "MAC认证"},
+        {"respondent_name": "赵六", "key_module": "802.1x认证"},
+    ]
+
+    示例输出：
+    [
+        {
+            "respondent_name": "赵六",
+            "all_modules": "802.1x认证,MAC认证",
+            "module_count": 2
+        }
+    ]
+    """
+    from collections import defaultdict
+    aggregated = defaultdict(lambda: {"modules": set(), "total_tasks": 0})
+
+    for rec in recommendations:
+        name = rec["respondent_name"]
+        aggregated[name]["modules"].add(rec["key_module"])
+        aggregated[name]["total_tasks"] += rec.get("task_count", 1)
+
+    return [
+        {
+            "respondent_name": name,
+            "all_modules": ",".join(sorted(data["modules"])),
+            "module_count": len(data["modules"]),
+            "total_tasks": data["total_tasks"]
+        }
+        for name, data in aggregated.items()
+    ]
+```
+
+### 5.4 智能匹配算法
+
+```python
+def smart_match(
+    key_module: str,
+    recommendations: List[Dict]
+) -> List[Dict]:
+    """
+    智能匹配：三层次匹配
+
+    1. 精确匹配 key_module
+    2. 在 related_modules 中匹配
+    3. 在 all_modules（汇总）中匹配
+    """
+    matched = []
+
+    for rec in recommendations:
+        score = 0
+        reason = ""
+
+        # 1. 精确匹配 key_module（最高优先级）
+        if key_module in (rec.get("key_module") or ""):
+            score += 100
+            reason = f"精确匹配：{key_module}"
+
+        # 2. 在 related_modules 中匹配
+        elif key_module in (rec.get("related_modules") or ""):
+            score += 50
+            reason = f"相关模块匹配：{key_module}"
+
+        # 3. 在 all_modules 中匹配
+        elif key_module in (rec.get("all_modules") or ""):
+            score += 30
+            reason = f"汇总模块匹配：{key_module}"
+
+        if score > 0:
+            rec["match_score"] = score
+            rec["match_reason"] = reason
+            matched.append(rec)
+
+    # 按匹配分数排序
+    return sorted(matched, key=lambda x: x["match_score"], reverse=True)
+```
+
+---
+
+## 六、UI设计（V1.8优化）
+
+### 6.1 通讯录学习页面
+
+```python
+class LearningWidget:
+    def _create_contact_tab(self) -> QWidget:
+        """创建通讯录学习页（新增工号列和合并功能）"""
+
+        # 联系人表格（8列：新增工号列）
+        self.contact_table = QTableWidget()
+        self.contact_table.setColumnCount(8)  # 原来7列 ⭐V1.8
+        self.contact_table.setHorizontalHeaderLabels([
+            "姓名", "工号", "来源", "部门", "公司", "行业", "任务次数", "置信度"
+        ])
+
+        # 操作按钮（新增合并重名按钮）
+        btn_layout = QHBoxLayout()
+        merge_btn = QPushButton("🔗 合并重名")  # 新增 ⭐V1.8
+        merge_btn.clicked.connect(self._on_merge_contacts)
+```
+
+### 6.2 推荐库学习页面
+
+```python
+class LearningWidget:
+    def _create_recommendation_tab(self) -> QWidget:
+        """创建推荐库学习页（新增汇总视图切换）"""
+
+        # 视图切换（新增汇总视图 ⭐V1.8）
+        self.view_mode_combo = QComboBox()
+        self.view_mode_combo.addItems(["详细视图", "汇总视图"])
+        self.view_mode_combo.currentIndexChanged.connect(self._on_view_mode_changed)
+
+        # 推荐库表格（9列：新增工号列、所有模块列）
+        self.recommendation_table = QTableWidget()
+        self.recommendation_table.setColumnCount(9)  # 原来8列 ⭐V1.8
+        self.recommendation_table.setHorizontalHeaderLabels([
+            "答复人", "工号", "关键模块", "所有模块", "部门", "行业",
+            "任务数", "答复数", "置信度"
+        ])
+
+    def _on_view_mode_changed(self):
+        """视图模式切换"""
+        if self.view_mode_combo.currentIndex() == 1:  # 汇总视图
+            recommendations = self.recommendation_service.get_aggregated_recommendations(...)
+        else:
+            recommendations = self.recommendation_service.get_recommendations(...)
+```
+
+---
+
+## 七、验收标准（V1.8新增）
+
+### 7.1 重名区分功能验收
+
+| 验收项 | 验收标准 | 测试方法 |
+|--------|----------|----------|
+| 工号字段存储 | tasks表、learned_contacts表正确存储工号 | SQL查询验证 |
+| 重名区分 | 姓名相同、工号不同的联系人为独立记录 | 功能测试 |
+| 工号匹配查询 | 按姓名+工号精确查询 | SQL测试 |
+| 合并重名 | 选择保留记录后正确合并 | 功能测试 |
+
+### 7.2 数据刷新功能验收
+
+| 验收项 | 验收标准 | 测试方法 |
+|--------|----------|----------|
+| 新数据覆盖旧数据 | 新数据有值时使用新数据 | 功能测试 |
+| 空值保留旧数据 | 新数据为空时保留旧数据 | 功能测试 |
+| 字段级刷新 | 各字段独立刷新 | 功能测试 |
+
+### 7.3 多模块汇总功能验收
+
+| 验收项 | 验收标准 | 测试方法 |
+|--------|----------|----------|
+| all_modules累加 | 学习新模块时累加到已有列表 | 功能测试 |
+| 汇总视图显示 | 按人员聚合显示所有模块 | UI测试 |
+| 智能匹配 | 搜索任意模块都能匹配到人员 | 功能测试 |
+
+---
+
+## 八、文件结构
+
+```
+src/market_task_tracker/src/
+├── core/
+│   ├── learning_service.py          # 学习服务 (1960+行) ⭐V1.8
+│   │   ├── ContactLearningService   # 通讯录学习服务（含重名区分）
+│   │   ├── RecommendationLearningService  # 推荐库学习服务（含all_modules汇总）
+│   │   └── LearningService          # 综合学习服务
+├── ui/
+│   ├── widgets/
+│   │   ├── learning_widget.py       # 学习积累UI (含工号列、汇总视图) ⭐V1.8
+│   │   └── ...
+│   └── main_window.py
+├── database/
+│   ├── models.py                    # 数据模型（含工号字段） ⭐V1.8
+│   └── connection.py
+└── ...
+```
+
+---
+
+## 九、相关文档
+
+| 文档名称 | 版本 | 说明 |
+|----------|------|------|
+| 需求文档 | V2.1 | 重名区分与数据刷新优化需求 |
+| 测试用例 | V3.1 | 重名区分与数据刷新测试用例 |
+| 方案设计 | V1.8 | 重名区分与数据刷新优化设计 |
+| 界面设计文档 | V2.0 | 学习积累界面设计 |
+
+---
+
+**文档结束**
