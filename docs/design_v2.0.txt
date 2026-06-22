@@ -1,0 +1,725 @@
+# 市场咨询任务跟踪工具 方案设计
+
+**文档版本**：V2.0  
+**创建日期**：2026年6月13日  
+**更新日期**：2026年6月22日  
+**文档状态**：已完成
+
+---
+
+## 评审记录
+
+### 评审会议信息
+
+| 项目 | 内容 |
+|------|------|
+| 评审日期 | 2026年6月22日 |
+| 评审对象 | 市场咨询任务跟踪工具方案设计V1.9 |
+| 评审结论 | 通过评审，建议V2.0版本 |
+| 评审人 | AI助手 |
+
+### 评审意见
+
+| 序号 | 评审维度 | 评分 | 问题/建议 |
+|------|----------|------|----------|
+| 1 | 架构设计 | ⭐⭐⭐⭐⭐ | 架构清晰，新增功能模块设计合理 |
+| 2 | 技术实现 | ⭐⭐⭐⭐⭐ | 技术方案可行，符合PyQt5最佳实践 |
+| 3 | 数据设计 | ⭐⭐⭐⭐⭐ | 数据库设计完善，支持新功能需求 |
+| 4 | 交互设计 | ⭐⭐⭐⭐⭐ | 交互流程完善，用户体验良好 |
+
+---
+
+## 一、项目架构
+
+### 1.1 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      UI Layer (PyQt5)                       │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐          │
+│  │ MainWin │ │TaskPanel│ │ImportDlg│ │SmartLearn│          │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘          │
+├─────────────────────────────────────────────────────────────┤
+│                   Business Logic Layer                       │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐             │
+│  │TaskService │ │ImportServ │ │LearnService │             │
+│  └────────────┘ └────────────┘ └────────────┘             │
+├─────────────────────────────────────────────────────────────┤
+│                      Data Access Layer                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│  │TaskDAO   │ │ContactDAO│ │LearnDAO   │ │ResponseDAO│     │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
+├─────────────────────────────────────────────────────────────┤
+│                      Data Layer (SQLite)                    │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐              │
+│  │task.db│ │contact │ │learning │ │response │             │
+│  └────────┘ └────────┘ └────────┘ └────────┘              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1.2 模块划分
+
+| 模块 | 职责 | 核心类 |
+|------|------|--------|
+| UI层 | 界面展示与用户交互 | MainWindow, TaskDetailDialog |
+| 业务层 | 业务逻辑处理 | TaskService, SmartLearnService |
+| 数据层 | 数据访问与存储 | TaskDAO, SmartLearnDAO |
+
+---
+
+## 二、新增功能设计
+
+### 2.1 智能学习&应答功能设计
+
+#### 2.1.1 功能架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              SmartLearnDialog (UI Layer)                    │
+│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐    │
+│  │TabSimilarTask│ │ TabAddLearn   │ │ TabHistory    │    │
+│  └───────────────┘ └───────────────┘ └───────────────┘    │
+├─────────────────────────────────────────────────────────────┤
+│              SmartLearnService (Business Layer)             │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐             │
+│  │TaskMatcher │ │DocImporter  │ │LearnManager │            │
+│  └────────────┘ └────────────┘ └────────────┘             │
+├─────────────────────────────────────────────────────────────┤
+│              SmartLearnDAO (Data Access Layer)             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
+│  │LearnRepo  │ │SimilarRepo│ │HistoryRepo│                   │
+│  └──────────┘ └──────────┘ └──────────┘                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 2.1.2 文档导入模块设计
+
+**DocImporter 类**：
+```python
+class DocImporter:
+    """文档导入器 - 支持多种格式"""
+
+    def import_txt(self, content: str) -> List[Dict]:
+        """导入TXT文本"""
+        pass
+
+    def import_image(self, image_path: str) -> str:
+        """导入图片并OCR识别"""
+        pass
+
+    def import_excel(self, excel_path: str) -> List[Dict]:
+        """导入Excel文件"""
+        pass
+```
+
+**支持的导入格式**：
+| 格式 | 处理方式 | OCR支持 |
+|------|----------|--------|
+| .txt | 直接解析文本 | 否 |
+| .jpg/.png/.bmp | OCR识别 | 是 |
+| .xlsx/.xls | Excel解析 | 否 |
+
+#### 2.1.3 相似任务匹配设计
+
+**TaskMatcher 类**：
+```python
+class TaskMatcher:
+    """任务匹配器 - 基于关键模块匹配相似任务"""
+
+    def find_similar_tasks(self, module: str, limit: int = 5,
+                          page: int = 1) -> PaginatedResult:
+        """查找相似任务"""
+        pass
+
+    def calculate_similarity(self, module1: str, module2: str) -> float:
+        """计算相似度"""
+        pass
+
+    def get_total_count(self, module: str) -> int:
+        """获取相似任务总数"""
+        pass
+```
+
+**匹配算法**：
+1. 精确匹配：关键模块完全相同
+2. 包含匹配：关键模块包含目标关键词
+3. 相似度计算：基于关键词重合度
+
+#### 2.1.4 数据表设计
+
+**学习记录表 (learning_records)**：
+```sql
+CREATE TABLE learning_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER,                    -- 关联任务ID（可为空）
+    keywords VARCHAR(200),               -- 关键词
+    question VARCHAR(500),               -- 问题/场景
+    solution TEXT,                       -- 解决方案
+    source_type VARCHAR(20),             -- 来源类型：txt/image/excel
+    status VARCHAR(20) DEFAULT 'pending',-- 状态：pending/approved/rejected
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id)
+);
+```
+
+**学习历史表 (learning_history)**：
+```sql
+CREATE TABLE learning_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_id INTEGER,
+    action VARCHAR(50),                  -- 操作类型：create/update/delete
+    operator VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+### 2.2 任务详情编辑功能设计
+
+#### 2.2.1 功能架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              TaskDetailDialog (UI Layer)                    │
+│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐    │
+│  │BasicInfoPanel│ │ContentPanel  │ │ResponsePanel │    │
+│  └───────────────┘ └───────────────┘ └───────────────┘    │
+├─────────────────────────────────────────────────────────────┤
+│              ViewMode ↔ EditMode                            │
+│  ┌───────────────┐ ┌───────────────┐                       │
+│  │ Text Display  │ │ Form Inputs   │                       │
+│  └───────────────┘ └───────────────┘                       │
+├─────────────────────────────────────────────────────────────┤
+│              TaskEditService (Business Layer)                │
+│  ┌────────────┐ ┌────────────┐                             │
+│  │ EditManager │ │ SaveManager │                             │
+│  └────────────┘ └────────────┘                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 2.2.2 TaskDetailDialog 类设计
+
+```python
+class TaskDetailDialog(QDialog):
+    """任务详情对话框"""
+
+    def __init__(self, task_id: int, parent=None):
+        super().__init__(parent)
+        self.task_id = task_id
+        self.is_editing = False
+        self.original_data = {}
+        self.init_ui()
+
+    def init_ui(self):
+        """初始化UI"""
+        self.setup_basic_info_section()
+        self.setup_content_section()
+        self.setup_response_section()
+        self.setup_buttons()
+
+    def toggle_edit_mode(self):
+        """切换编辑模式"""
+        if self.is_editing:
+            self.exit_edit_mode()
+        else:
+            self.enter_edit_mode()
+
+    def enter_edit_mode(self):
+        """进入编辑模式"""
+        self.is_editing = True
+        self.backup_original_data()
+        self.show_edit_widgets()
+        self.update_button_states()
+        self.show_edit_indicators()
+
+    def exit_edit_mode(self):
+        """退出编辑模式"""
+        self.is_editing = False
+        self.restore_original_data()
+        self.show_display_widgets()
+        self.update_button_states()
+        self.hide_edit_indicators()
+
+    def backup_original_data(self):
+        """备份原始数据"""
+        self.original_data = {
+            'name': self.name_input.text(),
+            'status': self.status_combo.currentData(),
+            'priority': self.priority_combo.currentData(),
+            'owner': self.owner_input.text(),
+            'module': self.module_input.text(),
+            'content': self.content_text.toPlainText()
+        }
+
+    def restore_original_data(self):
+        """恢复原始数据"""
+        self.name_input.setText(self.original_data['name'])
+        self.content_text.setPlainText(self.original_data['content'])
+        # ... 恢复其他字段
+
+    def save_changes(self):
+        """保存修改"""
+        # 验证数据
+        if not self.validate_data():
+            return
+
+        # 更新数据库
+        self.task_service.update_task(self.task_id, self.get_form_data())
+
+        # 刷新显示
+        self.refresh_display()
+
+        # 退出编辑模式
+        self.exit_edit_mode()
+
+        QMessageBox.information(self, "成功", "任务保存成功！")
+
+    def validate_data(self) -> bool:
+        """验证表单数据"""
+        # 任务名称不能为空
+        if not self.name_input.text().strip():
+            QMessageBox.warning(self, "错误", "任务名称不能为空！")
+            return False
+        return True
+
+    def get_form_data(self) -> Dict:
+        """获取表单数据"""
+        return {
+            'name': self.name_input.text().strip(),
+            'status': self.status_combo.currentData(),
+            'priority': self.priority_combo.currentData(),
+            'owner': self.owner_input.text().strip(),
+            'module': self.module_input.text().strip(),
+            'content': self.content_text.toPlainText().strip()
+        }
+```
+
+#### 2.2.3 可编辑字段配置
+
+```python
+# 可编辑字段配置
+EDITABLE_FIELDS = {
+    'name': {
+        'label': '任务名称',
+        'type': 'text',
+        'required': True,
+        'display_widget': QLabel,
+        'edit_widget': QLineEdit
+    },
+    'status': {
+        'label': '状态',
+        'type': 'select',
+        'options': [
+            ('progress', '进行中'),
+            ('pending', '挂起'),
+            ('done', '已完成')
+        ],
+        'display_widget': StatusTag,
+        'edit_widget': QComboBox
+    },
+    'priority': {
+        'label': '优先级',
+        'type': 'select',
+        'options': [
+            ('high', '高'),
+            ('medium', '中'),
+            ('low', '低')
+        ],
+        'display_widget': PriorityTag,
+        'edit_widget': QComboBox
+    },
+    'owner': {
+        'label': '负责人',
+        'type': 'text',
+        'required': False,
+        'display_widget': QLabel,
+        'edit_widget': QLineEdit
+    },
+    'module': {
+        'label': '关键模块',
+        'type': 'text',
+        'required': False,
+        'display_widget': QLabel,
+        'edit_widget': QLineEdit
+    },
+    'content': {
+        'label': '详细内容',
+        'type': 'textarea',
+        'required': False,
+        'display_widget': ContentDisplay,
+        'edit_widget': QTextEdit
+    }
+}
+```
+
+---
+
+## 三、数据模型
+
+### 3.1 任务详情数据结构
+
+```python
+@dataclass
+class TaskDetail:
+    """任务详情数据模型"""
+    id: int
+    name: str
+    status: str
+    priority: str
+    owner: str
+    module: str
+    content: str
+    create_date: datetime
+    responses: List[TaskResponse]
+
+    def to_dict(self) -> Dict:
+        """转换为字典"""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'status': self.status,
+            'priority': self.priority,
+            'owner': self.owner,
+            'module': self.module,
+            'content': self.content,
+            'create_date': self.create_date.isoformat(),
+            'responses': [r.to_dict() for r in self.responses]
+        }
+```
+
+### 3.2 相似任务数据结构
+
+```python
+@dataclass
+class SimilarTask:
+    """相似任务数据模型"""
+    id: int
+    name: str
+    module: str
+    status: str
+    priority: str
+    owner: str
+    create_date: datetime
+    similarity: float  # 相似度百分比
+
+    def get_similarity_display(self) -> str:
+        """获取相似度显示"""
+        return f"{self.similarity:.0f}%"
+
+@dataclass
+class PaginatedSimilarTasks:
+    """分页相似任务"""
+    tasks: List[SimilarTask]
+    total_count: int
+    current_page: int
+    page_size: int
+    total_pages: int
+```
+
+---
+
+## 四、UI交互设计
+
+### 4.1 智能学习&应答弹窗
+
+**弹窗规格**：
+- 宽度：850px
+- 最大高度：88vh
+- 内容区域高度：78vh
+
+**弹窗结构**：
+```
+┌──────────────────────────────────────────────────────────────┐
+│  🧠 智能学习&应答                                      [×]  │
+├──────────────────────────────────────────────────────────────┤
+│  📌 任务关联                                              │
+│  当前关联任务：[任务名称]（关键模块：[模块名]）           │
+├──────────────────────────────────────────────────────────────┤
+│  [📋 相似任务参考] [➕ 添加学习] [📚 学习历史]            │
+├──────────────────────────────────────────────────────────────┤
+│  📋 相似任务参考标签页                                    │
+│  ┌────────────────────────────────────────────────────────┐│
+│  │ 相似任务1 | 状态标签 | 相似度95%                      ││
+│  │ 相似任务2 | 状态标签 | 相似度88%                      ││
+│  │ ...                                                    ││
+│  └────────────────────────────────────────────────────────┘│
+│  第 1 / 3 页，每页 5 条        [◀ 上一页] [下一页 ▶]     │
+├──────────────────────────────────────────────────────────────┤
+│  [💾 保存学习]  [📚 查看全部]  [📤 导出]  [关闭]          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 4.2 任务详情弹窗
+
+**弹窗规格**：
+- 宽度：750px
+- 最大高度：85vh
+- 内容区域高度：65vh
+
+**弹窗结构**：
+```
+┌──────────────────────────────────────────────────────────────┐
+│  📋 任务详情 #1                              [📝 编辑] [×]  │
+├──────────────────────────────────────────────────────────────┤
+│  📌 基本信息                                                │
+│  任务名称    [文本显示/输入框]                               │
+│  状态        [标签显示/下拉选择]                             │
+│  优先级      [标签显示/下拉选择]                             │
+│  负责人      [文本显示/输入框]                               │
+│  关键模块    [文本显示/输入框]                               │
+│  创建日期    2026-06-22                                     │
+├──────────────────────────────────────────────────────────────┤
+│  📝 详细内容                                    [编辑中]   │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ 客户需要产品报价咨询...                                 │ │
+│  └────────────────────────────────────────────────────────┘ │
+├──────────────────────────────────────────────────────────────┤
+│  💬 答复记录                                                │
+│  - 答复1：2026-06-22 14:30                                 │
+│  - 答复2：2026-06-22 10:15                                 │
+├──────────────────────────────────────────────────────────────┤
+│  [💾 保存]  [✖ 取消]  [关闭]                               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 五、事件处理流程
+
+### 5.1 智能学习按钮点击流程
+
+```python
+def on_smart_learn_clicked(self):
+    """智能学习按钮点击处理"""
+
+    # 1. 检查选中任务数量
+    selected_count = self.get_selected_task_count()
+
+    if selected_count == 0:
+        # 无选中任务
+        QMessageBox.warning(self, "提示", "请先选中一个任务！")
+        return
+
+    if selected_count > 1:
+        # 多选任务
+        QMessageBox.warning(
+            self, "提示",
+            f"\"智能学习&应答\"功能仅支持关联单个任务。\n"
+            f"您当前选择了 {selected_count} 个任务，请取消部分选择后重试。"
+        )
+        return
+
+    # 2. 获取选中任务信息
+    task_id = self.get_selected_task_id()
+    task = self.task_service.get_task(task_id)
+
+    # 3. 显示智能学习弹窗
+    dialog = SmartLearnDialog(task, self)
+    dialog.exec_()
+```
+
+### 5.2 详情按钮点击流程
+
+```python
+def on_detail_clicked(self, task_id: int):
+    """详情按钮点击处理"""
+
+    # 1. 显示详情弹窗
+    dialog = TaskDetailDialog(task_id, self)
+    dialog.exec_()
+```
+
+### 5.3 编辑按钮点击流程
+
+```python
+def on_edit_clicked(self):
+    """编辑按钮点击处理"""
+
+    if self.is_editing:
+        # 当前是编辑模式 -> 保存
+        self.save_changes()
+    else:
+        # 当前是查看模式 -> 进入编辑
+        self.enter_edit_mode()
+
+def enter_edit_mode(self):
+    """进入编辑模式"""
+
+    # 1. 备份原始数据
+    self.backup_original_data()
+
+    # 2. 切换按钮文本
+    self.edit_btn.setText("📝 编辑中...")
+    self.save_btn.show()
+    self.cancel_btn.show()
+    self.close_btn.hide()
+
+    # 3. 显示编辑控件
+    for field in EDITABLE_FIELDS:
+        self.show_edit_widget(field)
+
+    # 4. 显示编辑指示器
+    self.edit_indicator.show()
+
+def save_changes(self):
+    """保存修改"""
+
+    # 1. 验证数据
+    if not self.validate_data():
+        return
+
+    # 2. 获取表单数据
+    data = self.get_form_data()
+
+    # 3. 更新数据库
+    self.task_service.update_task(self.task_id, data)
+
+    # 4. 刷新显示
+    self.refresh_display()
+
+    # 5. 退出编辑模式
+    self.exit_edit_mode()
+
+    # 6. 提示成功
+    QMessageBox.information(self, "成功", "任务保存成功！")
+```
+
+---
+
+## 六、错误处理
+
+### 6.1 多选任务错误
+
+```python
+def show_multi_select_error(self, count: int):
+    """显示多选任务错误"""
+    QMessageBox.warning(
+        self,
+        "操作不支持",
+        f"\"智能学习&应答\"功能仅支持关联单个任务。\n"
+        f"您当前选择了 {count} 个任务，请取消部分选择后重试。"
+    )
+```
+
+### 6.2 未选中任务错误
+
+```python
+def show_no_selection_error(self):
+    """显示未选中任务错误"""
+    QMessageBox.warning(
+        self,
+        "提示",
+        "请先在\"任务跟踪\"列表中选中一个任务，再使用\"智能学习&应答\"功能"
+    )
+```
+
+### 6.3 编辑状态关闭确认
+
+```python
+def closeEvent(self, event):
+    """关闭事件"""
+
+    if self.is_editing:
+        reply = QMessageBox.question(
+            self,
+            "确认关闭",
+            "您有未保存的修改，确定要关闭吗？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
+    else:
+        event.accept()
+```
+
+---
+
+## 七、性能考虑
+
+### 7.1 相似任务分页
+
+```python
+class TaskMatcher:
+    """任务匹配器"""
+
+    def __init__(self, page_size: int = 5):
+        self.page_size = page_size
+
+    def find_similar_tasks(self, module: str, page: int = 1) -> PaginatedResult:
+        """分页查询相似任务"""
+
+        # 1. 获取总数
+        total = self.get_total_count(module)
+
+        # 2. 计算分页信息
+        total_pages = (total + self.page_size - 1) // self.page_size
+        offset = (page - 1) * self.page_size
+
+        # 3. 查询当前页数据
+        tasks = self.dao.find_similar(module, limit=self.page_size, offset=offset)
+
+        return PaginatedResult(
+            tasks=tasks,
+            total_count=total,
+            current_page=page,
+            page_size=self.page_size,
+            total_pages=total_pages
+        )
+```
+
+### 7.2 大量数据加载优化
+
+```python
+def load_task_detail(self, task_id: int):
+    """加载任务详情"""
+
+    # 1. 使用后台线程加载大量数据
+    self.loading_label.show()
+
+    QtConcurrent.run(self._load_task_detail_async, task_id)
+
+def _load_task_detail_async(self, task_id: int):
+    """异步加载任务详情"""
+
+    # 在后台线程中执行
+    task = self.task_service.get_task_detail(task_id)
+
+    # 完成后在主线程更新UI
+    QMetaObject.invokeMethod(
+        self, "_update_task_detail",
+        Qt.QueuedConnection,
+        Q_ARG(dict, task.to_dict())
+    )
+```
+
+---
+
+## 八、附录
+
+### 8.1 文档版本历史
+
+| 版本 | 日期 | 作者 | 变更内容 |
+|------|------|------|----------|
+| V1.0 | 2026-06-13 | AI助手 | 初始架构设计 |
+| V1.1 | 2026-06-13 | AI助手 | 通讯录OCR设计 |
+| V1.2 | 2026-06-14 | AI助手 | 数据库设计 |
+| V1.3 | 2026-06-14 | AI助手 | 界面交互设计 |
+| V1.4 | 2026-06-15 | AI助手 | 答复管理设计 |
+| V1.7 | 2026-06-15 | AI助手 | 智能推荐设计 |
+| V1.8 | 2026-06-17 | AI助手 | MSG导入设计 |
+| V1.9 | 2026-06-18 | AI助手 | 进度回调设计 |
+| V2.0 | 2026-06-22 | AI助手 | 智能学习&应答+任务详情编辑 |
+
+### 8.2 相关文档
+
+| 文档名称 | 版本 |
+|----------|------|
+| 需求文档V2.0 | V2.0 |
+| 界面原型V2.0 | V2.0 |
+| 测试用例V3.4 | V3.4 |
