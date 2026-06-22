@@ -126,8 +126,8 @@ class ContactLearningService:
                 """,
                 commit=True
             )
-        except Exception:
-            pass  # 索引可能已存在
+        except Exception as e:
+            logger.debug(f"索引可能已存在: {e}")  # 索引可能已存在，静默处理
 
     def learn_from_task(self, task_data: Dict[str, Any]) -> bool:
         """

@@ -7,12 +7,12 @@ Exception Handler Module:
 """
 
 import traceback
+import logging
 from typing import Optional, Callable, Any, Type, Tuple
 from functools import wraps
 
-from .logger import get_logger
-
-logger = get_logger(__name__)
+# 使用标准logging避免循环依赖
+logger = logging.getLogger(__name__)
 
 
 class AppException(Exception):

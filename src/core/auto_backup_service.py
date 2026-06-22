@@ -154,8 +154,9 @@ class AutoBackupConfig:
             last_time = datetime.fromisoformat(last_backup)
             next_backup = last_time + timedelta(seconds=self.frequency_seconds)
             return datetime.now() >= next_backup
-        except Exception:
-            return True
+        except (ValueError, TypeError) as e:
+            logger.debug(f"日期解析失败，使用默认: {e}")
+            return True  # 日期格式错误，默认需要备份
 
     def get_next_backup_time(self) -> Optional[datetime]:
         """获取下次备份时间"""
@@ -169,7 +170,8 @@ class AutoBackupConfig:
         try:
             last_time = datetime.fromisoformat(last_backup)
             return last_time + timedelta(seconds=self.frequency_seconds)
-        except Exception:
+        except (ValueError, TypeError) as e:
+            logger.debug(f"日期格式错误: {e}")
             return None
 
     def to_dict(self) -> Dict:

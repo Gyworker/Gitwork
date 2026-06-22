@@ -231,10 +231,14 @@ class ThemeManager:
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        except Exception:
-            cls._instance = None
-            cls._instance = super().__new__(cls)
+            try:
+                cls._instance = super().__new__(cls)
+            except MemoryError:
+                logger.error("内存不足，无法创建主题管理器实例")
+                raise
+            except Exception as e:
+                logger.warning(f"创建主题管理器实例时出现异常: {e}")
+                cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self):
