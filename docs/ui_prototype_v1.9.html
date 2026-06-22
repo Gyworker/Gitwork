@@ -1958,7 +1958,8 @@
                             <button class="track-btn">📤 导出已答复</button>
                             <!-- V1.8新增：快速操作按钮 -->
                             <button class="track-btn" style="background: #FF9800; color: white; border-color: #FF9800;" onclick="showBackupPage()">💾 备份</button>
-                            <button class="track-btn" style="background: #4CAF50; color: white; border-color: #4CAF50;" onclick="showLearningPage()">📚 学习</button>
+                            <!-- V1.9修改：学习按钮改为调用智能学习函数 -->
+                            <button class="track-btn" style="background: #4CAF50; color: white; border-color: #4CAF50;" onclick="showSmartLearningPage()">🧠 智能学习</button>
                         </div>
 
                         <!-- 筛选栏 -->
@@ -3180,31 +3181,39 @@ CREATE TABLE recommendations (
             }
         }
 
-        // V1.9新增：智能学习&应答功能
+        // V1.9新增：智能学习&应答功能 - 与任务跟踪区的选中任务关联
         function showSmartLearningPage() {
-            // 检查选中任务数量
-            const selectedTasks = document.querySelectorAll('.task-item.selected');
-            const selectedCount = selectedTasks.length;
+            // 获取任务跟踪表格中选中的checkbox
+            const table = document.querySelector('.table-container table');
+            const checkedRows = table.querySelectorAll('tbody tr input[type="checkbox"]:checked');
+            const selectedCount = checkedRows.length;
 
             if (selectedCount === 0) {
-                alert('⚠️ 请先选中一个任务，再使用"智能学习&应答"功能');
+                alert('⚠️ 请先在"任务跟踪"列表中选中一个任务，再使用"智能学习&应答"功能');
                 return;
             }
 
             if (selectedCount > 1) {
                 // 显示多选警告
                 document.getElementById('multiSelectWarning').classList.remove('hidden');
-                document.getElementById('selectedCount').textContent = selectedCount;
+                document.getElementById('multiSelectWarning').querySelector('#selectedCount').textContent = selectedCount;
                 document.getElementById('taskLinkSection').classList.add('hidden');
             } else {
-                // 单选，显示正常
+                // 单选，显示正常，获取任务信息
                 document.getElementById('multiSelectWarning').classList.add('hidden');
                 document.getElementById('taskLinkSection').classList.remove('hidden');
 
-                // 获取选中任务的名称和关键模块
-                const taskName = selectedTasks[0].querySelector('.task-name')?.textContent || '未知任务';
-                const taskModule = selectedTasks[0].querySelector('.task-module')?.textContent || '通用';
+                // 获取选中行
+                const selectedRow = checkedRows[0].closest('tr');
+
+                // 获取任务名称（第2列，索引1）
+                const taskName = selectedRow.cells[2].textContent;
+
+                // 获取关键模块（第8列，索引7）
+                const taskModule = selectedRow.cells[7].textContent;
+
                 document.getElementById('linkedTaskName').textContent = taskName;
+                document.getElementById('linkedTaskName').nextElementSibling.textContent = '（关键模块：' + taskModule + '）';
             }
 
             // 显示弹窗
