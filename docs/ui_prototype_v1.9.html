@@ -2394,15 +2394,142 @@
                     </div>
                 </div>
 
-                <!-- 标签页切换 - V1.9新增 -->
+                <!-- 标签页切换 - V1.9调整：相似任务作为默认显示 -->
                 <div style="display: flex; gap: 10px; margin: 15px 0; border-bottom: 2px solid #e0e0e0;">
-                    <button class="tab-btn active" id="tab-btn-add" onclick="switchLearningTab('add')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid #4CAF50; color: #4CAF50; font-weight: bold;">➕ 添加学习</button>
-                    <button class="tab-btn" id="tab-btn-similar" onclick="switchLearningTab('similar')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">📋 相似任务</button>
-                    <button class="tab-btn" id="tab-btn-history" onclick="switchLearningTab('history')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">📚 历史记录</button>
+                    <button class="tab-btn" id="tab-btn-similar" onclick="switchLearningTab('similar')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid #1565C0; color: #1565C0; font-weight: bold;">📋 相似任务参考</button>
+                    <button class="tab-btn" id="tab-btn-add" onclick="switchLearningTab('add')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">➕ 添加学习</button>
+                    <button class="tab-btn" id="tab-btn-history" onclick="switchLearningTab('history')" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 12px; border-bottom: 2px solid transparent; color: #666;">📚 学习历史</button>
                 </div>
 
-                <!-- 添加学习标签页 - V1.9大改 -->
-                <div id="tab-add" class="learning-tab-content">
+                <!-- 相似任务标签页 - V1.9核心功能：基于关键模块显示相似任务供参考 -->
+                <div id="tab-similar" class="learning-tab-content">
+                    <div class="theme-config-section">
+                        <h4>📋 基于"关键模块：<span id="similarModuleName" style="color: #1565C0;">产品报价</span>"的相似任务</h4>
+                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                            💡 显示与当前任务<strong>相同关键模块</strong>的其他任务，供处理参考
+                        </div>
+                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                            共找到相似任务 <strong id="similarTaskCount">12</strong> 条，默认显示前 <strong>5</strong> 条
+                        </div>
+
+                        <!-- 相似任务列表 - 显示实际任务信息 -->
+                        <div class="similar-task-list" id="similarTaskList">
+                            <!-- 任务项1 -->
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px; cursor: pointer;" onclick="viewTaskDetail(101)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro批量报价请求</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 8px;">📌 关键模块：产品报价</span>
+                                    </div>
+                                    <span class="status-tag status-done" style="font-size: 10px; padding: 2px 6px;">✅ 已完成</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 6px; display: flex; gap: 15px;">
+                                    <span>📅 2026-06-20</span>
+                                    <span>👤 李经理</span>
+                                    <span>📊 高优先级</span>
+                                    <span style="color: #4CAF50;">相似度 95%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                                    📝 客户需要采购50台SmartBox Pro，询问批量折扣和交货周期...
+                                </div>
+                            </div>
+
+                            <!-- 任务项2 -->
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px; cursor: pointer;" onclick="viewTaskDetail(102)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">企业网关报价咨询</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 8px;">📌 关键模块：产品报价</span>
+                                    </div>
+                                    <span class="status-tag status-done" style="font-size: 10px; padding: 2px 6px;">✅ 已完成</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 6px; display: flex; gap: 15px;">
+                                    <span>📅 2026-06-18</span>
+                                    <span>👤 王总监</span>
+                                    <span>📊 中优先级</span>
+                                    <span style="color: #4CAF50;">相似度 88%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                                    📝 询问企业网关产品的报价方案和采购流程...
+                                </div>
+                            </div>
+
+                            <!-- 任务项3 -->
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px; cursor: pointer;" onclick="viewTaskDetail(103)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">数据中台报价确认</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 8px;">📌 关键模块：产品报价</span>
+                                    </div>
+                                    <span class="status-tag status-done" style="font-size: 10px; padding: 2px 6px;">✅ 已完成</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 6px; display: flex; gap: 15px;">
+                                    <span>📅 2026-06-15</span>
+                                    <span>👤 张经理</span>
+                                    <span>📊 高优先级</span>
+                                    <span style="color: #FF9800;">相似度 82%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                                    📝 数据中台项目报价，需要提供详细的方案和预算...
+                                </div>
+                            </div>
+
+                            <!-- 任务项4 -->
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px; cursor: pointer;" onclick="viewTaskDetail(104)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">智能路由器报价清单</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 8px;">📌 关键模块：产品报价</span>
+                                    </div>
+                                    <span class="status-tag status-done" style="font-size: 10px; padding: 2px 6px;">✅ 已完成</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 6px; display: flex; gap: 15px;">
+                                    <span>📅 2026-06-12</span>
+                                    <span>👤 陈技术</span>
+                                    <span>📊 低优先级</span>
+                                    <span style="color: #FF9800;">相似度 75%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                                    📝 智能路由器产品报价清单和配置方案...
+                                </div>
+                            </div>
+
+                            <!-- 任务项5 -->
+                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; cursor: pointer;" onclick="viewTaskDetail(105)">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">云存储方案报价</span>
+                                        <span style="font-size: 10px; color: #999; margin-left: 8px;">📌 关键模块：产品报价</span>
+                                    </div>
+                                    <span class="status-tag status-progress" style="font-size: 10px; padding: 2px 6px;">🔄 进行中</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 6px; display: flex; gap: 15px;">
+                                    <span>📅 2026-06-10</span>
+                                    <span>👤 刘经理</span>
+                                    <span>📊 中优先级</span>
+                                    <span style="color: #FF9800;">相似度 68%</span>
+                                </div>
+                                <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                                    📝 云存储产品报价和容量配置方案...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 分页控件 - 默认显示5条，支持翻页 -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                            <div style="font-size: 11px; color: #666;">
+                                第 <strong id="currentSimilarPage">1</strong> / <strong id="totalSimilarPages">3</strong> 页，每页 5 条
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" id="prevSimilarBtn" disabled style="padding: 5px 12px; font-size: 11px;" onclick="goToPrevSimilarPage()">◀ 上一页</button>
+                                <button class="btn btn-secondary" id="nextSimilarBtn" style="padding: 5px 12px; font-size: 11px;" onclick="goToNextSimilarPage()">下一页 ▶</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 添加学习标签页 - V1.9新增文档导入功能 -->
+                <div id="tab-add" class="learning-tab-content" style="display: none;">
                     <!-- 文档导入方式 - V1.9新增 -->
                     <div class="theme-config-section">
                         <h4>📥 文档导入方式</h4>
@@ -2543,91 +2670,6 @@
                             <label style="font-size: 11px; color: #666;">
                                 <input type="checkbox" checked style="margin-right: 5px;">同时添加到推荐库
                             </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 相似任务标签页 - V1.9新增 -->
-                <div id="tab-similar" class="learning-tab-content" style="display: none;">
-                    <div class="theme-config-section">
-                        <h4>📋 基于"SmartBox Pro"的相似任务</h4>
-                        <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
-                            共找到 <strong>15</strong> 个相似任务，显示 1-5 项
-                        </div>
-                        
-                        <!-- 相似任务列表 -->
-                        <div class="similar-task-list">
-                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro技术方案咨询</span>
-                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
-                                    </div>
-                                    <span style="font-size: 10px; color: #4CAF50;">相似度 95%</span>
-                                </div>
-                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
-                                    📅 2026-06-20 | 👤 张经理 | 📊 高优先级 | ✅ 已完成
-                                </div>
-                            </div>
-                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro批量报价请求</span>
-                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
-                                    </div>
-                                    <span style="font-size: 10px; color: #4CAF50;">相似度 92%</span>
-                                </div>
-                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
-                                    📅 2026-06-18 | 👤 李经理 | 📊 中优先级 | 🔄 处理中
-                                </div>
-                            </div>
-                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro交货周期确认</span>
-                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
-                                    </div>
-                                    <span style="font-size: 10px; color: #FF9800;">相似度 85%</span>
-                                </div>
-                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
-                                    📅 2026-06-15 | 👤 王经理 | 📊 高优先级 | ✅ 已完成
-                                </div>
-                            </div>
-                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox系列售后服务咨询</span>
-                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
-                                    </div>
-                                    <span style="font-size: 10px; color: #FF9800;">相似度 78%</span>
-                                </div>
-                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
-                                    📅 2026-06-10 | 👤 赵经理 | 📊 低优先级 | ✅ 已完成
-                                </div>
-                            </div>
-                            <div class="similar-task-item" style="background: #F5F5F5; border: 1px solid #e0e0e0; border-radius: 6px; padding: 10px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <span style="font-size: 12px; font-weight: bold; color: #1565C0;">SmartBox Pro升级方案</span>
-                                        <span style="font-size: 10px; color: #999; margin-left: 10px;">关键模块：SmartBox Pro</span>
-                                    </div>
-                                    <span style="font-size: 10px; color: #FF9800;">相似度 72%</span>
-                                </div>
-                                <div style="font-size: 10px; color: #666; margin-top: 5px;">
-                                    📅 2026-06-05 | 👤 陈经理 | 📊 中优先级 | ✅ 已完成
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 分页控件 - V1.9新增 -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-                            <div style="font-size: 11px; color: #666;">
-                                第 <strong>1</strong> / <strong>3</strong> 页，每页 5 条
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary" disabled style="padding: 5px 12px; font-size: 11px;">◀ 上一页</button>
-                                <button class="btn btn-secondary" onclick="goToNextSimilarPage()" style="padding: 5px 12px; font-size: 11px;">下一页 ▶</button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -3212,9 +3254,20 @@ CREATE TABLE recommendations (
                 // 获取关键模块（第8列，索引7）
                 const taskModule = selectedRow.cells[7].textContent;
 
+                // 更新关联任务显示
                 document.getElementById('linkedTaskName').textContent = taskName;
                 document.getElementById('linkedTaskName').nextElementSibling.textContent = '（关键模块：' + taskModule + '）';
+
+                // 更新相似任务模块名称
+                document.getElementById('similarModuleName').textContent = taskModule;
+
+                // 重置分页
+                currentSimilarPage = 1;
+                updateSimilarTaskDisplay();
             }
+
+            // 默认显示"相似任务参考"标签页
+            switchLearningTab('similar');
 
             // 显示弹窗
             showSmartLearningModal();
@@ -3295,11 +3348,46 @@ CREATE TABLE recommendations (
             document.getElementById('excelDataPreview').style.display = 'block';
         }
 
-        // V1.9新增：相似任务翻页
-        let similarPage = 1;
+
+        // V1.9新增：相似任务参考分页功能
+        let currentSimilarPage = 1;
+        const totalSimilarTasks = 12;
+        const tasksPerPage = 5;
+        const totalPages = Math.ceil(totalSimilarTasks / tasksPerPage);
+
         function goToNextSimilarPage() {
-            similarPage++;
-            alert('📄 正在加载第 ' + similarPage + ' 页相似任务...\n\n[##########] 100%\n\n已加载第 ' + similarPage + ' 页，共 3 页');
+            if (currentSimilarPage < totalPages) {
+                currentSimilarPage++;
+                updateSimilarTaskDisplay();
+            }
+        }
+
+        function goToPrevSimilarPage() {
+            if (currentSimilarPage > 1) {
+                currentSimilarPage--;
+                updateSimilarTaskDisplay();
+            }
+        }
+
+        function updateSimilarTaskDisplay() {
+            // 更新分页信息显示
+            document.getElementById('currentSimilarPage').textContent = currentSimilarPage;
+            document.getElementById('totalSimilarPages').textContent = totalPages;
+
+            // 更新按钮状态
+            document.getElementById('prevSimilarBtn').disabled = currentSimilarPage <= 1;
+            document.getElementById('nextSimilarBtn').disabled = currentSimilarPage >= totalPages;
+
+            // 更新任务列表显示（实际应用中这里会根据页码加载对应的任务）
+            alert('📄 已加载第 ' + currentSimilarPage + ' 页相似任务\n\n' +
+                  '显示第 ' + ((currentSimilarPage - 1) * tasksPerPage + 1) + '-' +
+                  Math.min(currentSimilarPage * tasksPerPage, totalSimilarTasks) + ' 条，共 ' +
+                  totalSimilarTasks + ' 条相似任务');
+        }
+
+        // V1.9新增：查看任务详情
+        function viewTaskDetail(taskId) {
+            alert('📋 查看任务详情\n\n任务ID: ' + taskId + '\n\n正在打开任务详情页面...');
         }
 
         // V1.9新增：保存学习记录
