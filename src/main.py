@@ -7,38 +7,38 @@ Market Task Tracker
 """
 
 import sys
+import os
 from pathlib import Path
 
-# 添加项目根目录到路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# 设置运行环境
+if os.environ.get("CI") == "true":
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+else:
+    os.environ["QT_QPA_PLATFORM"] = "windows"
+
+# PyInstaller 打包环境处理
+if hasattr(sys, '_MEIPASS'):
+    # 打包后的运行环境
+    meipass = sys._MEIPASS
+    # 将 _internal/src 添加到路径
+    src_path = meipass
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
+    # 设置应用路径
+    app_path = Path(meipass).parent
+else:
+    # 开发环境
+    app_path = Path(__file__).parent
 
 from PyQt5.QtWidgets import QApplication
-
-from .config import get_config
-from .database.models import init_database
-from .utils.logger import get_logger
-from .ui.main_window import MainWindow
-
-
-def setup_environment() -> None:
-    """设置运行环境"""
-    import os
-    
-    # 设置Qt平台插件路径
-    # CI环境使用offscreen模式，无GUI
-    # 生产环境使用windows模式
-    if os.environ.get("CI") == "true":
-        os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    else:
-        os.environ["QT_QPA_PLATFORM"] = "windows"
+from config import get_config
+from database.models import init_database
+from utils.logger import get_logger
+from ui.main_window import MainWindow
 
 
-def main() -> None:
+def main():
     """主函数"""
-    # 设置运行环境
-    setup_environment()
-
     # 初始化日志
     logger = get_logger(__name__)
     logger.info("=" * 50)
@@ -58,13 +58,6 @@ def main() -> None:
             return
         logger.info("数据库初始化成功")
 
-        # 初始化自动备份服务
-        logger.info("初始化自动备份服务...")
-        from .core.auto_backup_service import get_auto_backup_service
-        auto_backup_service = get_auto_backup_service()
-        auto_backup_service.start()  # 启动自动备份定时器
-        logger.info("自动备份服务初始化完成")
-
         # 创建应用
         app = QApplication(sys.argv)
         app.setApplicationName(config.app_name)
@@ -72,13 +65,6 @@ def main() -> None:
 
         # 设置应用样式
         app.setStyle("Fusion")
-
-        # 初始化主题
-        logger.info("初始化主题...")
-        from .core.theme_manager import get_theme_manager
-        theme_manager = get_theme_manager()
-        app.setStyleSheet(theme_manager.generate_stylesheet())
-        logger.info(f"当前主题: {theme_manager.get_current_theme().value}")
 
         # 创建主窗口
         logger.info("创建主窗口...")
@@ -89,7 +75,10 @@ def main() -> None:
         sys.exit(app.exec_())
 
     except Exception as e:
-        logger.exception(f"应用启动失败: {e}")
+        if logger:
+            logger.exception(f"应用启动失败: {e}")
+        else:
+            print(f"应用启动失败: {e}")
         sys.exit(1)
 
 

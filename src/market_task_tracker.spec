@@ -15,7 +15,7 @@ block_cipher = None
 project_root = Path("d:/AIapple/工具任务跟踪20260611/src/market_task_tracker")
 
 a = Analysis(
-    [str(project_root / "src" / "run_app.py")],
+    [str(project_root / "src" / "main.py")],
     pathex=[str(project_root)],
     binaries=[],
     datas=[
@@ -53,21 +53,22 @@ a = Analysis(
         # 编码检测
         "chardet",
 
-        # 数据库模块 (V5.3)
+        # 数据库模块
+        "sqlite3",
         "src.database.connection",
         "src.database.models",
         "src.database.er_diagram",
         "src.database.dao_base",
 
-        # 工具模块 (V5.1)
+        # 工具模块
         "src.utils.logger",
         "src.utils.helpers",
         "src.utils.exceptions",
         "src.utils.validators",
-        "src.utils.exception_handler",      # 统一异常处理
-        "src.utils.data_classes",            # 数据类模块
+        "src.utils.exception_handler",
+        "src.utils.data_classes",
 
-        # 核心服务模块 (V5.3)
+        # 核心服务模块
         "src.core.reminder_service",
         "src.core.backup_service",
         "src.core.auto_backup_service",
@@ -81,7 +82,7 @@ a = Analysis(
         "src.core.data_pager",
         "src.core.cache_optimizer",
 
-        # UI模块 (V5.3)
+        # UI模块
         "src.ui.main_window",
         "src.ui.task_track",
         "src.ui.task_info",
@@ -99,13 +100,14 @@ a = Analysis(
         "src.ui.widgets.auto_backup_config_widget",
         "src.ui.widgets.theme_config_widget",
         "src.ui.widgets.learning_widget",
-        "src.ui.widgets.library_widget",     # V5.3新增
+        "src.ui.widgets.library_widget",
         "src.ui.widgets.import_export_widget",
         "src.ui.widgets.statistics_widget",
 
         # 启动模块
         "src.config",
         "src.main",
+        "src.__main__",
     ],
     hookspath=[],
     hooksconfig={},
@@ -139,15 +141,12 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # 不显示控制台窗口
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
-    version=None,
-    manifest=None,
 )
 
 coll = COLLECT(

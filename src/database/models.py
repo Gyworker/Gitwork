@@ -10,8 +10,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..utils.logger import get_logger
-from ..utils.helpers import generate_id, get_current_timestamp
+from ...utils.logger import get_logger
+from ...utils.helpers import generate_id, get_current_timestamp
 from .connection import get_db_connection
 
 logger = get_logger(__name__)
@@ -79,10 +79,8 @@ class Task(BaseModel):
         inquirer_company: str = "",
         inquirer_phone: str = "",
         inquirer_email: str = "",
-        inquirer_employee_id: str = "",  # 新增：咨询者工号
         respondent: str = "",
         respondent_dept: str = "",
-        respondent_employee_id: str = "",  # 新增：答复人工号
         industry: str = "",
         key_module: str = "",
         task_content: str = "",
@@ -108,10 +106,8 @@ class Task(BaseModel):
             inquirer_company: 咨询者公司
             inquirer_phone: 咨询者电话
             inquirer_email: 咨询者邮箱
-            inquirer_employee_id: 咨询者工号（用于区分重名）
             respondent: 答复人姓名
             respondent_dept: 答复人部门
-            respondent_employee_id: 答复人工号（用于区分重名）
             industry: 所属行业
             key_module: 关键模块
             task_content: 任务内容
@@ -134,10 +130,8 @@ class Task(BaseModel):
         self.inquirer_company = inquirer_company
         self.inquirer_phone = inquirer_phone
         self.inquirer_email = inquirer_email
-        self.inquirer_employee_id = inquirer_employee_id
         self.respondent = respondent
         self.respondent_dept = respondent_dept
-        self.respondent_employee_id = respondent_employee_id
         self.industry = industry
         self.key_module = key_module
         self.task_content = task_content
@@ -531,31 +525,6 @@ class Reminder(BaseModel):
             return False
 
 
-def _migrate_add_employee_id_to_tasks(db: "DatabaseConnection") -> None:
-    """迁移：为tasks表添加工号字段（向后兼容）"""
-    try:
-        # 检查是否已有 inquirer_employee_id 列
-        rows = db.fetchall("PRAGMA table_info(tasks)")
-        columns = [row[1] for row in rows]
-
-        if "inquirer_employee_id" not in columns:
-            db.execute(
-                "ALTER TABLE tasks ADD COLUMN inquirer_employee_id TEXT",
-                commit=True
-            )
-            logger.info("已添加 inquirer_employee_id 字段到 tasks 表")
-
-        if "respondent_employee_id" not in columns:
-            db.execute(
-                "ALTER TABLE tasks ADD COLUMN respondent_employee_id TEXT",
-                commit=True
-            )
-            logger.info("已添加 respondent_employee_id 字段到 tasks 表")
-
-    except Exception as e:
-        logger.error(f"迁移工号字段失败: {e}")
-
-
 def init_database() -> bool:
     """
     初始化数据库表结构
@@ -565,7 +534,7 @@ def init_database() -> bool:
     """
     db = get_db_connection()
 
-    # 创建任务表（包含工号字段）
+    # 创建任务表
     db.execute(
         """
         CREATE TABLE IF NOT EXISTS tasks (
@@ -576,10 +545,8 @@ def init_database() -> bool:
             inquirer_company TEXT,
             inquirer_phone TEXT,
             inquirer_email TEXT,
-            inquirer_employee_id TEXT,
             respondent TEXT,
             respondent_dept TEXT,
-            respondent_employee_id TEXT,
             industry TEXT,
             key_module TEXT,
             task_content TEXT,
@@ -597,9 +564,6 @@ def init_database() -> bool:
     """,
         commit=True,
     )
-
-    # 迁移：为旧表添加工号字段
-    _migrate_add_employee_id_to_tasks(db)
 
     # 创建跟踪记录表
     db.execute(
