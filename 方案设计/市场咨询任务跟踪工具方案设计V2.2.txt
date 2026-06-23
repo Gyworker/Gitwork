@@ -1,0 +1,413 @@
+# 市场咨询任务跟踪工具方案设计 V2.2
+
+**项目名称**：市场咨询任务跟踪工具  
+**版本**：V2.2  
+**编制日期**：2026-06-23  
+**文档状态**：正式发布  
+
+---
+
+## 1. 文档修订记录
+
+| 版本 | 修订日期 | 修订人 | 修订内容 |
+|------|----------|--------|----------|
+| V1.0 | 2026-06-11 | 开发组 | 初始架构设计 |
+| V1.1 | 2026-06-12 | 开发组 | 添加数据库设计 |
+| V1.2 | 2026-06-13 | 开发组 | 添加推荐算法设计 |
+| V1.3 | 2026-06-14 | 开发组 | 添加通讯录模块设计 |
+| V1.4 | 2026-06-15 | 开发组 | 添加提醒模块设计 |
+| V1.5 | 2026-06-16 | 开发组 | 添加导入导出模块设计 |
+| V1.6 | 2026-06-17 | 开发组 | 添加推荐库模块设计 |
+| V1.7 | 2026-06-18 | 开发组 | 添加主题模块设计 |
+| V1.8 | 2026-06-19 | 开发组 | 添加备份模块设计 |
+| V1.9 | 2026-06-20 | 开发组 | 添加学习积累模块设计 |
+| V1.10 | 2026-06-21 | 开发组 | 添加OCR识别设计 |
+| V1.11 | 2026-06-22 | 开发组 | 代码优化设计 |
+| V2.0 | 2026-06-22 | 开发组 | Excel导入设计 |
+| V2.1 | 2026-06-23 | 开发组 | MSG导入融合设计 |
+| **V2.2** | **2026-06-23** | **开发组** | **界面优化设计：MSG融合、智能学习&应答完善** |
+
+---
+
+## 2. 系统架构
+
+### 2.1 技术栈
+
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| 前端 | PyQt5 | GUI框架 |
+| 业务逻辑 | Python 3.8+ | 核心业务逻辑 |
+| 数据存储 | SQLite | 本地数据库 |
+| OCR识别 | PaddleOCR/Tesseract | 图片文字识别 |
+| 数据分析 | Pandas | 数据处理 |
+| 打包工具 | PyInstaller | 可执行文件生成 |
+
+### 2.2 项目结构
+
+```
+src/
+├── main.py                 # 程序入口
+├── ui/
+│   ├── main_window.py     # 主窗口
+│   └── widgets/           # 组件
+│       ├── task_info_widget.py      # 任务信息组件
+│       ├── task_track_widget.py     # 任务跟踪组件
+│       ├── recommendation_widget.py  # 推荐组件
+│       ├── notification_widget.py    # 提醒组件
+│       ├── import_export_widget.py   # 导入导出组件
+│       ├── statistics_widget.py      # 统计组件
+│       ├── library_widget.py         # 推荐库组件
+│       ├── learning_widget.py        # 智能学习组件
+│       ├── backup_widget.py          # 备份组件
+│       └── theme_widget.py           # 主题组件
+├── database/
+│   ├── connection.py       # 数据库连接
+│   └── models.py           # 数据模型
+├── services/
+│   ├── task_service.py     # 任务服务
+│   ├── ocr_service.py      # OCR服务
+│   ├── backup_service.py    # 备份服务
+│   └── learning_service.py  # 学习服务
+└── utils/
+    ├── logger.py           # 日志工具
+    └── helpers.py          # 辅助工具
+```
+
+---
+
+## 3. 核心模块设计
+
+### 3.1 任务信息管理模块
+
+#### 3.1.1 数据模型
+
+```python
+class Task:
+    task_id: str           # 任务ID
+    task_name: str         # 任务名称
+    inquirer: str          # 咨询人
+    inquirer_dept: str     # 咨询人部门
+    inquirer_company: str  # 咨询人公司
+    respondent: str        # 应答人
+    respondent_dept: str   # 应答人部门
+    industry: str          # 行业
+    key_module: str        # 关键模块
+    task_content: str      # 任务内容
+    urgency: str           # 紧急程度
+    status: str            # 状态
+    expected_reply_time: datetime  # 预期答复时间
+    remark: str            # 备注
+    created_at: datetime   # 创建时间
+    updated_at: datetime   # 更新时间
+```
+
+#### 3.1.2 核心功能
+
+| 功能 | 说明 |
+|------|------|
+| 创建任务 | 填写任务信息，保存到数据库 |
+| 编辑任务 | 修改任务信息，更新数据库 |
+| 删除任务 | 软删除任务，保留历史记录 |
+| 查询任务 | 按条件筛选任务 |
+| 导出任务 | 导出为Excel格式 |
+
+### 3.2 数据导入模块（V2.5更新）
+
+#### 3.2.1 导入方式架构
+
+```
+导入导出组件
+├── 文本输入区
+├── 图片导入区（OCR识别）
+├── MSG邮件导入区（融合到内容导入）
+├── Outlook导入区
+└── 企业微信导入区
+```
+
+#### 3.2.2 MSG邮件导入设计
+
+| 功能 | 实现方式 |
+|------|----------|
+| 文件选择 | QFileDialog，选择.msg文件 |
+| 解析引擎 | extract_msg库解析MSG格式 |
+| 信息提取 | 发件人、收件人、主题、正文、时间 |
+| 任务生成 | 解析后自动填充任务信息 |
+
+#### 3.2.3 界面集成
+
+| 组件 | 说明 |
+|------|------|
+| 导入方式选择 | RadioButtonGroup |
+| 输入区域 | QStackedWidget，动态切换 |
+| 解析按钮 | QPushButton，触发解析逻辑 |
+| 状态提示 | QLabel，显示解析状态 |
+
+### 3.3 智能学习&应答模块（V2.5更新）
+
+#### 3.3.1 功能架构
+
+```
+智能学习Widget
+├── 添加记录区
+│   ├── 文档输入（TXT/Excel/图片）
+│   ├── 问题/场景输入
+│   ├── 解决方案输入
+│   └── 保存按钮
+├── 任务关联区
+│   ├── 任务信息显示
+│   ├── 关键模块显示
+│   └── 关联状态
+├── 智能匹配区
+│   ├── 匹配结果显示
+│   ├── 匹配度评分
+│   └── 分页导航
+└── 学习统计区
+    ├── 记录总数
+    ├── 本月新增
+    ├── 关联任务数
+    └── 待审核数
+```
+
+#### 3.3.2 关键模块匹配算法
+
+```python
+def calculate_match_score(key_module1: str, key_module2: str) -> float:
+    """
+    计算关键模块匹配度
+    
+    算法：
+    1. 关键词提取
+    2. Jaccard相似度计算
+    3. 返回0-100的匹配度分数
+    """
+    keywords1 = extract_keywords(key_module1)
+    keywords2 = extract_keywords(key_module2)
+    intersection = keywords1 & keywords2
+    union = keywords1 | keywords2
+    return len(intersection) / len(union) * 100
+```
+
+#### 3.3.3 多选任务检测
+
+| 检测时机 | 实现方式 |
+|----------|----------|
+| 导航切换 | 在_on_nav_changed中检测 |
+| 组件 | TaskTrackWidget.get_selected_count() |
+| 触发条件 | selected_count > 1 |
+| 错误提示 | QMessageBox.warning |
+
+### 3.4 任务跟踪模块
+
+#### 3.4.1 跟踪状态
+
+| 状态 | 说明 | 颜色标识 |
+|------|------|----------|
+| 应答中 | 等待客户响应 | #2196F3 |
+| 已答复 | 客户已回复 | #4CAF50 |
+| 已完成 | 任务结束 | #9E9E9E |
+| 已超时 | 超过预期时间 | #F44336 |
+
+#### 3.4.2 跟踪记录
+
+```python
+class TrackRecord:
+    record_id: str
+    task_id: str
+    content: str
+    track_type: str  # 主动应答/客户回复/状态变更
+    created_at: datetime
+```
+
+---
+
+## 4. 数据库设计
+
+### 4.1 数据库表结构
+
+#### 4.1.1 任务表（tasks）
+
+```sql
+CREATE TABLE tasks (
+    task_id TEXT PRIMARY KEY,
+    task_name TEXT NOT NULL,
+    inquirer TEXT,
+    inquirer_dept TEXT,
+    inquirer_company TEXT,
+    respondent TEXT,
+    respondent_dept TEXT,
+    industry TEXT,
+    key_module TEXT,
+    task_content TEXT,
+    urgency TEXT DEFAULT '普通',
+    status TEXT DEFAULT '应答中',
+    expected_reply_time TEXT,
+    remark TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    is_deleted INTEGER DEFAULT 0
+);
+```
+
+#### 4.1.2 跟踪记录表（track_records）
+
+```sql
+CREATE TABLE track_records (
+    record_id TEXT PRIMARY KEY,
+    task_id TEXT NOT NULL,
+    content TEXT,
+    track_type TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+);
+```
+
+#### 4.1.3 学习记录表（learning_records）
+
+```sql
+CREATE TABLE learning_records (
+    record_id TEXT PRIMARY KEY,
+    task_id TEXT,
+    question TEXT,
+    solution TEXT,
+    keywords TEXT,
+    source_type TEXT,
+    file_path TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+);
+```
+
+#### 4.1.4 备份记录表（backup_records）
+
+```sql
+CREATE TABLE backup_records (
+    backup_id TEXT PRIMARY KEY,
+    backup_path TEXT NOT NULL,
+    backup_size INTEGER,
+    backup_type TEXT,
+    created_at TEXT NOT NULL
+);
+```
+
+---
+
+## 5. 界面设计规范
+
+### 5.1 主题配色
+
+| 主题 | 主色 | 强调色 | 背景色 |
+|------|------|--------|--------|
+| 浅色 | #1E88E5 | #1565C0 | #FFFFFF |
+| 深色 | #1E88E5 | #42A5F5 | #212121 |
+
+### 5.2 按钮样式
+
+| 按钮类型 | 背景色 | 文字色 | 边框 |
+|----------|--------|--------|------|
+| 主要按钮 | #1E88E5 | #FFFFFF | none |
+| 智能学习 | #1565C0 | #FFFFFF | none |
+| 自动备份 | #FF9800 | #FFFFFF | none |
+| 主题切换 | #9C27B0 | #FFFFFF | none |
+| 次要按钮 | #F5F5F5 | #333333 | 1px solid #ddd |
+
+### 5.3 布局规范
+
+| 元素 | 规范 |
+|------|------|
+| 窗口最小尺寸 | 1200x700 |
+| 左侧导航宽度 | 150px |
+| 工具栏高度 | 45px |
+| 面板间距 | 10px |
+| 按钮间距 | 8px |
+
+---
+
+## 6. 异常处理
+
+### 6.1 异常类型
+
+| 异常类型 | 处理方式 |
+|----------|----------|
+| 数据库连接失败 | 提示用户，检查数据库文件 |
+| 文件解析失败 | 提示用户，输出详细错误 |
+| OCR识别失败 | 使用默认文字，提示用户 |
+| 网络超时 | 重试机制，提示用户 |
+
+### 6.2 日志记录
+
+| 日志级别 | 使用场景 |
+|----------|----------|
+| DEBUG | 开发调试信息 |
+| INFO | 正常业务流程 |
+| WARNING | 潜在问题（如备份失败） |
+| ERROR | 业务异常（如数据库错误） |
+
+---
+
+## 7. 安全设计
+
+### 7.1 数据安全
+
+| 安全措施 | 说明 |
+|----------|------|
+| 数据备份 | 自动备份到本地 |
+| 数据加密 | 敏感数据加密存储 |
+| 权限控制 | 角色权限管理 |
+
+### 7.2 备份策略
+
+| 策略 | 说明 |
+|------|------|
+| 自动备份 | 每天凌晨2点 |
+| 手动备份 | 用户手动触发 |
+| 备份保留 | 保留最近30天 |
+| 备份位置 | ./backup目录 |
+
+---
+
+## 8. 性能优化
+
+### 8.1 优化措施
+
+| 优化项 | 实现方式 |
+|----------|----------|
+| 数据库索引 | 常用字段建立索引 |
+| 分页加载 | 大数据量分页显示 |
+| 懒加载 | 按需加载组件 |
+| 缓存 | 热点数据缓存 |
+
+### 8.2 性能指标
+
+| 指标 | 目标值 |
+|------|--------|
+| 启动时间 | ≤ 5秒 |
+| 任务加载 | ≤ 2秒 |
+| 界面响应 | ≤ 200ms |
+| 内存占用 | ≤ 500MB |
+
+---
+
+## 9. 附录
+
+### 9.1 第三方库依赖
+
+| 库名 | 版本 | 用途 |
+|------|------|------|
+| PyQt5 | 5.15+ | GUI框架 |
+| SQLAlchemy | 1.4+ | ORM |
+| Pandas | 1.3+ | 数据处理 |
+| PaddleOCR | 2.5+ | OCR识别 |
+| extract-msg | 0.28+ | MSG解析 |
+| python-dateutil | 2.8+ | 日期处理 |
+
+### 9.2 参考文档
+
+- 需求文档：市场咨询任务跟踪工具需求文档V2.5.txt
+- 测试用例：市场咨询任务跟踪工具测试用例V3.6.txt
+- 界面原型：界面原型V2.1.html
+
+---
+
+**文档结束**
