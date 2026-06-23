@@ -10,8 +10,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ...utils.logger import get_logger
-from ...utils.helpers import generate_id, get_current_timestamp
+from ..utils.logger import get_logger
+from ..utils.helpers import generate_id, get_current_timestamp
 from .connection import get_db_connection
 
 logger = get_logger(__name__)
