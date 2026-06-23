@@ -343,21 +343,15 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        # MSG邮件导入按钮 - V1.9新增
-        msg_btn = QPushButton("📧 MSG导入")
-        msg_btn.setMaximumWidth(100)
-        msg_btn.setStyleSheet("background-color: #2196F3; color: white; border: none;")
-        toolbar.addWidget(msg_btn)
-
         # 自动备份按钮 - V1.9新增
         backup_btn = QPushButton("💾 自动备份")
         backup_btn.setMaximumWidth(100)
         backup_btn.setStyleSheet("background-color: #FF9800; color: white; border: none;")
         toolbar.addWidget(backup_btn)
 
-        # 智能学习&应答按钮 - V2.0更新
-        learning_btn = QPushButton("🧠 智能学习")
-        learning_btn.setMaximumWidth(100)
+        # 智能学习&应答按钮 - V2.0更新（原"智能学习"，MSG导入已融合到内容导入）
+        learning_btn = QPushButton("🧠 智能学习&应答")
+        learning_btn.setMaximumWidth(120)
         learning_btn.setStyleSheet("background-color: #1565C0; color: white; border: none;")
         toolbar.addWidget(learning_btn)
 
