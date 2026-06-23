@@ -349,10 +349,10 @@ class MainWindow(QMainWindow):
         backup_btn.setStyleSheet("background-color: #FF9800; color: white; border: none;")
         toolbar.addWidget(backup_btn)
 
-        # 智能学习&应答按钮 - V2.0更新（原"智能学习"，MSG导入已融合到内容导入）
+        # 智能学习&应答按钮 - V2.1更新（原"学习积累"，MSG导入已融合到内容导入）
         learning_btn = QPushButton("🧠 智能学习&应答")
-        learning_btn.setMaximumWidth(120)
-        learning_btn.setStyleSheet("background-color: #1565C0; color: white; border: none;")
+        learning_btn.setMinimumWidth(130)
+        learning_btn.setStyleSheet("background-color: #1565C0; color: white; border: none; padding: 6px 12px;")
         toolbar.addWidget(learning_btn)
 
         toolbar.addSeparator()
