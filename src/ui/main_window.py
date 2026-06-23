@@ -56,10 +56,10 @@ class MainWindow(QMainWindow):
         logger.info("主窗口初始化完成")
 
     def _init_ui(self) -> None:
-        """初始化UI"""
-        # 设置窗口属性
-        self.setWindowTitle(self.config.app_name)
-        self.setGeometry(100, 100, 1280, 720)
+        """初始化UI - V2.0界面设计"""
+        # 设置窗口属性 - V2.0版本
+        self.setWindowTitle(f"{self.config.app_name} V2.0")
+        self.setGeometry(100, 100, 1400, 800)  # V2.0增大窗口尺寸
 
         # 创建中央部件
         central_widget = QWidget()
@@ -71,25 +71,37 @@ class MainWindow(QMainWindow):
         # 创建分割器
         splitter = QSplitter(Qt.Horizontal)
 
-        # 创建左侧导航
+        # 创建左侧导航 - V1.9新增学习积累、自动备份、主题设置
         self.nav_list = QListWidget()
-        self.nav_list.setMaximumWidth(200)
+        self.nav_list.setMaximumWidth(180)
         self.nav_list.currentRowChanged.connect(self._on_nav_changed)
 
-        # 添加导航项
+        # 添加导航项 - V1.9界面设计
         nav_items = [
-            "📋 任务信息",
-            "📊 任务跟踪",
-            "🔮 智能推荐",
-            "🔔 提醒管理",
-            "📁 数据导入",
-            "📈 统计分析",
-            "📚 推荐库",
+            ("📋 任务信息", "task"),
+            ("📊 任务跟踪", "track"),
+            ("🔮 智能推荐", "recommendation"),
+            ("🔔 提醒管理", "notification"),
+            ("📁 数据导入", "import"),
+            ("📈 统计分析", "statistics"),
+            ("📚 推荐库", "library"),
+            ("📚 学习积累", "learning"),  # V1.9新增
+            ("💾 自动备份", "backup"),    # V1.9新增
+            ("🎨 主题设置", "theme"),     # V1.9新增
         ]
 
-        for item_text in nav_items:
+        self.nav_items_map = {}
+        for item_text, item_id in nav_items:
             item = QListWidgetItem(item_text)
+            # 设置不同颜色区分新增功能
+            if item_id in ["learning"]:
+                item.setForeground(Qt.darkGreen)
+            elif item_id in ["backup"]:
+                item.setForeground(Qt.darkOrange)
+            elif item_id in ["theme"]:
+                item.setForeground(Qt.darkMagenta)
             self.nav_list.addItem(item)
+            self.nav_items_map[item_text] = item_id
 
         # 创建右侧工作区
         self.work_area = QStackedWidget()
@@ -100,24 +112,60 @@ class MainWindow(QMainWindow):
         self.recommendation_widget = RecommendationWidget()
         self.notification_widget = NotificationWidget()
 
-        # 占位组件
-        self.import_placeholder = QLabel("📁 数据导入功能开发中...")
-        self.import_placeholder.setAlignment(Qt.AlignCenter)
+        # 动态导入组件 - V1.9新增功能
+        try:
+            from .widgets.import_export_widget import ImportExportWidget
+            self.import_export_widget = ImportExportWidget()
+        except ImportError:
+            self.import_export_widget = QLabel("📁 数据导入功能开发中...")
+            self.import_export_widget.setAlignment(Qt.AlignCenter)
 
-        self.stats_placeholder = QLabel("📈 统计分析功能开发中...")
-        self.stats_placeholder.setAlignment(Qt.AlignCenter)
+        try:
+            from .widgets.statistics_widget import StatisticsWidget
+            self.statistics_widget = StatisticsWidget()
+        except ImportError:
+            self.statistics_widget = QLabel("📈 统计分析功能开发中...")
+            self.statistics_widget.setAlignment(Qt.AlignCenter)
 
-        self.library_placeholder = QLabel("📚 推荐库管理功能开发中...")
-        self.library_placeholder.setAlignment(Qt.AlignCenter)
+        try:
+            from .widgets.library_widget import LibraryWidget
+            self.library_widget = LibraryWidget()
+        except ImportError:
+            self.library_widget = QLabel("📚 推荐库管理功能开发中...")
+            self.library_widget.setAlignment(Qt.AlignCenter)
+
+        try:
+            from .widgets.learning_widget import LearningWidget
+            self.learning_widget = LearningWidget()
+        except ImportError:
+            self.learning_widget = QLabel("📚 学习积累功能开发中...")
+            self.learning_widget.setAlignment(Qt.AlignCenter)
+
+        try:
+            from .widgets.auto_backup_config_widget import AutoBackupConfigWidget
+            self.auto_backup_widget = AutoBackupConfigWidget()
+        except ImportError:
+            self.auto_backup_widget = QLabel("💾 自动备份功能开发中...")
+            self.auto_backup_widget.setAlignment(Qt.AlignCenter)
+
+        try:
+            from .widgets.theme_config_widget import ThemeConfigWidget
+            self.theme_config_widget = ThemeConfigWidget()
+        except ImportError:
+            self.theme_config_widget = QLabel("🎨 主题设置功能开发中...")
+            self.theme_config_widget.setAlignment(Qt.AlignCenter)
 
         # 添加到工作区
         self.work_area.addWidget(self.task_info_widget)
         self.work_area.addWidget(self.task_track_widget)
         self.work_area.addWidget(self.recommendation_widget)
         self.work_area.addWidget(self.notification_widget)
-        self.work_area.addWidget(self.import_placeholder)
-        self.work_area.addWidget(self.stats_placeholder)
-        self.work_area.addWidget(self.library_placeholder)
+        self.work_area.addWidget(self.import_export_widget)
+        self.work_area.addWidget(self.statistics_widget)
+        self.work_area.addWidget(self.library_widget)
+        self.work_area.addWidget(self.learning_widget)      # V1.9新增
+        self.work_area.addWidget(self.auto_backup_widget)   # V1.9新增
+        self.work_area.addWidget(self.theme_config_widget)  # V1.9新增
 
         # 添加到分割器
         splitter.addWidget(self.nav_list)
@@ -232,43 +280,122 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
 
     def _init_toolbar(self) -> None:
-        """初始化工具栏"""
+        """初始化工具栏 - V1.9界面设计"""
         toolbar = QToolBar("主工具栏")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
         # 新建任务按钮
-        new_task_btn = QPushButton("新建任务")
-        new_task_btn.setMaximumWidth(100)
+        new_task_btn = QPushButton("📋 新建")
+        new_task_btn.setMaximumWidth(90)
         toolbar.addWidget(new_task_btn)
 
-        toolbar.addSeparator()
+        # 保存按钮
+        save_btn = QPushButton("💾 保存")
+        save_btn.setMaximumWidth(80)
+        toolbar.addWidget(save_btn)
 
-        # 导入按钮
-        import_btn = QPushButton("导入")
-        import_btn.setMaximumWidth(80)
-        toolbar.addWidget(import_btn)
-
-        # 导出按钮
-        export_btn = QPushButton("导出")
-        export_btn.setMaximumWidth(80)
-        toolbar.addWidget(export_btn)
+        # 删除按钮
+        delete_btn = QPushButton("🗑️ 删除")
+        delete_btn.setMaximumWidth(80)
+        toolbar.addWidget(delete_btn)
 
         toolbar.addSeparator()
 
-        # 刷新按钮
-        refresh_btn = QPushButton("刷新")
-        refresh_btn.setMaximumWidth(80)
-        toolbar.addWidget(refresh_btn)
+        # 导入通讯录按钮
+        import_contact_btn = QPushButton("📥 导入通讯录")
+        import_contact_btn.setMaximumWidth(110)
+        toolbar.addWidget(import_contact_btn)
+
+        # 通讯录按钮
+        contact_btn = QPushButton("👥 通讯录")
+        contact_btn.setMaximumWidth(90)
+        toolbar.addWidget(contact_btn)
+
+        # 推荐库按钮
+        recommend_btn = QPushButton("🔮 推荐库")
+        recommend_btn.setMaximumWidth(90)
+        recommend_btn.setStyleSheet("background-color: #1E88E5; color: white; border: none;")
+        toolbar.addWidget(recommend_btn)
+
+        # 导入推荐库按钮
+        import_recommend_btn = QPushButton("📥 导入推荐库")
+        import_recommend_btn.setMaximumWidth(110)
+        import_recommend_btn.setStyleSheet("background-color: #1E88E5; color: white; border: none;")
+        toolbar.addWidget(import_recommend_btn)
+
+        # 提醒周期按钮
+        reminder_btn = QPushButton("⏰ 提醒周期")
+        reminder_btn.setMaximumWidth(100)
+        reminder_btn.setStyleSheet("background-color: #1E88E5; color: white; border: none;")
+        toolbar.addWidget(reminder_btn)
+
+        toolbar.addSeparator()
+
+        # MSG邮件导入按钮 - V1.9新增
+        msg_btn = QPushButton("📧 MSG导入")
+        msg_btn.setMaximumWidth(100)
+        msg_btn.setStyleSheet("background-color: #2196F3; color: white; border: none;")
+        toolbar.addWidget(msg_btn)
+
+        # 自动备份按钮 - V1.9新增
+        backup_btn = QPushButton("💾 自动备份")
+        backup_btn.setMaximumWidth(100)
+        backup_btn.setStyleSheet("background-color: #FF9800; color: white; border: none;")
+        toolbar.addWidget(backup_btn)
+
+        # 学习积累按钮 - V1.9新增
+        learning_btn = QPushButton("📚 学习积累")
+        learning_btn.setMaximumWidth(100)
+        learning_btn.setStyleSheet("background-color: #4CAF50; color: white; border: none;")
+        toolbar.addWidget(learning_btn)
+
+        toolbar.addSeparator()
+
+        # 主题切换按钮 - V1.9新增
+        theme_btn = QPushButton("🎨 切换主题")
+        theme_btn.setMaximumWidth(100)
+        theme_btn.setStyleSheet("background-color: #9C27B0; color: white; border: none;")
+        toolbar.addWidget(theme_btn)
+
+        # 设置按钮
+        settings_btn = QPushButton("⚙️ 设置")
+        settings_btn.setMaximumWidth(80)
+        toolbar.addWidget(settings_btn)
 
     def _init_statusbar(self) -> None:
-        """初始化状态栏"""
+        """初始化状态栏 - V1.9界面设计"""
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
 
         # 添加状态标签
-        self.status_label = QLabel("就绪")
+        self.status_label = QLabel("● 就绪")
         self.statusBar.addWidget(self.status_label)
+
+        # 添加数据库状态
+        self.db_status_label = QLabel("📁 数据库: 已连接")
+        self.statusBar.addWidget(self.db_status_label)
+
+        # 添加任务统计 - V1.9新增
+        self.task_count_label = QLabel("📋 任务总数: 0")
+        self.statusBar.addWidget(self.task_count_label)
+
+        self.pending_count_label = QLabel("⏳ 应答中: 0")
+        self.statusBar.addWidget(self.pending_count_label)
+
+        self.replied_count_label = QLabel("✅ 已答复: 0")
+        self.statusBar.addWidget(self.replied_count_label)
+
+        self.reminder_count_label = QLabel("🔔 已提醒: 0")
+        self.statusBar.addWidget(self.reminder_count_label)
+
+        # V1.9新增：主题状态指示器 - 靠右显示
+        spacer = QWidget()
+        spacer.setMinimumWidth(100)
+        self.statusBar.addWidget(spacer)
+
+        self.theme_indicator = QLabel("☀️ 浅色主题")
+        self.statusBar.addPermanentWidget(self.theme_indicator)
 
         # 添加定时器更新状态栏
         self.status_timer = QTimer()

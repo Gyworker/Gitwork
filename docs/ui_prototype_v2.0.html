@@ -12,184 +12,867 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Microsoft YaHei, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Microsoft YaHei", "宋体", sans-serif;
+            background: #e3e3e3;
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
-        /* 头部样式 */
         .header {
-            background: white;
-            border-radius: 12px;
-            padding: 25px 30px;
+            text-align: center;
             margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
+            color: #1E88E5;
             font-size: 24px;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .v2-0-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 8px;
+            margin-bottom: 10px;
         }
 
         .header p {
             color: #666;
-            font-size: 13px;
+            font-size: 14px;
         }
 
-        /* 页面导航 */
-        .page-nav {
-            background: white;
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            display: flex;
-            gap: 15px;
-        }
-
-        .nav-btn {
-            padding: 10px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-size: 13px;
-            color: #666;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .nav-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* 版本标签 - V2.0 */
+        .v2-0-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #00BCD4 0%, #3F51B5 100%);
             color: white;
-            border-color: transparent;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: bold;
         }
 
-        /* 内容区域 */
-        .content-area {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        /* 主窗口 */
+        .main-window {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
-        .page-title {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e0e0e0;
+        /* 标题栏 */
+        .title-bar {
+            background: linear-gradient(to bottom, #1E88E5, #1565C0);
+            color: white;
+            padding: 10px 15px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
+        }
+
+        .title-bar h2 {
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .window-controls {
+            display: flex;
             gap: 8px;
         }
 
-        /* 任务跟踪表格 */
-        .task-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
         }
 
-        .task-table th {
+        .btn-minimize { background: #FFC107; }
+        .btn-maximize { background: #4CAF50; }
+        .btn-close { background: #F44336; }
+
+        /* 菜单栏 */
+        .menu-bar {
             background: #f5f5f5;
-            padding: 12px 10px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #e0e0e0;
+            padding: 5px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
         }
 
-        .task-table td {
-            padding: 10px;
+        .menu-item {
+            color: #333;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        .menu-item:hover {
+            background: #e0e0e0;
+        }
+
+        /* 工具栏 - V2.0优化布局 */
+        .toolbar {
+            background: #fafafa;
+            padding: 8px 15px;
             border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-btn {
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toolbar-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .toolbar-btn.primary {
+            background: #1E88E5;
+            color: white;
+            border-color: #1E88E5;
+        }
+
+        .toolbar-btn.primary:hover {
+            background: #1565C0;
+        }
+
+        /* V2.0新增功能按钮样式 */
+        .toolbar-btn.theme-btn {
+            background: #9C27B0;
+            color: white;
+            border-color: #9C27B0;
+        }
+
+        .toolbar-btn.theme-btn:hover {
+            background: #7B1FA2;
+        }
+
+        .toolbar-btn.backup-btn {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+
+        .toolbar-btn.backup-btn:hover {
+            background: #F57C00;
+        }
+
+        .toolbar-btn.learning-btn {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .toolbar-btn.learning-btn:hover {
+            background: #388E3C;
+        }
+
+        .toolbar-btn.msg-btn {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        .toolbar-btn.msg-btn:hover {
+            background: #1976D2;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 24px;
+            background: #ddd;
+            margin: 0 4px;
+        }
+
+        /* V2.0主内容区 - 优化导航页切换 */
+        .main-content {
+            display: flex;
+            height: 650px;
+        }
+
+        /* 左侧导航 - V2.0优化 */
+        .left-nav {
+            width: 160px;
+            background: #f8f8f8;
+            border-right: 1px solid #e0e0e0;
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            padding: 10px 15px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #333;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: #e8e8e8;
+        }
+
+        .nav-item.active {
+            background: #1E88E5;
+            color: white;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #1565C0;
+        }
+
+        /* V2.0新增功能导航样式 */
+        .nav-item.learning {
+            color: #4CAF50;
+        }
+
+        .nav-item.learning.active {
+            background: #4CAF50;
+        }
+
+        .nav-item.backup {
+            color: #FF9800;
+        }
+
+        .nav-item.backup.active {
+            background: #FF9800;
+        }
+
+        .nav-item.theme {
+            color: #9C27B0;
+        }
+
+        .nav-item.theme.active {
+            background: #9C27B0;
+        }
+
+        /* 左侧区域 */
+        .left-panel {
+            width: 35%;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-section {
+            overflow-y: auto;
+        }
+
+        /* 内容导入区域 - 固定表头 */
+        .panel-section:first-child {
+            flex: 0 0 180px;
+            padding: 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-import-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .panel-section:last-child {
+            flex: 1;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 任务信息区 - 固定表头 */
+        .task-info-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .section-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            padding: 12px 12px 8px 12px;
+            border-bottom: 2px solid #1E88E5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .section-header .help {
+            font-size: 12px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        /* V2.0修复：内容导入区域可滚动，但表头固定 */
+        .content-import-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 12px 12px;
+        }
+
+        /* 解析状态提示 */
+        .parse-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .parse-success {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .parse-error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .form-label.required::after {
+            content: " *";
+            color: #F44336;
+        }
+
+        .form-label.editable::before {
+            content: "📝 ";
+        }
+
+        .form-label.smart::before {
+            content: "🔮 ";
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: "宋体", serif;
+        }
+
+        /* V2.0优化：直接编辑字段样式 */
+        .form-input.direct-edit {
+            background: #FAFFFE;
+        }
+
+        .form-input.direct-edit:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: "宋体", serif;
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-textarea.large {
+            min-height: 100px;
+        }
+
+        .char-count {
+            font-size: 10px;
+            color: #999;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #1E88E5;
+            box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.1);
+        }
+
+        /* 联系方式输入 */
+        .contact-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .contact-type-select {
+            width: 50px;
+            padding: 6px 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .contact-input {
+            flex: 1;
+        }
+
+        /* 标签和提示信息在同一行 */
+        .form-label-with-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .form-label-with-hint .form-label {
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        .form-label-with-hint .inline-hint {
+            font-size: 10px;
+            color: #1E88E5;
+            white-space: nowrap;
+        }
+
+        /* 单选按钮 */
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .radio-item input {
+            cursor: pointer;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background: #1E88E5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565C0;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-smart {
+            background: #9C27B0;
+            color: white;
+        }
+
+        .btn-smart:hover {
+            background: #7B1FA2;
+        }
+
+        .btn-backup {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-backup:hover {
+            background: #F57C00;
+        }
+
+        .btn-learning {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-learning:hover {
+            background: #388E3C;
+        }
+
+        .btn-msg {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-msg:hover {
+            background: #1976D2;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        /* 右侧区域 */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-top {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #e0e0e0;
+            overflow: hidden;
+        }
+
+        .right-bottom {
+            flex: 0 0 200px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 跟踪区按钮 */
+        .track-buttons {
+            padding: 10px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .track-btn {
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .track-btn:hover {
+            background: #1E88E5;
+            color: white;
+            border-color: #1E88E5;
+        }
+
+        .track-btn.active {
+            background: #1E88E5;
+            color: white;
+            border-color: #1E88E5;
+        }
+
+        /* 筛选栏 */
+        .filter-bar {
+            padding: 10px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .filter-select {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+            min-width: 90px;
+        }
+
+        .filter-label {
+            font-size: 11px;
             color: #666;
         }
 
-        .task-table tr:hover {
-            background: #f8f9ff;
+        .date-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .task-table tr.selected {
-            background: #e8eaff;
+        .date-filter-group select {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        /* 表格 */
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: "宋体", serif;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #f0f0f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: normal;
+            color: #666;
+            position: relative;
+            cursor: col-resize;
+        }
+
+        th::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            cursor: col-resize;
+        }
+
+        th:hover {
+            background: #e8e8e8;
+        }
+
+        .col-name {
+            width: 80px;
+        }
+
+        .col-content {
+            width: 150px;
+        }
+
+        .col-time {
+            width: 90px;
+        }
+
+        tr:hover {
+            background: #f8f8f8;
         }
 
         /* 状态标签 */
         .status-tag {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-size: 10px;
-            font-weight: 500;
+            color: white;
         }
 
-        .status-progress {
-            background: #E3F2FD;
-            color: #1976D2;
+        .status-progress { background: #2196F3; }
+        .status-pending { background: #FB8C00; }
+        .status-replied { background: #4CAF50; }
+        .status-done { background: #9E9E9E; }
+
+        /* 重要程度 */
+        .priority-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
         }
 
-        .status-pending {
-            background: #FFF3E0;
-            color: #F57C00;
-        }
+        .priority-high { background: #F44336; color: white; }
+        .priority-medium { background: #FFC107; color: #333; }
+        .priority-low { background: #8BC34A; color: white; }
 
-        .status-done {
-            background: #E8F5E9;
-            color: #388E3C;
-        }
-
-        /* 操作链接 */
+        /* 操作按钮 */
         .action-link {
-            color: #667eea;
+            color: #1E88E5;
             cursor: pointer;
-            margin-right: 10px;
-            font-weight: 500;
+            font-size: 11px;
+            margin-right: 6px;
         }
 
         .action-link:hover {
             text-decoration: underline;
         }
 
-        .detail-link {
-            color: #764ba2;
+        .reminder-count {
+            display: inline-block;
+            background: #FFF3E0;
+            color: #E65100;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 10px;
         }
 
-        /* 详情弹窗 */
+        /* 分页 */
+        .pagination {
+            padding: 8px 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .pagination button {
+            padding: 4px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f0f0f0;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* 操作日志区 */
+        .log-section {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 12px;
+        }
+
+        .log-table {
+            font-size: 11px;
+        }
+
+        .log-table th, .log-table td {
+            padding: 5px 6px;
+        }
+
+        .log-action {
+            color: #1E88E5;
+        }
+
+        .log-note {
+            color: #E65100;
+            font-size: 10px;
+        }
+
+        /* 状态栏 - V2.0优化 */
+        .status-bar {
+            background: #f5f5f5;
+            padding: 6px 15px;
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        /* V2.0新增：主题状态指示器 */
+        .theme-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .theme-indicator .theme-icon {
+            font-size: 14px;
+        }
+
+        .theme-indicator .theme-name {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* 弹窗样式 */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0,0,0,0.5);
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             z-index: 1000;
         }
 
@@ -199,792 +882,711 @@
 
         .modal {
             background: white;
-            border-radius: 12px;
-            width: 700px;
-            max-height: 85vh;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            width: 600px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .modal-header h3 {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .modal-close {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: none;
             font-size: 16px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 15px;
+        }
+
+        .modal-footer {
+            padding: 10px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* V2.0新增：快速搜索框 */
+        .quick-search {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .modal-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-
-        .modal-close:hover {
-            opacity: 1;
-        }
-
-        .modal-body {
-            padding: 20px;
-            max-height: 65vh;
-            overflow-y: auto;
-        }
-
-        .modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        /* 详情区域 */
-        .detail-section {
-            margin-bottom: 20px;
-        }
-
-        .detail-section h4 {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .detail-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px dashed #f0f0f0;
-        }
-
-        .detail-label {
-            width: 100px;
-            color: #666;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-
-        .detail-value {
-            flex: 1;
-            color: #333;
-            font-size: 12px;
-        }
-
-        .detail-content {
-            background: #f8f9ff;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 8px;
-            color: #333;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        /* 编辑模式样式 */
-        .edit-input {
-            width: 100%;
-            padding: 8px 10px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            font-size: 12px;
-            outline: none;
-            transition: all 0.3s;
-        }
-
-        .edit-input:focus {
-            border-color: #764ba2;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .edit-textarea {
-            width: 100%;
-            min-height: 100px;
-            padding: 10px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: inherit;
-            resize: vertical;
-            outline: none;
-            transition: all 0.3s;
-        }
-
-        .edit-textarea:focus {
-            border-color: #764ba2;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
-        .edit-select {
-            width: 100%;
-            padding: 8px 10px;
-            border: 2px solid #667eea;
-            border-radius: 6px;
-            font-size: 12px;
-            background: white;
-            cursor: pointer;
-        }
-
-        .editing-indicator {
-            display: inline-block;
-            background: #FFF3E0;
-            color: #E65100;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            margin-left: 8px;
-        }
-
-        /* 按钮样式 */
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-            border: 1px solid #e0e0e0;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-success {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #45a049;
-        }
-
-        .btn-edit {
-            background: #FF9800;
-            color: white;
-        }
-
-        .btn-edit:hover {
-            background: #f57c00;
-        }
-
-        /* 工具提示 */
-        .tooltip {
-            position: relative;
-        }
-
-        .tooltip::after {
-            content: '点击可查看详情';
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
+        .quick-search input {
+            width: 160px;
             padding: 4px 8px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 10px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover::after {
-            opacity: 1;
-        }
-
-        /* 响应记录 */
-        .response-records {
-            margin-top: 15px;
-        }
-
-        .response-item {
-            background: #f8f9ff;
-            border-left: 3px solid #667eea;
-            padding: 10px 12px;
-            margin-bottom: 10px;
-            border-radius: 0 6px 6px 0;
-        }
-
-        .response-item-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
             font-size: 11px;
-            color: #666;
         }
 
-        .response-item-content {
-            font-size: 12px;
+        .quick-search input:focus {
+            outline: none;
+            border-color: #1E88E5;
+        }
+
+        /* V2.0新增：版本更新说明 */
+        .v2-0-features {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            border-left: 4px solid #1E88E5;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .v2-0-features h4 {
+            font-size: 13px;
+            color: #1565C0;
+            margin-bottom: 8px;
+        }
+
+        .v2-0-features ul {
+            font-size: 11px;
             color: #333;
-            line-height: 1.5;
-        }
-
-        /* 交互说明 */
-        .interaction-guide {
-            background: #E8F5E9;
-            border: 1px solid #A5D6A7;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .interaction-guide h4 {
-            color: #2E7D32;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .interaction-guide ol {
             padding-left: 20px;
-            font-size: 12px;
-            color: #333;
         }
 
-        .interaction-guide li {
-            margin-bottom: 6px;
+        .v2-0-features li {
+            margin-bottom: 4px;
         }
 
-        .interaction-guide .step {
-            display: inline-block;
-            background: #667eea;
+        .v2-0-features .new-tag {
+            background: #F44336;
             color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 20px;
-            font-size: 11px;
-            margin-right: 6px;
-        }
-
-        /* 动画效果 */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .modal {
-            animation: fadeIn 0.3s ease;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 9px;
+            margin-left: 4px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 头部 -->
         <div class="header">
-            <h1>市场咨询任务跟踪工具 <span class="v2-0-badge">V2.0</span> - 界面原型预览</h1>
-            <p>基于PyQt5的Windows桌面应用界面设计 - V2.0交互原型（任务详情与编辑功能）</p>
+            <h1>市场咨询任务跟踪工具 V2.0 <span class="v2-0-badge">NEW</span> - 界面原型预览</h1>
+            <p>基于PyQt5的Windows桌面应用界面设计 - V2.0更新版（界面优化 + 功能增强）</p>
         </div>
 
-        <!-- 页面导航 -->
-        <div class="page-nav">
-            <button class="nav-btn active">
-                📊 任务跟踪
-            </button>
-            <button class="nav-btn">
-                📥 导入管理
-            </button>
-            <button class="nav-btn">
-                📚 知识库
-            </button>
-            <button class="nav-btn">
-                🧠 智能学习
-            </button>
-            <button class="nav-btn">
-                ⚙️ 系统设置
-            </button>
-        </div>
-
-        <!-- 交互说明 -->
-        <div class="interaction-guide">
-            <h4>🎯 V2.0 交互演示说明</h4>
-            <ol>
-                <li><span class="step">1</span> 点击任务列表中的 <strong>「详情」</strong> 按钮，查看任务详情</li>
-                <li><span class="step">2</span> 在详情弹窗中，点击右上角的 <strong>「📝 编辑」</strong> 按钮</li>
-                <li><span class="step">3</span> 观察：表单内容变为<strong>可编辑状态</strong>，显示输入框和编辑指示器</li>
-                <li><span class="step">4</span> 点击 <strong>「💾 保存」</strong> 按钮保存修改，或点击 <strong>「✖ 取消」</strong> 放弃更改</li>
-            </ol>
-        </div>
-
-        <!-- 任务跟踪表格 -->
-        <div class="content-area">
-            <div class="page-title">
-                📊 任务跟踪列表
-                <span style="font-size: 12px; color: #999; font-weight: normal; margin-left: auto;">共 6 条记录</span>
+        <div class="main-window">
+            <!-- V2.0新增：版本更新说明 -->
+            <div class="v2-0-features">
+                <h4>📢 V2.0 版本更新说明</h4>
+                <ul>
+                    <li>✅ 界面布局优化 - 增大窗口尺寸(1400x800)，提升用户体验 <span class="new-tag">NEW</span></li>
+                    <li>✅ 工具栏功能增强 - 添加MSG导入、自动备份、学习积累、主题切换快捷按钮 <span class="new-tag">NEW</span></li>
+                    <li>✅ 左侧导航优化 - 添加学习积累、自动备份、主题设置导航项 <span class="new-tag">NEW</span></li>
+                    <li>✅ 状态栏增强 - 添加详细统计信息和主题状态指示器 <span class="new-tag">NEW</span></li>
+                    <li>✅ 保留V1.9所有功能 - 主题切换、自动备份、学习积累、MSG邮件导入</li>
+                </ul>
             </div>
 
-            <table class="task-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">序号</th>
-                        <th>任务名称</th>
-                        <th style="width: 80px;">状态</th>
-                        <th style="width: 80px;">优先级</th>
-                        <th style="width: 60px;">负责人</th>
-                        <th style="width: 100px;">关键模块</th>
-                        <th style="width: 80px;">创建日期</th>
-                        <th style="width: 120px;">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>产品报价咨询</td>
-                        <td><span class="status-tag status-progress">进行中</span></td>
-                        <td><span style="color: #f44336;">● 高</span></td>
-                        <td>张三</td>
-                        <td>产品报价</td>
-                        <td>2026-06-22</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(1)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>技术方案确认</td>
-                        <td><span class="status-tag status-pending">挂起</span></td>
-                        <td><span style="color: #ff9800;">● 中</span></td>
-                        <td>李四</td>
-                        <td>技术方案</td>
-                        <td>2026-06-21</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(2)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>需求调研</td>
-                        <td><span class="status-tag status-done">已完成</span></td>
-                        <td><span style="color: #4caf50;">● 低</span></td>
-                        <td>王五</td>
-                        <td>需求调研</td>
-                        <td>2026-06-20</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(3)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>合同条款确认</td>
-                        <td><span class="status-tag status-progress">进行中</span></td>
-                        <td><span style="color: #f44336;">● 高</span></td>
-                        <td>赵六</td>
-                        <td>合同条款</td>
-                        <td>2026-06-19</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(4)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>5</td>
-                        <td>产品功能演示</td>
-                        <td><span class="status-tag status-done">已完成</span></td>
-                        <td><span style="color: #ff9800;">● 中</span></td>
-                        <td>钱七</td>
-                        <td>产品演示</td>
-                        <td>2026-06-18</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(5)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>6</td>
-                        <td>售后服务咨询</td>
-                        <td><span class="status-tag status-pending">挂起</span></td>
-                        <td><span style="color: #4caf50;">● 低</span></td>
-                        <td>孙八</td>
-                        <td>售后服务</td>
-                        <td>2026-06-17</td>
-                        <td>
-                            <span class="action-link detail-link tooltip" onclick="showTaskDetail(6)">详情</span>
-                            <span class="action-link">提醒</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 任务详情弹窗 -->
-    <div class="modal-overlay hidden" id="detailModal">
-        <div class="modal" style="width: 750px;">
-            <div class="modal-header">
-                <h3>📋 任务详情 <span id="detailTaskId" style="font-size: 12px; opacity: 0.8;">#1</span></h3>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="btn btn-edit" id="editBtn" onclick="toggleEditMode()" style="padding: 6px 12px; font-size: 11px;">
-                        📝 编辑
-                    </button>
-                    <button class="modal-close" onclick="closeDetailModal()">×</button>
+            <!-- 标题栏 -->
+            <div class="title-bar">
+                <h2>市场咨询任务跟踪工具 V2.0</h2>
+                <div class="window-controls">
+                    <div class="window-btn btn-minimize"></div>
+                    <div class="window-btn btn-maximize"></div>
+                    <div class="window-btn btn-close"></div>
                 </div>
             </div>
-            <div class="modal-body">
-                <!-- 基本信息区域 -->
-                <div class="detail-section">
-                    <h4>📌 基本信息</h4>
-                    <div class="detail-row">
-                        <div class="detail-label">任务名称</div>
-                        <div class="detail-value">
-                            <span id="detailNameText">产品报价咨询</span>
-                            <input type="text" class="edit-input" id="detailNameInput" value="产品报价咨询" style="display: none;">
+
+            <!-- 菜单栏 -->
+            <div class="menu-bar">
+                <span class="menu-item">文件</span>
+                <span class="menu-item">编辑</span>
+                <span class="menu-item">视图</span>
+                <span class="menu-item">工具</span>
+                <span class="menu-item">帮助</span>
+            </div>
+
+            <!-- 工具栏 - V2.0优化布局 -->
+            <div class="toolbar">
+                <button class="toolbar-btn">📋 新建</button>
+                <button class="toolbar-btn">💾 保存</button>
+                <button class="toolbar-btn">🗑️ 删除</button>
+                <div class="toolbar-separator"></div>
+                <button class="toolbar-btn">📥 导入通讯录</button>
+                <button class="toolbar-btn">👥 通讯录</button>
+                <button class="toolbar-btn primary">🔮 推荐库</button>
+                <button class="toolbar-btn primary">📥 导入推荐库</button>
+                <button class="toolbar-btn primary">⏰ 提醒周期</button>
+                <div class="toolbar-separator"></div>
+                <!-- V2.0新增：MSG邮件导入按钮 -->
+                <button class="toolbar-btn msg-btn">📧 MSG导入</button>
+                <!-- V2.0新增：备份和学习按钮 -->
+                <button class="toolbar-btn backup-btn">💾 自动备份</button>
+                <button class="toolbar-btn learning-btn">📚 学习积累</button>
+                <!-- V2.0新增：主题切换按钮 -->
+                <button class="toolbar-btn theme-btn">🎨 切换主题</button>
+                <div class="toolbar-separator"></div>
+                <button class="toolbar-btn">⚙️ 设置</button>
+            </div>
+
+            <!-- 主内容区 - V2.0优化左侧导航 -->
+            <div class="main-content">
+                <!-- 左侧导航 - V2.0新增学习积累、自动备份、主题设置 -->
+                <div class="left-nav">
+                    <div class="nav-item active" onclick="switchNav(this, 'task')">
+                        📋 任务信息
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'track')">
+                        📊 任务跟踪
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'recommendation')">
+                        🔮 智能推荐
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'notification')">
+                        🔔 提醒管理
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'import')">
+                        📁 数据导入
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'statistics')">
+                        📈 统计分析
+                    </div>
+                    <div class="nav-item" onclick="switchNav(this, 'library')">
+                        📚 推荐库
+                    </div>
+                    <!-- V2.0新增导航项 -->
+                    <div class="nav-item learning" onclick="switchNav(this, 'learning')">
+                        📚 学习积累
+                    </div>
+                    <div class="nav-item backup" onclick="switchNav(this, 'backup')">
+                        💾 自动备份
+                    </div>
+                    <div class="nav-item theme" onclick="switchNav(this, 'theme')">
+                        🎨 主题设置
+                    </div>
+                </div>
+
+                <!-- 左侧区域 -->
+                <div class="left-panel">
+                    <!-- 内容导入区 -->
+                    <div class="panel-section">
+                        <div class="content-import-wrapper">
+                            <div class="section-header">
+                                <span>📥 内容导入</span>
+                                <span class="help">?</span>
+                            </div>
+
+                            <div class="content-import-body">
+                                <div class="form-label">导入方式</div>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" checked onchange="updateParseStatus('text')"> 文本
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('image')"> 图片
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('outlook')"> Outlook
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('wechat')"> 企业微信
+                                    </label>
+                                    <!-- V2.0保留：MSG邮件 -->
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('msg')"> MSG
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">输入内容</label>
+                                        <span class="inline-hint">📌 图片/Outlook/微信/Msg解析后显示于此</span>
+                                    </div>
+                                    <textarea class="form-textarea" id="inputContent" placeholder="请输入或粘贴内容，或通过图片/Outlook/企业微信/MSG导入...">客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。</textarea>
+                                </div>
+
+                                <span class="parse-status" id="parseStatus">📄 文本模式</span>
+
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="showParseResult()">🔍 解析</button>
+                                    <button class="btn btn-secondary">🗑️ 清除</button>
+                                    <button class="btn btn-secondary">📁 文件</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="detail-row">
-                        <div class="detail-label">状态</div>
-                        <div class="detail-value">
-                            <span id="detailStatusText"><span class="status-tag status-progress">进行中</span></span>
-                            <select class="edit-select" id="detailStatusInput" style="display: none;">
-                                <option value="progress" selected>进行中</option>
-                                <option value="pending">挂起</option>
-                                <option value="done">已完成</option>
+
+                    <!-- 任务信息区 -->
+                    <div class="panel-section">
+                        <div class="task-info-wrapper">
+                            <div class="section-header">
+                                <span>📋 任务信息</span>
+                                <span class="help">?</span>
+                            </div>
+
+                            <div class="task-info-content" style="flex: 1; overflow-y: auto; padding: 0 12px 12px;">
+                                <!-- 1. 任务创建时间 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">任务创建时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" value="2026-06-23T14:30:25">
+                                </div>
+
+                                <!-- 2. 预期答复时间 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">预期答复时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" value="2026-06-23T15:00">
+                                </div>
+
+                                <!-- 3. 任务名称 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">任务名称</label>
+                                    </div>
+                                    <input type="text" class="form-input" value="产品报价咨询" style="width: 80%;">
+                                </div>
+
+                                <!-- 4. 重要程度 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">重要程度</label>
+                                    </div>
+                                    <select class="form-select">
+                                        <option selected>高</option>
+                                        <option>中</option>
+                                        <option>低</option>
+                                    </select>
+                                </div>
+
+                                <!-- 5. 任务具体内容 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">任务具体内容</label>
+                                    </div>
+                                    <textarea class="form-textarea large" id="taskContent" maxlength="3000" placeholder="请详细描述任务的具体内容...">客户需要产品报价咨询，请尽快提供详细的价格清单，包括：
+1. 标准产品价格
+2. 批量采购折扣
+3. 交货周期
+4. 售后服务条款
+5. 技术支持方案
+（支持至少2000个中文字符输入）</textarea>
+                                    <div class="char-count">已输入: <span id="charCount">120</span> / 3000 字符</div>
+                                </div>
+
+                                <!-- 6. 产品型号和板卡 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">产品型号和板卡</label>
+                                    </div>
+                                    <input type="text" class="form-input" value="SmartBox Pro / ABC-123">
+                                </div>
+
+                                <!-- 7. 咨询者姓名 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">咨询者姓名</label>
+                                    </div>
+                                    <input type="text" class="form-input" id="inquirerName" value="李明" onchange="autoFillContact('inquirer')">
+                                </div>
+
+                                <!-- 8. 咨询者联系方式 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">咨询者联系方式</label>
+                                        <span class="inline-hint">📌 来源：通讯录（自动填充）</span>
+                                    </div>
+                                    <div class="contact-input-group">
+                                        <select class="contact-type-select" id="contactType1">
+                                            <option value="phone" selected>📱</option>
+                                            <option value="email">✉️</option>
+                                        </select>
+                                        <input type="text" class="form-input contact-input" id="contactInput1" value="13812345678">
+                                    </div>
+                                </div>
+
+                                <!-- 9. 咨询者部门 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">咨询者部门</label>
+                                        <span class="inline-hint" style="color: #4CAF50;">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" value="采购部" placeholder="请输入咨询者部门">
+                                </div>
+
+                                <!-- 10. 答复人姓名 + 11. 智能推荐按钮 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">答复人姓名</label>
+                                        <button class="btn btn-smart">🔮 智能推荐</button>
+                                    </div>
+                                    <input type="text" class="form-input" id="replierName" value="王五" style="width: 60%;">
+                                </div>
+
+                                <!-- 12. 答复人联系方式 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">答复人联系方式</label>
+                                        <span class="inline-hint">📌 推荐来源：推荐库</span>
+                                    </div>
+                                    <div class="contact-input-group">
+                                        <select class="contact-type-select" id="contactType2">
+                                            <option value="phone" selected>📱</option>
+                                            <option value="email">✉️</option>
+                                        </select>
+                                        <input type="text" class="form-input contact-input" id="contactInput2" value="13800138003">
+                                    </div>
+                                </div>
+
+                                <!-- 13. 答复人部门 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">答复人部门</label>
+                                        <span class="inline-hint" style="color: #4CAF50;">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" value="市场部" placeholder="请输入答复人部门">
+                                </div>
+
+                                <!-- 14. 所属行业 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">所属行业</label>
+                                        <span class="inline-hint" style="color: #4CAF50;">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" value="制造业" placeholder="请输入所属行业">
+                                </div>
+
+                                <!-- 15. 关键模块 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">关键模块</label>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" id="keyModule" value="产品报价" placeholder="请输入关键模块，多个模块用逗号分隔">
+                                </div>
+
+                                <!-- 16. 备注信息 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">备注信息</label>
+                                    </div>
+                                    <textarea class="form-textarea" placeholder="请输入备注信息..." style="min-height: 50px;">客户紧急，需要本周内答复。</textarea>
+                                </div>
+
+                                <div class="btn-group">
+                                    <button class="btn btn-primary">✅ 生成任务</button>
+                                    <button class="btn btn-secondary">❌ 取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧区域 -->
+                <div class="right-panel">
+                    <!-- 任务跟踪区 -->
+                    <div class="right-top">
+                        <div class="section-header" style="padding: 10px 12px;">
+                            <span>📊 任务跟踪</span>
+                            <!-- V2.0优化：快速搜索框 -->
+                            <div class="quick-search">
+                                <input type="text" placeholder="🔍 全局搜索...">
+                            </div>
+                        </div>
+
+                        <div class="track-buttons">
+                            <button class="track-btn active">查看应答中</button>
+                            <button class="track-btn">查看已答复</button>
+                            <button class="track-btn">全部数据</button>
+                            <button class="track-btn">📤 导出应答中</button>
+                            <button class="track-btn">📤 导出已答复</button>
+                            <!-- V2.0新增：快速操作按钮 -->
+                            <button class="track-btn" style="background: #FF9800; color: white; border-color: #FF9800;">💾 备份</button>
+                            <button class="track-btn" style="background: #4CAF50; color: white; border-color: #4CAF50;">📚 学习</button>
+                        </div>
+
+                        <!-- 筛选栏 -->
+                        <div class="filter-bar">
+                            <span class="filter-label">筛选:</span>
+                            <select class="filter-select">
+                                <option>状态: 全部</option>
+                                <option>进行中</option>
+                                <option>挂起</option>
+                                <option>已答复</option>
+                                <option>完成</option>
+                            </select>
+                            <select class="filter-select">
+                                <option>重要: 全部</option>
+                                <option>高</option>
+                                <option>中</option>
+                                <option>低</option>
+                            </select>
+                            <select class="filter-select">
+                                <option>部门: 全部</option>
+                                <option>采购部</option>
+                                <option>销售部</option>
+                                <option>技术部</option>
+                            </select>
+                            <select class="filter-select">
+                                <option>关键模块: 全部</option>
+                                <option>产品报价</option>
+                                <option>技术方案</option>
+                                <option>需求调研</option>
+                            </select>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;">🔄 重置</button>
+                            
+                            <span class="filter-label" style="margin-left: 10px;">创建时间:</span>
+                            <div class="date-filter-group">
+                                <select class="filter-select">
+                                    <option selected>2026年</option>
+                                    <option>2025年</option>
+                                    <option>2024年</option>
+                                </select>
+                                <select class="filter-select">
+                                    <option selected>6月</option>
+                                    <option>5月</option>
+                                    <option>全部</option>
+                                </select>
+                            </div>
+                            
+                            <span class="filter-label" style="margin-left: 10px;">排序:</span>
+                            <select class="filter-select">
+                                <option>创建时间降序</option>
+                                <option>创建时间升序</option>
+                                <option>重要程度</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">优先级</div>
-                        <div class="detail-value">
-                            <span id="detailPriorityText"><span style="color: #f44336;">● 高</span></span>
-                            <select class="edit-select" id="detailPriorityInput" style="display: none;">
-                                <option value="high" selected>高</option>
-                                <option value="medium">中</option>
-                                <option value="low">低</option>
-                            </select>
+
+                        <!-- 表格 - 任务跟踪列表 -->
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 25px;">☑</th>
+                                        <th style="width: 40px;">序号</th>
+                                        <th class="col-name">任务名称</th>
+                                        <th style="width: 60px;">状态</th>
+                                        <th style="width: 50px;">重要</th>
+                                        <th style="width: 60px;">责任人</th>
+                                        <th class="col-content">任务具体内容</th>
+                                        <th style="width: 80px;">关键模块</th>
+                                        <th class="col-time">创建时间</th>
+                                        <th style="width: 90px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><input type="checkbox"></td>
+                                        <td>1</td>
+                                        <td>产品报价咨询</td>
+                                        <td><span class="status-tag status-progress">进行中</span></td>
+                                        <td><span class="priority-tag priority-high">高</span></td>
+                                        <td>张三</td>
+                                        <td class="col-content">客户需要产品报价咨询，请尽快提供详细的价格清单...</td>
+                                        <td>产品报价</td>
+                                        <td>2026-06-22</td>
+                                        <td><span class="action-link">详情</span><span class="reminder-count">提醒(3/6)</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="checkbox"></td>
+                                        <td>2</td>
+                                        <td>技术方案确认</td>
+                                        <td><span class="status-tag status-pending">挂起</span></td>
+                                        <td><span class="priority-tag priority-medium">中</span></td>
+                                        <td>李四</td>
+                                        <td class="col-content">需要确认技术方案的细节和可行性分析...</td>
+                                        <td>技术方案</td>
+                                        <td>2026-06-21</td>
+                                        <td><span class="action-link">详情</span><span class="reminder-count">提醒(2/4)</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="checkbox"></td>
+                                        <td>3</td>
+                                        <td>需求调研</td>
+                                        <td><span class="status-tag status-replied">已答复</span></td>
+                                        <td><span class="priority-tag priority-high">高</span></td>
+                                        <td>王五</td>
+                                        <td class="col-content">客户对产品功能有详细需求调研...</td>
+                                        <td>需求调研</td>
+                                        <td>2026-06-20</td>
+                                        <td><span class="action-link">详情</span><span class="reminder-count">提醒(1/6)</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="checkbox"></td>
+                                        <td>4</td>
+                                        <td>合同条款</td>
+                                        <td><span class="status-tag status-done">完成</span></td>
+                                        <td><span class="priority-tag priority-low">低</span></td>
+                                        <td>赵六</td>
+                                        <td class="col-content">关于合同条款的详细咨询和确认...</td>
+                                        <td>合同条款</td>
+                                        <td>2026-06-19</td>
+                                        <td><span class="action-link">详情</span><span class="reminder-count">提醒(1/2)</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="padding: 4px 12px; font-size: 10px; color: #999; background: #fafafa; border-top: 1px solid #eee;">
+                            💡 提示：拖动列头分割线可调整列宽 | V2.0支持快捷键（Ctrl+T切换主题）
+                        </div>
+
+                        <div class="pagination">
+                            <button disabled>&lt;</button>
+                            <span class="pagination-info">第 1/10 页，共 125 条</span>
+                            <button>&gt;</button>
                         </div>
                     </div>
-                    <div class="detail-row">
-                        <div class="detail-label">负责人</div>
-                        <div class="detail-value">
-                            <span id="detailOwnerText">张三</span>
-                            <input type="text" class="edit-input" id="detailOwnerInput" value="张三" style="display: none;">
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">关键模块</div>
-                        <div class="detail-value">
-                            <span id="detailModuleText">产品报价</span>
-                            <input type="text" class="edit-input" id="detailModuleInput" value="产品报价" style="display: none;">
-                        </div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">创建日期</div>
-                        <div class="detail-value" id="detailCreateDate">2026-06-22</div>
-                    </div>
-                </div>
 
-                <!-- 详细内容区域 -->
-                <div class="detail-section">
-                    <h4>📝 详细内容 <span id="editIndicator1" class="editing-indicator" style="display: none;">编辑中</span></h4>
-                    <div id="detailContentText" class="detail-content">
-                        客户需要产品报价咨询，请尽快提供详细的价格清单。<br><br>
-                        客户信息：<br>
-                        - 公司名称：ABC科技有限公司<br>
-                        - 联系人：李经理<br>
-                        - 联系电话：138-0000-1234<br><br>
-                        需求描述：<br>
-                        客户希望了解SmartBox Pro产品的详细报价，包括单台价格、批量折扣方案、交货周期等信息。
-                    </div>
-                    <textarea class="edit-textarea" id="detailContentInput" style="display: none;">客户需要产品报价咨询，请尽快提供详细的价格清单。
-
-客户信息：
-- 公司名称：ABC科技有限公司
-- 联系人：李经理
-- 联系电话：138-0000-1234
-
-需求描述：
-客户希望了解SmartBox Pro产品的详细报价，包括单台价格、批量折扣方案、交货周期等信息。</textarea>
-                </div>
-
-                <!-- 答复记录区域 -->
-                <div class="detail-section">
-                    <h4>💬 答复记录 <span id="editIndicator2" class="editing-indicator" style="display: none;">编辑中</span></h4>
-                    <div class="response-records">
-                        <div class="response-item">
-                            <div class="response-item-header">
-                                <span>💬 答复于 2026-06-22 14:30</span>
-                                <span>👤 张三</span>
-                            </div>
-                            <div class="response-item-content">
-                                已将报价清单发送给客户，包含标准价格和批量折扣方案。客户表示会在2天内给出反馈。
+                    <!-- 操作日志区 -->
+                    <div class="right-bottom">
+                        <div class="log-section">
+                            <div class="section-header" style="padding: 0 0 8px 0; border-bottom: none;">
+                                <span>📝 操作日志</span>
+                                <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 10px;">📤 导出</button>
                             </div>
                         </div>
-                        <div class="response-item">
-                            <div class="response-item-header">
-                                <span>💬 答复于 2026-06-22 10:15</span>
-                                <span>👤 张三</span>
-                            </div>
-                            <div class="response-item-content">
-                                正在准备报价清单，需要包含产品配置、单价、交货周期等信息。
-                            </div>
+                        <div class="log-container">
+                            <table class="log-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>操作</th>
+                                        <th>对象</th>
+                                        <th>操作人</th>
+                                        <th>备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>17:10:00</td>
+                                        <td><span class="log-action" style="color: #9C27B0;">🎨 主题切换</span></td>
+                                        <td>系统</td>
+                                        <td>用户</td>
+                                        <td><span style="color: #9C27B0;">切换到浅色主题</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>17:00:00</td>
+                                        <td><span class="log-action" style="color: #FF9800;">💾 自动备份</span></td>
+                                        <td>数据库</td>
+                                        <td>系统</td>
+                                        <td><span style="color: #FF9800;">备份成功 (3.2MB)</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>16:30:00</td>
+                                        <td><span class="log-action">📚 学习积累</span></td>
+                                        <td>产品报价</td>
+                                        <td>张三</td>
+                                        <td><span style="color: #4CAF50;">新增学习记录</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>16:00:00</td>
+                                        <td><span class="log-action">📧 MSG导入</span></td>
+                                        <td>邮件</td>
+                                        <td>李四</td>
+                                        <td>导入3封邮件</td>
+                                    </tr>
+                                    <tr>
+                                        <td>15:30:00</td>
+                                        <td><span class="log-action">⏰ 首次提醒</span></td>
+                                        <td>全部任务</td>
+                                        <td>系统</td>
+                                        <td><span class="log-note">每天08:30首次提醒</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-success" id="saveBtn" onclick="saveTask()" style="display: none;">
-                    💾 保存
-                </button>
-                <button class="btn btn-secondary" id="cancelBtn" onclick="cancelEdit()" style="display: none;">
-                    ✖ 取消
-                </button>
-                <button class="btn btn-secondary" id="closeBtn" onclick="closeDetailModal()">
-                    关闭
-                </button>
+
+            <!-- 状态栏 - V2.0优化 -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot"></span>
+                    已就绪
+                </div>
+                <div class="status-item">
+                    📁 数据库: 已连接
+                </div>
+                <div class="status-item">
+                    📋 任务总数: 125
+                </div>
+                <div class="status-item">
+                    ⏳ 应答中: 45
+                </div>
+                <div class="status-item">
+                    ✅ 已答复: 80
+                </div>
+                <div class="status-item">
+                    🔔 已提醒: 23
+                </div>
+                <!-- V2.0新增：主题状态指示器 - 靠右显示 -->
+                <div style="flex: 1;"></div>
+                <div class="status-item">
+                    <div class="theme-indicator">
+                        <span class="theme-icon">☀️</span>
+                        <span class="theme-name">浅色主题</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 当前编辑状态
-        let isEditing = false;
-        let currentTaskId = null;
+        // 简单的交互演示
+        function switchNav(element, page) {
+            // 移除所有active类
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // 添加active类到当前项
+            element.classList.add('active');
+            console.log('切换到页面:', page);
+        }
 
-        // 原始数据备份
-        let originalData = {};
-
-        // 显示任务详情
-        function showTaskDetail(taskId) {
-            currentTaskId = taskId;
-
-            // 模拟数据
-            const taskData = {
-                1: { name: '产品报价咨询', status: 'progress', statusText: '进行中', priority: 'high', priorityText: '● 高', owner: '张三', module: '产品报价', createDate: '2026-06-22', content: '客户需要产品报价咨询，请尽快提供详细的价格清单。\n\n客户信息：\n- 公司名称：ABC科技有限公司\n- 联系人：李经理\n- 联系电话：138-0000-1234\n\n需求描述：\n客户希望了解SmartBox Pro产品的详细报价，包括单台价格、批量折扣方案、交货周期等信息。' },
-                2: { name: '技术方案确认', status: 'pending', statusText: '挂起', priority: 'medium', priorityText: '● 中', owner: '李四', module: '技术方案', createDate: '2026-06-21', content: '需要确认技术方案的细节和可行性分析。\n\n技术需求：\n- 系统集成要求\n- 性能指标\n- 安全标准' },
-                3: { name: '需求调研', status: 'done', statusText: '已完成', priority: 'low', priorityText: '● 低', owner: '王五', module: '需求调研', createDate: '2026-06-20', content: '客户对产品功能有详细需求调研，已完成需求文档。' },
-                4: { name: '合同条款确认', status: 'progress', statusText: '进行中', priority: 'high', priorityText: '● 高', owner: '赵六', module: '合同条款', createDate: '2026-06-19', content: '正在确认合同条款细节。' },
-                5: { name: '产品功能演示', status: 'done', statusText: '已完成', priority: 'medium', priorityText: '● 中', owner: '钱七', module: '产品演示', createDate: '2026-06-18', content: '已完成产品功能演示，客户反馈良好。' },
-                6: { name: '售后服务咨询', status: 'pending', statusText: '挂起', priority: 'low', priorityText: '● 低', owner: '孙八', module: '售后服务', createDate: '2026-06-17', content: '客户咨询售后服务相关问题。' }
+        function updateParseStatus(mode) {
+            const status = document.getElementById('parseStatus');
+            const modes = {
+                'text': '📄 文本模式',
+                'image': '🖼️ 图片模式',
+                'outlook': '📧 Outlook模式',
+                'wechat': '💬 企业微信模式',
+                'msg': '📧 MSG邮件模式'
             };
-
-            const task = taskData[taskId];
-            if (!task) return;
-
-            // 更新弹窗内容
-            document.getElementById('detailTaskId').textContent = '#' + taskId;
-            document.getElementById('detailNameText').textContent = task.name;
-            document.getElementById('detailNameInput').value = task.name;
-            document.getElementById('detailStatusText').innerHTML = '<span class="status-tag status-' + task.status + '">' + task.statusText + '</span>';
-            document.getElementById('detailStatusInput').value = task.status;
-            document.getElementById('detailPriorityText').innerHTML = '<span style="color: ' + (task.priority === 'high' ? '#f44336' : task.priority === 'medium' ? '#ff9800' : '#4caf50') + ';">' + task.priorityText + '</span>';
-            document.getElementById('detailPriorityInput').value = task.priority;
-            document.getElementById('detailOwnerText').textContent = task.owner;
-            document.getElementById('detailOwnerInput').value = task.owner;
-            document.getElementById('detailModuleText').textContent = task.module;
-            document.getElementById('detailModuleInput').value = task.module;
-            document.getElementById('detailCreateDate').textContent = task.createDate;
-            document.getElementById('detailContentText').innerHTML = task.content.replace(/\n/g, '<br>');
-            document.getElementById('detailContentInput').value = task.content;
-
-            // 重置为非编辑模式
-            isEditing = false;
-            updateEditUI();
-
-            // 显示弹窗
-            document.getElementById('detailModal').classList.remove('hidden');
+            status.textContent = modes[mode] || '未知模式';
+            status.className = 'parse-status';
         }
 
-        // 切换编辑模式
-        function toggleEditMode() {
-            isEditing = !isEditing;
-            updateEditUI();
+        function showParseResult() {
+            alert('解析功能演示\n\n正在解析内容...');
         }
 
-        // 更新编辑UI
-        function updateEditUI() {
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-            const closeBtn = document.getElementById('closeBtn');
-
-            // 基本信息字段
-            const nameText = document.getElementById('detailNameText');
-            const nameInput = document.getElementById('detailNameInput');
-            const statusText = document.getElementById('detailStatusText');
-            const statusInput = document.getElementById('detailStatusInput');
-            const priorityText = document.getElementById('detailPriorityText');
-            const priorityInput = document.getElementById('detailPriorityInput');
-            const ownerText = document.getElementById('detailOwnerText');
-            const ownerInput = document.getElementById('detailOwnerInput');
-            const moduleText = document.getElementById('detailModuleText');
-            const moduleInput = document.getElementById('detailModuleInput');
-
-            // 内容字段
-            const contentText = document.getElementById('detailContentText');
-            const contentInput = document.getElementById('detailContentInput');
-
-            // 编辑指示器
-            const editIndicator1 = document.getElementById('editIndicator1');
-            const editIndicator2 = document.getElementById('editIndicator2');
-
-            if (isEditing) {
-                // 进入编辑模式
-                editBtn.innerHTML = '📝 编辑中...';
-                editBtn.style.opacity = '0.7';
-                saveBtn.style.display = 'inline-flex';
-                cancelBtn.style.display = 'inline-flex';
-                closeBtn.style.display = 'none';
-
-                // 显示编辑框，隐藏文本
-                nameText.style.display = 'none';
-                nameInput.style.display = 'block';
-                statusText.style.display = 'none';
-                statusInput.style.display = 'block';
-                priorityText.style.display = 'none';
-                priorityInput.style.display = 'block';
-                ownerText.style.display = 'none';
-                ownerInput.style.display = 'block';
-                moduleText.style.display = 'none';
-                moduleInput.style.display = 'block';
-                contentText.style.display = 'none';
-                contentInput.style.display = 'block';
-
-                // 显示编辑指示器
-                editIndicator1.style.display = 'inline-block';
-                editIndicator2.style.display = 'inline-block';
-
-                // 备份原始数据
-                originalData = {
-                    name: nameInput.value,
-                    status: statusInput.value,
-                    priority: priorityInput.value,
-                    owner: ownerInput.value,
-                    module: moduleInput.value,
-                    content: contentInput.value
-                };
-
-                // 聚焦到第一个输入框
-                nameInput.focus();
-
-            } else {
-                // 退出编辑模式
-                editBtn.innerHTML = '📝 编辑';
-                editBtn.style.opacity = '1';
-                saveBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-                closeBtn.style.display = 'inline-flex';
-
-                // 隐藏编辑框，显示文本
-                nameText.style.display = 'inline';
-                nameInput.style.display = 'none';
-                statusText.style.display = 'inline';
-                statusInput.style.display = 'none';
-                priorityText.style.display = 'inline';
-                priorityInput.style.display = 'none';
-                ownerText.style.display = 'inline';
-                ownerInput.style.display = 'none';
-                moduleText.style.display = 'inline';
-                moduleInput.style.display = 'none';
-                contentText.style.display = 'block';
-                contentInput.style.display = 'none';
-
-                // 隐藏编辑指示器
-                editIndicator1.style.display = 'none';
-                editIndicator2.style.display = 'none';
-            }
+        function autoFillContact(type) {
+            console.log('自动填充联系人:', type);
         }
 
-        // 保存任务
-        function saveTask() {
-            // 获取编辑后的数据
-            const newName = document.getElementById('detailNameInput').value;
-            const newStatus = document.getElementById('detailStatusInput').value;
-            const newPriority = document.getElementById('detailPriorityInput').value;
-            const newOwner = document.getElementById('detailOwnerInput').value;
-            const newModule = document.getElementById('detailModuleInput').value;
-            const newContent = document.getElementById('detailContentInput').value;
-
-            // 更新显示
-            document.getElementById('detailNameText').textContent = newName;
-            document.getElementById('detailStatusText').innerHTML = '<span class="status-tag status-' + newStatus + '">' + getStatusText(newStatus) + '</span>';
-            document.getElementById('detailPriorityText').innerHTML = '<span style="color: ' + getPriorityColor(newPriority) + ';">● ' + getPriorityText(newPriority) + '</span>';
-            document.getElementById('detailOwnerText').textContent = newOwner;
-            document.getElementById('detailModuleText').textContent = newModule;
-            document.getElementById('detailContentText').innerHTML = newContent.replace(/\n/g, '<br>');
-
-            // 退出编辑模式
-            isEditing = false;
-            updateEditUI();
-
-            alert('✅ 任务保存成功！\n\n修改内容已更新。');
-        }
-
-        // 取消编辑
-        function cancelEdit() {
-            // 恢复原始数据
-            document.getElementById('detailNameInput').value = originalData.name;
-            document.getElementById('detailStatusInput').value = originalData.status;
-            document.getElementById('detailPriorityInput').value = originalData.priority;
-            document.getElementById('detailOwnerInput').value = originalData.owner;
-            document.getElementById('detailModuleInput').value = originalData.module;
-            document.getElementById('detailContentInput').value = originalData.content;
-
-            // 退出编辑模式
-            isEditing = false;
-            updateEditUI();
-        }
-
-        // 关闭详情弹窗
-        function closeDetailModal() {
-            if (isEditing) {
-                if (!confirm('您有未保存的修改，确定要关闭吗？')) {
-                    return;
-                }
-            }
-            document.getElementById('detailModal').classList.add('hidden');
-        }
-
-        // 辅助函数
-        function getStatusText(status) {
-            const statusMap = { 'progress': '进行中', 'pending': '挂起', 'done': '已完成' };
-            return statusMap[status] || status;
-        }
-
-        function getPriorityText(priority) {
-            const priorityMap = { 'high': '高', 'medium': '中', 'low': '低' };
-            return priorityMap[priority] || priority;
-        }
-
-        function getPriorityColor(priority) {
-            const colorMap = { 'high': '#f44336', 'medium': '#ff9800', 'low': '#4caf50' };
-            return colorMap[priority] || '#666';
-        }
+        // V2.0新增：版本信息
+        console.log('市场咨询任务跟踪工具 V2.0 - 界面原型演示');
+        console.log('更新时间: 2026-06-23');
     </script>
 </body>
 </html>
