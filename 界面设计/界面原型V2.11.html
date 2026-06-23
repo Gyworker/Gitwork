@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场咨询任务跟踪工具 V2.11 - 功能交互原型</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "宋体", sans-serif; background: #e3e3e3; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: #1E88E5; font-size: 24px; margin-bottom: 10px; }
+        .header p { color: #666; font-size: 14px; }
+        .v2-badge { display: inline-block; background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); color: white; padding: 2px 10px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: bold; }
+        .main-window { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .title-bar { background: linear-gradient(to bottom, #1E88E5, #1565C0); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .title-bar h2 { font-size: 16px; font-weight: normal; }
+        .window-controls { display: flex; gap: 8px; }
+        .window-btn { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+        .btn-minimize { background: #FFC107; }
+        .btn-maximize { background: #4CAF50; }
+        .btn-close { background: #F44336; }
+        .menu-bar { background: #f5f5f5; padding: 5px 15px; border-bottom: 1px solid #e0e0e0; display: flex; gap: 20px; }
+        .menu-item { color: #333; font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 3px; }
+        .menu-item:hover { background: #e0e0e0; }
+        .toolbar { background: #fafafa; padding: 10px 15px; border-bottom: 1px solid #e0e0e0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .toolbar-group { display: flex; gap: 8px; align-items: center; padding: 0 8px; border-right: 1px solid #e0e0e0; }
+        .toolbar-group:last-child { border-right: none; }
+        .toolbar-btn { padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+        .toolbar-btn:hover { background: #e0e0e0; transform: translateY(-1px); }
+        .toolbar-btn.primary { background: #1E88E5; color: white; border-color: #1E88E5; }
+        .toolbar-btn.primary:hover { background: #1565C0; }
+        .toolbar-btn.blue { background: #1565C0; color: white; border-color: #1565C0; }
+        .toolbar-btn.blue:hover { background: #0D47A1; }
+        .toolbar-btn.orange { background: #FF9800; color: white; border-color: #FF9800; }
+        .toolbar-btn.orange:hover { background: #F57C00; }
+        .toolbar-btn.purple { background: #9C27B0; color: white; border-color: #9C27B0; }
+        .toolbar-btn.purple:hover { background: #7B1FA2; }
+        .toolbar-btn.green { background: #4CAF50; color: white; border-color: #4CAF50; }
+        .toolbar-btn.green:hover { background: #388E3C; }
+        .main-content { display: flex; height: 650px; }
+        .left-panel { width: 35%; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; }
+        .panel-section { overflow-y: auto; }
+        .panel-section:first-child { flex: 0 0 180px; padding: 0; border-bottom: 1px solid #e0e0e0; display: flex; flex-direction: column; }
+        .panel-section:last-child { flex: 1; padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+        .content-import-wrapper, .task-info-wrapper { display: flex; flex-direction: column; height: 100%; }
+        .section-header { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 12px; padding: 12px 12px 8px 12px; border-bottom: 2px solid #1E88E5; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: #fff; }
+        .section-header .help { font-size: 12px; color: #999; cursor: pointer; }
+        .task-info-content { flex: 1; overflow-y: auto; padding: 0 12px 12px 12px; }
+        .content-import-body { flex: 1; overflow-y: auto; padding: 0 12px 12px 12px; }
+        .form-group { margin-bottom: 10px; }
+        .form-label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .form-label.required::after { content: " *"; color: #F44336; }
+        .form-label.editable::before { content: "📝 "; }
+        .form-input, .form-select { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: "宋体", serif; }
+        .form-input.direct-edit { background: #FAFFFE; }
+        .form-textarea { width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: "宋体", serif; min-height: 80px; resize: vertical; }
+        .form-textarea.large { min-height: 100px; }
+        .char-count { font-size: 10px; color: #999; text-align: right; margin-top: 2px; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #1E88E5; box-shadow: 0 0 0 2px rgba(30,136,229,0.1); }
+        .contact-input-group { display: flex; gap: 8px; align-items: center; }
+        .contact-type-select { width: 50px; padding: 6px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; text-align: center; }
+        .contact-input { flex: 1; }
+        .form-label-with-hint { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .form-label-with-hint .form-label { margin-bottom: 0; }
+        .inline-hint { font-size: 10px; color: #999; }
+        .radio-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .radio-item { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; }
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .btn { padding: 6px 16px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-primary { background: #1E88E5; color: white; border-color: #1E88E5; }
+        .btn-primary:hover { background: #1565C0; }
+        .btn-secondary { background: #f5f5f5; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-success { background: #4CAF50; color: white; border-color: #4CAF50; }
+        .btn-success:hover { background: #388E3C; }
+        .btn-smart { background: #9C27B0; color: white; border: none; border-radius: 3px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
+        .btn-smart:hover { background: #7B1FA2; }
+        .direct-edit-hint { font-size: 10px; color: #4CAF50; }
+        .right-panel { width: 65%; display: flex; flex-direction: column; }
+        .right-top { flex: 1; display: flex; flex-direction: column; border-bottom: 1px solid #e0e0e0; overflow: hidden; }
+        .track-buttons { padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e0e0e0; }
+        .track-btn { padding: 6px 12px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .track-btn:hover { background: #1E88E5; color: white; border-color: #1E88E5; }
+        .track-btn.active { background: #1E88E5; color: white; border-color: #1E88E5; }
+        .filter-bar { padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: #fafafa; border-bottom: 1px solid #e0e0e0; }
+        .filter-select { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; min-width: 90px; }
+        .filter-label { font-size: 11px; color: #666; }
+        .date-filter-group { display: flex; align-items: center; gap: 4px; }
+        
+        /* 可调整列宽的表格样式 */
+        .table-container { flex: 1; overflow: auto; padding: 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: "宋体", serif; table-layout: fixed; }
+        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #eee; border-right: 1px solid #f0f0f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        th { background: #f5f5f5; font-weight: normal; color: #666; position: relative; cursor: col-resize; user-select: none; }
+        th:hover { background: #e8e8e8; }
+        /* 列宽调整分割线 */
+        .resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent; }
+        .resize-handle:hover, .resize-handle.active { background: #1E88E5; opacity: 0.5; }
+        th.resizing { background: #E3F2FD; }
+        
+        .col-checkbox { width: 30px; }
+        .col-index { width: 40px; }
+        .col-name { width: 100px; min-width: 80px; }
+        .col-status { width: 60px; }
+        .col-priority { width: 50px; }
+        .col-owner { width: 60px; }
+        .col-content { width: 150px; min-width: 100px; }
+        .col-module { width: 80px; min-width: 60px; }
+        .col-time { width: 80px; min-width: 70px; }
+        .col-action { width: 90px; }
+        
+        .status-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+        .status-progress { background: #E3F2FD; color: #1565C0; }
+        .status-pending { background: #FFF3E0; color: #E65100; }
+        .status-replied { background: #E8F5E9; color: #2E7D32; }
+        .status-done { background: #E0E0E0; color: #616161; }
+        .priority-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+        .priority-high { background: #FFEBEE; color: #C62828; }
+        .priority-medium { background: #FFF3E0; color: #E65100; }
+        .priority-low { background: #E8F5E9; color: #2E7D32; }
+        .action-link { color: #1E88E5; cursor: pointer; margin-right: 8px; }
+        .action-link:hover { text-decoration: underline; }
+        .reminder-count { color: #9C27B0; cursor: pointer; font-size: 10px; }
+        .reminder-count:hover { text-decoration: underline; }
+        .pagination { padding: 8px 12px; display: flex; justify-content: center; align-items: center; gap: 10px; background: #fafafa; border-top: 1px solid #eee; flex-shrink: 0; }
+        .pagination button { padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .pagination button:hover { background: #f5f5f5; }
+        .pagination button:disabled { color: #ccc; cursor: not-allowed; }
+        .pagination-info { font-size: 11px; color: #666; }
+        .right-bottom { height: 200px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .log-section { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; flex-shrink: 0; }
+        .log-container { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
+        .log-table { font-size: 11px; }
+        .log-table th, .log-table td { padding: 5px 6px; }
+        .log-action { color: #1E88E5; }
+        .status-bar { background: #f5f5f5; padding: 6px 15px; display: flex; gap: 15px; font-size: 11px; color: #666; border-top: 1px solid #e0e0e0; }
+        .status-left { display: flex; gap: 20px; }
+        .status-right { display: flex; gap: 20px; margin-left: auto; }
+        .feature-notice { background: #E3F2FD; border: 1px solid #1E88E5; border-radius: 4px; padding: 12px; margin-top: 20px; font-size: 11px; color: #1565C0; }
+        .feature-notice ul { margin: 8px 0 0 20px; }
+        .feature-notice li { margin-bottom: 4px; }
+        
+        /* 模态框样式 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-header { background: linear-gradient(to bottom, #1E88E5, #1565C0); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 14px; font-weight: normal; }
+        .modal-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; line-height: 1; }
+        .modal-close:hover { opacity: 0.8; }
+        .modal-body { padding: 16px; max-height: 60vh; overflow-y: auto; }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid #eee; display: flex; gap: 8px; justify-content: flex-end; }
+        
+        /* 详情弹窗 */
+        .detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .detail-label { width: 100px; color: #666; font-size: 12px; flex-shrink: 0; }
+        .detail-value { flex: 1; font-size: 12px; color: #333; }
+        
+        /* Toast提示 */
+        .toast { position: fixed; top: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 4px; font-size: 13px; z-index: 2000; opacity: 0; transform: translateY(-20px); transition: all 0.3s; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background: #4CAF50; }
+        .toast.error { background: #F44336; }
+        .toast.info { background: #1E88E5; }
+        .toast.warning { background: #FF9800; }
+        
+        /* Tab样式 */
+        .tab-bar { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 12px; }
+        .tab-item { padding: 8px 16px; cursor: pointer; font-size: 12px; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab-item:hover { color: #1E88E5; }
+        .tab-item.active { color: #1E88E5; border-bottom-color: #1E88E5; font-weight: bold; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 推荐项样式 */
+        .recommend-item { padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .recommend-item:hover { background: #f5f5f5; border-color: #1E88E5; }
+        .recommend-item .name { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 4px; }
+        .recommend-item .dept { font-size: 11px; color: #666; margin-bottom: 4px; }
+        .recommend-item .contact { font-size: 11px; color: #999; }
+        
+        /* 通讯录表格 */
+        .contact-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .contact-table th, .contact-table td { padding: 8px; border: 1px solid #eee; text-align: left; }
+        .contact-table th { background: #f5f5f5; color: #666; }
+        
+        /* 开关样式 */
+        .toggle-switch { width: 40px; height: 20px; background: #ccc; border-radius: 10px; cursor: pointer; position: relative; transition: background 0.2s; }
+        .toggle-switch::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.2s; }
+        .toggle-switch.active { background: #4CAF50; }
+        .toggle-switch.active::after { left: 22px; }
+        
+        /* 设置组 */
+        .settings-group { margin-bottom: 16px; }
+        .settings-group h4 { font-size: 12px; color: #1E88E5; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+        .setting-label { font-size: 12px; color: #333; }
+        
+        /* 图片导入区域 */
+        .image-import-zone { border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin: 12px 0; background: #fafafa; }
+        .image-import-zone:hover { border-color: #1E88E5; background: #f5f5f5; }
+        .image-import-zone .icon { font-size: 48px; margin-bottom: 10px; }
+        .image-import-zone .text { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .image-import-zone .hint { font-size: 11px; color: #999; }
+        .image-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .image-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+        
+        /* MSG导入区域 */
+        .msg-import-zone { border: 2px dashed #ddd; border-radius: 8px; padding: 30px; text-align: center; margin: 12px 0; background: #fafafa; }
+        .msg-import-zone:hover { border-color: #FF9800; background: #FFF8E1; }
+        .msg-import-zone .icon { font-size: 48px; margin-bottom: 10px; }
+        .msg-import-zone .text { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .msg-import-zone .hint { font-size: 11px; color: #999; }
+        
+        /* 导入进度 */
+        .import-progress { margin: 12px 0; }
+        .progress-bar { height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #1E88E5, #4CAF50); width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; }
+        
+        /* 文件选择按钮 */
+        .file-input-wrapper { position: relative; display: inline-block; }
+        .file-input-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        
+        /* 导入选项卡片 */
+        .import-option-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+        .import-option-card:hover { border-color: #1E88E5; background: #f5f5f5; }
+        .import-option-card.selected { border-color: #1E88E5; background: #E3F2FD; }
+        .import-option-card .card-title { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 4px; }
+        .import-option-card .card-desc { font-size: 11px; color: #666; }
+        
+        /* 通讯录冲突提示 */
+        .conflict-notice { background: #FFF3E0; border: 1px solid #FF9800; border-radius: 4px; padding: 12px; margin: 12px 0; font-size: 12px; }
+        .conflict-notice .title { color: #E65100; font-weight: bold; margin-bottom: 8px; }
+        .conflict-item { display: flex; justify-content: space-between; padding: 4px 0; }
+        .conflict-item .old { color: #999; text-decoration: line-through; }
+        .conflict-item .new { color: #4CAF50; }
+        
+        /* 分页信息 */
+        .page-info { display: flex; align-items: center; gap: 12px; }
+        .page-jump { display: flex; align-items: center; gap: 4px; }
+        .page-jump input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 11px; }
+        
+        /* 导出字段预览 */
+        .export-fields { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .export-field-tag { background: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 12px; font-size: 11px; }
+        
+        /* 选中任务高亮 */
+        .task-row.selected { background: #FFF8E1 !important; }
+        .task-row:hover { background: #f9f9f9; cursor: pointer; }
+        
+        /* V2.10新增：内容预览区样式 */
+        .content-preview-box { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px; min-height: 60px; }
+        .content-preview-box .preview-title { font-size: 11px; color: #666; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .content-preview-box .preview-content { font-size: 12px; color: #333; line-height: 1.5; white-space: pre-wrap; max-height: 100px; overflow-y: auto; }
+        .content-preview-box .preview-empty { font-size: 12px; color: #999; font-style: italic; }
+        .content-preview-box.has-content { border-color: #4CAF50; background: #f0fff0; }
+        
+        /* V2.10新增：企业微信样式 */
+        .wechat-input-zone { border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 8px; background: #f0fff0; }
+        
+        /* V2.10新增：Outlook样式 */
+        .outlook-input-zone { border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 8px; background: #fff0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>市场咨询任务跟踪工具 V2.11 <span class="v2-badge">ENHANCED</span></h1>
+            <p>基于PyQt5的Windows桌面应用 - V2.11增强版（图片/MSG文档导入、企业微信/Outlook输入、全模式预览区）</p>
+        </div>
+
+        <div class="main-window">
+            <!-- 标题栏 -->
+            <div class="title-bar">
+                <h2>📋 市场咨询任务跟踪工具</h2>
+                <div class="window-controls">
+                    <div class="window-btn btn-minimize"></div>
+                    <div class="window-btn btn-maximize"></div>
+                    <div class="window-btn btn-close"></div>
+                </div>
+            </div>
+
+            <!-- 菜单栏 -->
+            <div class="menu-bar">
+                <div class="menu-item">📁 文件</div>
+                <div class="menu-item">✏️ 编辑</div>
+                <div class="menu-item">👁️ 视图</div>
+                <div class="menu-item">📋 任务</div>
+                <div class="menu-item">❓ 帮助</div>
+            </div>
+
+            <!-- V2.8工具栏 -->
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" onclick="newTask()">📋 新建</button>
+                    <button class="toolbar-btn" onclick="saveTask()">💾 保存</button>
+                    <button class="toolbar-btn" onclick="deleteTask()">🗑️ 删除</button>
+                    <button class="toolbar-btn" onclick="openExportModal()">📤 导出任务</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" onclick="openModal('importContactModal')">📥 导入通讯录</button>
+                    <button class="toolbar-btn" onclick="openModal('contactModal')">👥 通讯录</button>
+                    <button class="toolbar-btn primary" onclick="openModal('recommendModal')">🔮 推荐库</button>
+                    <button class="toolbar-btn primary" onclick="openModal('importRecommendModal')">📥 导入推荐库</button>
+                    <button class="toolbar-btn primary" onclick="openModal('reminderModal')">⏰ 周期</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn blue" onclick="openSmartLearning()">🧠 智能学习&应答</button>
+                    <button class="toolbar-btn orange" onclick="openModal('backupModal')">💾 自动备份</button>
+                    <button class="toolbar-btn purple" onclick="toggleTheme()">🎨 主题</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" onclick="openModal('settingsModal')">⚙️ 设置</button>
+                    <button class="toolbar-btn" onclick="openModal('helpModal')">❓ 帮助</button>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="main-content">
+                <!-- 左侧区域 -->
+                <div class="left-panel">
+                    <!-- 内容导入区 -->
+                    <div class="panel-section">
+                        <div class="content-import-wrapper">
+                            <div class="section-header">
+                                <span>📥 内容导入</span>
+                                <span class="help" onclick="showHelp('import')">?</span>
+                            </div>
+                            <div class="content-import-body">
+                                <div class="form-label">导入方式</div>
+                                <div class="radio-group">
+                                    <label class="radio-item"><input type="radio" name="import-type" value="text" checked onchange="updateImportMode('text')"> 文本</label>
+                                    <label class="radio-item"><input type="radio" name="import-type" value="image" onchange="updateImportMode('image')"> 图片</label>
+                                    <label class="radio-item"><input type="radio" name="import-type" value="wechat" onchange="updateImportMode('wechat')"> 企业微信</label>
+                                    <label class="radio-item"><input type="radio" name="import-type" value="msg" onchange="updateImportMode('msg')"> MSG</label>
+                                    <label class="radio-item"><input type="radio" name="import-type" value="outlook" onchange="updateImportMode('outlook')"> Outlook</label>
+                                </div>
+                                <!-- 文本输入区 -->
+                                <div class="form-group" id="textInputGroup">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">输入内容</label>
+                                        <span class="inline-hint" id="importHint">📌 当前模式：文本输入</span>
+                                    </div>
+                                    <textarea class="form-textarea" id="inputContent" placeholder="请输入或粘贴内容..." oninput="updateCharCount()">客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。</textarea>
+                                </div>
+                                <!-- 图片导入区（V2.11：增加文档导入区） -->
+                                <div class="form-group" id="imageInputGroup" style="display: none;">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">📷 图片导入</label>
+                                        <span class="inline-hint">上传图片进行OCR识别</span>
+                                    </div>
+                                    <div class="image-import-zone" onclick="document.getElementById('imageFileInput').click()">
+                                        <div class="icon">🖼️</div>
+                                        <div class="text">点击选择图片或拖拽图片到此处</div>
+                                        <div class="hint">支持 JPG、PNG、BMP 格式</div>
+                                        <input type="file" id="imageFileInput" accept="image/*" style="display: none;" onchange="handleImageSelect(this)">
+                                    </div>
+                                    <div class="image-preview" id="imagePreview"></div>
+                                    <!-- V2.11新增：文档导入区 -->
+                                    <div class="form-label-with-hint" style="margin-top: 10px;">
+                                        <label class="form-label">📄 文档导入</label>
+                                        <span class="inline-hint">或上传文档直接导入内容</span>
+                                    </div>
+                                    <div class="image-import-zone" style="background: #fff3e0; border-color: #FF9800;" onclick="document.getElementById('imageDocInput').click()">
+                                        <div class="icon">📄</div>
+                                        <div class="text">点击选择文档或拖拽文档到此处</div>
+                                        <div class="hint">支持 TXT、Word、PDF 格式</div>
+                                        <input type="file" id="imageDocInput" accept=".txt,.doc,.docx,.pdf" style="display: none;" onchange="handleImageDocSelect(this)">
+                                    </div>
+                                </div>
+                                <!-- MSG导入区（V2.11：增加文档导入区） -->
+                                <div class="form-group" id="msgInputGroup" style="display: none;">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">📧 MSG邮件导入</label>
+                                        <span class="inline-hint">上传MSG邮件文件</span>
+                                    </div>
+                                    <div class="msg-import-zone" onclick="document.getElementById('msgFileInput').click()">
+                                        <div class="icon">📧</div>
+                                        <div class="text">点击选择MSG文件或拖拽文件到此处</div>
+                                        <div class="hint">支持 .msg 格式文件</div>
+                                        <input type="file" id="msgFileInput" accept=".msg" style="display: none;" onchange="handleMsgSelect(this)">
+                                    </div>
+                                    <div id="msgFileList"></div>
+                                    <!-- V2.11新增：文档导入区 -->
+                                    <div class="form-label-with-hint" style="margin-top: 10px;">
+                                        <label class="form-label">📄 文档导入</label>
+                                        <span class="inline-hint">或上传文档直接导入内容</span>
+                                    </div>
+                                    <div class="msg-import-zone" style="background: #fff3e0; border-color: #FF9800;" onclick="document.getElementById('msgDocInput').click()">
+                                        <div class="icon">📄</div>
+                                        <div class="text">点击选择文档或拖拽文档到此处</div>
+                                        <div class="hint">支持 TXT、Word、PDF 格式</div>
+                                        <input type="file" id="msgDocInput" accept=".txt,.doc,.docx,.pdf" style="display: none;" onchange="handleMsgDocSelect(this)">
+                                    </div>
+                                </div>
+                                
+                                <!-- V2.11：企业微信输入区 -->
+                                <div class="form-group" id="wechatInputGroup" style="display: none;">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">🔗 Webhook URL</label>
+                                        <span class="inline-hint">企业微信机器人Webhook地址</span>
+                                    </div>
+                                    <input type="text" class="form-input" id="wechatWebhookUrl" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">
+                                    <div class="form-label-with-hint" style="margin-top: 8px;">
+                                        <label class="form-label">💬 消息内容</label>
+                                        <span class="inline-hint">输入要发送的消息内容</span>
+                                    </div>
+                                    <textarea class="form-textarea" id="wechatMessageContent" placeholder="输入要发送的消息内容..."></textarea>
+                                </div>
+                                
+                                <!-- V2.11：Outlook输入区 -->
+                                <div class="form-group" id="outlookInputGroup" style="display: none;">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">📧 Outlook账户</label>
+                                        <span class="inline-hint">选择要读取的邮箱账户</span>
+                                    </div>
+                                    <select class="form-select" id="outlookAccount">
+                                        <option value="">-- 请选择账户 --</option>
+                                        <option value="zhangsan@company.com">zhangsan@company.com</option>
+                                        <option value="lisi@company.com">lisi@company.com</option>
+                                    </select>
+                                    <div class="form-label-with-hint" style="margin-top: 8px;">
+                                        <label class="form-label">🔍 邮件筛选</label>
+                                        <span class="inline-hint">发件人或主题关键词</span>
+                                    </div>
+                                    <input type="text" class="form-input" id="outlookFilter" placeholder="输入发件人或主题关键词">
+                                </div>
+                                
+                                <!-- V2.10新增：统一内容预览区 -->
+                                <div class="content-preview-box" id="contentPreviewBox">
+                                    <div class="preview-title">📋 解析预览</div>
+                                    <div class="preview-content" id="previewContent">
+                                        <span class="preview-empty">点击"解析"按钮后，解析结果将显示在这里</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="parseContent()">🔍 解析</button>
+                                    <button class="btn btn-secondary" onclick="clearContent()">🗑️ 清除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务信息区（V2.8：关键模块移到答复人姓名之前） -->
+                    <div class="panel-section">
+                        <div class="task-info-wrapper">
+                            <div class="section-header">
+                                <span>📋 任务信息</span>
+                                <span class="help" onclick="showHelp('task')">?</span>
+                            </div>
+                            <div class="task-info-content">
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">任务创建时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" id="taskCreateTime" value="2026-06-23T14:30:25">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">预期答复时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" id="taskExpectTime" value="2026-06-24T15:00">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">任务名称</label>
+                                    </div>
+                                    <input type="text" class="form-input" id="taskName" value="产品报价咨询" style="width: 80%;">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">重要程度</label>
+                                    </div>
+                                    <select class="form-select" id="taskPriority">
+                                        <option value="high" selected>高</option>
+                                        <option value="medium">中</option>
+                                        <option value="low">低</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">任务具体内容</label>
+                                    </div>
+                                    <textarea class="form-textarea large" id="taskContent" maxlength="3000" placeholder="请详细描述任务的具体内容...">客户需要产品报价咨询，请尽快提供详细的价格清单，包括：
+1. 标准产品价格
+2. 批量采购折扣
+3. 交货周期
+4. 售后服务条款
+5. 技术支持方案</textarea>
+                                    <div class="char-count">已输入: <span id="charCount">120</span> / 3000 字符</div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">产品型号和板卡</label>
+                                    </div>
+                                    <input type="text" class="form-input" id="taskProduct" placeholder="输入产品型号，自动推荐常用配置">
+                                </div>
+                                <!-- V2.8变更：关键模块移到答复人姓名之前 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">关键模块</label>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" id="taskModule" placeholder="请输入关键模块，多个模块用逗号分隔">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">咨询者姓名</label>
+                                    </div>
+                                    <input type="text" class="form-input" id="inquirerName" value="李明" onchange="autoFillInquirer()">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">咨询者联系方式</label>
+                                        <span class="inline-hint" id="inquirerSource">📌 请输入或从通讯录选择</span>
+                                    </div>
+                                    <div class="contact-input-group">
+                                        <select class="contact-type-select" id="inquirerContactType">
+                                            <option value="phone" selected>📱</option>
+                                            <option value="email">✉️</option>
+                                        </select>
+                                        <input type="text" class="form-input contact-input" id="inquirerContact" placeholder="13800138000">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">咨询者部门</label>
+                                        <span class="direct-edit-hint">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" id="inquirerDept" placeholder="请输入咨询者部门">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">答复人姓名</label>
+                                        <button class="btn-smart" onclick="smartRecommendReplier()">🔮 智能推荐</button>
+                                    </div>
+                                    <input type="text" class="form-input" id="replierName" placeholder="点击智能推荐或手动输入">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">答复人联系方式</label>
+                                        <span class="inline-hint" id="replierSource">📌 推荐来源：推荐库</span>
+                                    </div>
+                                    <div class="contact-input-group">
+                                        <select class="contact-type-select" id="replierContactType">
+                                            <option value="phone" selected>📱</option>
+                                            <option value="email">✉️</option>
+                                        </select>
+                                        <input type="text" class="form-input contact-input" id="replierContact" placeholder="手机或邮箱">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">答复人部门</label>
+                                        <span class="direct-edit-hint">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" id="replierDept" placeholder="请输入答复人部门">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">所属行业</label>
+                                        <span class="direct-edit-hint">📝 直接编辑</span>
+                                    </div>
+                                    <input type="text" class="form-input direct-edit" id="taskIndustry" placeholder="请输入所属行业">
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">备注信息</label>
+                                    </div>
+                                    <textarea class="form-textarea" id="taskNote" placeholder="请输入备注信息..." style="min-height: 50px;"></textarea>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="generateTask()">✅ 生成任务</button>
+                                    <button class="btn btn-secondary" onclick="clearTaskForm()">❌ 取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧区域 -->
+                <div class="right-panel">
+                    <!-- 任务跟踪区（V2.8：可调整列宽） -->
+                    <div class="right-top">
+                        <div class="section-header" style="padding: 10px 12px;">
+                            <span>📊 任务跟踪</span>
+                            <input type="text" id="globalSearch" placeholder="🔍 全局搜索..." style="width: 160px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px;" oninput="searchTasks()">
+                        </div>
+                        <div class="track-buttons">
+                            <button class="track-btn active" onclick="switchView(this, 'pending')">查看应答中</button>
+                            <button class="track-btn" onclick="switchView(this, 'replied')">查看已答复</button>
+                            <button class="track-btn" onclick="switchView(this, 'all')">全部数据</button>
+                            <button class="track-btn" onclick="exportByStatus('pending')">📤 导出应答中</button>
+                            <button class="track-btn" onclick="exportByStatus('replied')">📤 导出已答复</button>
+                        </div>
+                        <div class="filter-bar">
+                            <span class="filter-label">筛选:</span>
+                            <select class="filter-select" id="filterStatus" onchange="filterTasks()">
+                                <option value="all">状态: 全部</option>
+                                <option value="pending">进行中</option>
+                                <option value="suspended">挂起</option>
+                                <option value="replied">已答复</option>
+                                <option value="done">完成</option>
+                            </select>
+                            <select class="filter-select" id="filterPriority" onchange="filterTasks()">
+                                <option value="all">重要: 全部</option>
+                                <option value="high">高</option>
+                                <option value="medium">中</option>
+                                <option value="low">低</option>
+                            </select>
+                            <select class="filter-select" id="filterDept" onchange="filterTasks()">
+                                <option value="all">部门: 全部</option>
+                                <option>采购部</option>
+                                <option>销售部</option>
+                                <option>技术部</option>
+                            </select>
+                            <select class="filter-select" id="filterModule" onchange="filterTasks()">
+                                <option value="all">关键模块: 全部</option>
+                                <option>产品报价</option>
+                                <option>技术方案</option>
+                                <option>需求调研</option>
+                                <option>MAC认证</option>
+                                <option>802.1x认证</option>
+                            </select>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" onclick="resetFilters()">🔄 重置</button>
+                            <span class="filter-label" style="margin-left: 10px;">创建时间:</span>
+                            <div class="date-filter-group">
+                                <select class="filter-select" id="filterYear" onchange="filterTasks()">
+                                    <option value="all">全部年</option>
+                                    <option>2026年</option>
+                                    <option>2025年</option>
+                                    <option>2024年</option>
+                                </select>
+                                <select class="filter-select" id="filterMonth" onchange="filterTasks()">
+                                    <option value="all">全部月</option>
+                                    <option>1月</option>
+                                    <option>2月</option>
+                                    <option>3月</option>
+                                    <option>4月</option>
+                                    <option>5月</option>
+                                    <option>6月</option>
+                                </select>
+                            </div>
+                            <span class="filter-label" style="margin-left: 10px;">排序:</span>
+                            <select class="filter-select" id="sortOrder" onchange="filterTasks()">
+                                <option value="desc">创建时间降序</option>
+                                <option value="asc">创建时间升序</option>
+                                <option value="priority">重要程度</option>
+                            </select>
+                        </div>
+                        <div class="table-container">
+                            <table id="taskTable">
+                                <thead>
+                                    <tr>
+                                        <th class="col-checkbox"><input type="checkbox" onchange="toggleSelectAll(this)"></th>
+                                        <th class="col-index">序号</th>
+                                        <th class="col-name">任务名称</th>
+                                        <th class="col-status">状态</th>
+                                        <th class="col-priority">重要</th>
+                                        <th class="col-owner">责任人</th>
+                                        <th class="col-content">任务具体内容</th>
+                                        <th class="col-module">关键模块</th>
+                                        <th class="col-time">创建时间</th>
+                                        <th class="col-action">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="taskTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <button onclick="prevPage()">◀</button>
+                            <div class="page-info">
+                                <span class="pagination-info" id="paginationInfo">第 1/3 页，共 25 条</span>
+                                <div class="page-jump">
+                                    <input type="number" id="pageJumpInput" min="1" value="1" onkeypress="if(event.key==='Enter')jumpToPage()">
+                                    <button onclick="jumpToPage()" style="padding: 2px 6px;">跳转</button>
+                                </div>
+                            </div>
+                            <button onclick="nextPage()">▶</button>
+                        </div>
+                    </div>
+
+                    <!-- 操作日志区（V2.8：超过10KB自动保存） -->
+                    <div class="right-bottom">
+                        <div class="log-section">
+                            <div class="section-header" style="padding: 0 0 8px 0; border-bottom: none;">
+                                <span>📝 操作日志</span>
+                                <span id="logSizeIndicator" style="font-size: 10px; color: #999; margin-right: 8px;"></span>
+                                <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 10px;" onclick="exportLogs()">📤 导出</button>
+                            </div>
+                        </div>
+                        <div class="log-container">
+                            <table class="log-table">
+                                <thead>
+                                    <tr>
+                                        <th>时间</th>
+                                        <th>操作</th>
+                                        <th>对象</th>
+                                        <th>操作人</th>
+                                        <th>备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span>📁 数据库: 已连接</span>
+                    <span>📋 任务总数: <span id="totalTasks">25</span></span>
+                    <span>⏳ 应答中: <span id="pendingTasks">12</span></span>
+                    <span>✅ 已答复: <span id="repliedTasks">13</span></span>
+                </div>
+                <div class="status-right">
+                    <span id="themeStatus">☀️ 浅色主题</span>
+                    <span>📅 <span id="currentTime"></span></span>
+                    <span>v2.11</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div class="feature-notice">
+            <strong>📢 V2.11 增强版说明</strong>
+            <ul>
+                <li><strong>图片导入增强</strong> - 图片/文档双导入区，支持OCR识别和文档直接导入</li>
+                <li><strong>MSG导入增强</strong> - MSG/文档双导入区，支持邮件解析和文档直接导入</li>
+                <li><strong>企业微信输入</strong> - Webhook URL和消息内容输入区</li>
+                <li><strong>Outlook输入</strong> - 账户选择和邮件筛选输入区</li>
+                <li><strong>统一内容预览区</strong> - 所有导入模式统一使用预览区显示解析结果</li>
+            </ul>
+            <strong>📢 V2.8 原功能保留</strong>
+            <ul>
+                <li>任务信息优化 - "关键模块"移到"答复人姓名"之前</li>
+                <li>任务导出增强 - 支持自定义导出字段，包含处理时间计算</li>
+                <li>导入通讯录增强 - 增加图片识别(OCR)导入方式</li>
+                <li>通讯录重名处理 - 姓名相同时按工号区分</li>
+                <li>推荐库多映射 - 支持同一姓名对应多个关键模块</li>
+                <li>列宽可调整 - 任务跟踪表格支持拖动列头分割线调整列宽</li>
+                <li>智能学习翻页 - 支持选中任务后翻页查看更多相似任务</li>
+                <li>日志自动保存 - 日志内容超过10KB时自动保存为文件</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 模态框容器 -->
+    
+    <!-- 通讯录管理 -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal" style="max-width: 750px;">
+            <div class="modal-header">
+                <h3>👥 通讯录管理</h3>
+                <button class="modal-close" onclick="closeModal('contactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+                    <input type="text" class="form-input" placeholder="搜索通讯录..." style="flex: 1;" id="contactSearch" oninput="searchContacts()">
+                    <button class="btn btn-primary" onclick="openModal('addContactModal')">➕ 添加</button>
+                </div>
+                <table class="contact-table">
+                    <thead>
+                        <tr><th>姓名</th><th>工号</th><th>部门</th><th>电话</th><th>邮箱</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="contactTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('contactModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加通讯录 -->
+    <div class="modal-overlay" id="addContactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>➕ 添加联系人</h3>
+                <button class="modal-close" onclick="closeModal('addContactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label required">姓名</label>
+                    <input type="text" class="form-input" id="addContactName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">工号</label>
+                    <input type="text" class="form-input" id="addContactCode" placeholder="请输入工号（用于区分重名）">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">部门</label>
+                    <input type="text" class="form-input" id="addContactDept" placeholder="请输入部门">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">电话</label>
+                    <input type="text" class="form-input" id="addContactPhone" placeholder="请输入电话号码">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" class="form-input" id="addContactEmail" placeholder="请输入邮箱">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="addContact()">✅ 添加</button>
+                <button class="btn btn-secondary" onclick="closeModal('addContactModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推荐库 -->
+    <div class="modal-overlay" id="recommendModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🔮 推荐库</h3>
+                <button class="modal-close" onclick="closeModal('recommendModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px;">
+                    <input type="text" class="form-input" placeholder="输入关键模块搜索推荐人..." id="recommendSearch" oninput="searchRecommend()">
+                </div>
+                <div id="recommendList">
+                    <div class="recommend-item" onclick="selectRecommend('王五', 'EMP001', '市场部', '13800138003')">
+                        <div class="name">王五 <span style="font-size: 10px; color: #999;">工号: EMP001</span></div>
+                        <div class="dept">市场部 - 产品报价负责人</div>
+                        <div class="contact">📱 13800138003 | ✉️ wangwu@company.com</div>
+                        <div style="margin-top: 4px; font-size: 10px; color: #9C27B0;">🔑 关键模块: 产品报价, 报价单</div>
+                    </div>
+                    <div class="recommend-item" onclick="selectRecommend('赵六', 'EMP002', '销售部', '13900139004')">
+                        <div class="name">赵六 <span style="font-size: 10px; color: #999;">工号: EMP002</span></div>
+                        <div class="dept">销售部 - 大客户经理</div>
+                        <div class="contact">📱 13900139004 | ✉️ zhaoliu@company.com</div>
+                        <div style="margin-top: 4px; font-size: 10px; color: #9C27B0;">🔑 关键模块: MAC认证, 802.1x认证</div>
+                    </div>
+                    <div class="recommend-item" onclick="selectRecommend('钱七', 'EMP003', '技术部', '13700137005')">
+                        <div class="name">钱七 <span style="font-size: 10px; color: #999;">工号: EMP003</span></div>
+                        <div class="dept">技术部 - 技术支持</div>
+                        <div class="contact">📱 13700137005 | ✉️ qianqi@company.com</div>
+                        <div style="margin-top: 4px; font-size: 10px; color: #9C27B0;">🔑 关键模块: 技术方案, 需求调研</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('recommendModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能学习&应答（V2.8：支持选中任务和翻页） -->
+    <div class="modal-overlay" id="smartLearningModal">
+        <div class="modal" style="max-width: 850px;">
+            <div class="modal-header">
+                <h3>🧠 智能学习&应答</h3>
+                <button class="modal-close" onclick="closeModal('smartLearningModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 选中任务提示 -->
+                <div id="selectedTaskInfo" style="display: none; background: #E3F2FD; border: 1px solid #1E88E5; border-radius: 4px; padding: 10px; margin-bottom: 12px;">
+                    <span style="font-size: 12px; color: #1565C0;">📋 当前任务: </span>
+                    <span id="selectedTaskName" style="font-weight: bold; color: #1565C0;"></span>
+                    <span style="font-size: 11px; color: #666; margin-left: 10px;">关键模块: <span id="selectedTaskModule"></span></span>
+                </div>
+                <div class="tab-bar">
+                    <div class="tab-item active" onclick="switchTab(this, 'similar')">相似任务参考</div>
+                    <div class="tab-item" onclick="switchTab(this, 'add')">添加学习</div>
+                    <div class="tab-item" onclick="switchTab(this, 'history')">学习历史</div>
+                </div>
+                <div class="tab-content active" id="similarTab">
+                    <p style="color: #666; font-size: 12px; margin-bottom: 12px;" id="similarHint">根据当前任务的"关键模块"匹配相似任务：</p>
+                    <div id="similarTaskList">
+                        <div class="recommend-item" onclick="applySimilarTask(this)">
+                            <div class="name">📋 产品报价咨询 - 历史记录 #1</div>
+                            <div class="dept">相似度: 95% | 答复人: 王五 | 部门: 市场部</div>
+                            <div class="contact">答复内容: 已发送详细报价清单，包含标准价格和批量折扣方案</div>
+                        </div>
+                        <div class="recommend-item" onclick="applySimilarTask(this)">
+                            <div class="name">📋 价格方案确认 - 历史记录 #2</div>
+                            <div class="dept">相似度: 85% | 答复人: 赵六 | 部门: 销售部</div>
+                            <div class="contact">答复内容: 客户确认价格方案，订单处理中</div>
+                        </div>
+                        <div class="recommend-item" onclick="applySimilarTask(this)">
+                            <div class="name">📋 批量采购询价 - 历史记录 #3</div>
+                            <div class="dept">相似度: 78% | 答复人: 王五 | 部门: 市场部</div>
+                            <div class="contact">答复内容: 提供阶梯价格方案</div>
+                        </div>
+                        <div class="recommend-item" onclick="applySimilarTask(this)">
+                            <div class="name">📋 折扣方案咨询 - 历史记录 #4</div>
+                            <div class="dept">相似度: 72% | 答复人: 王五 | 部门: 市场部</div>
+                            <div class="contact">答复内容: 根据采购量提供折扣</div>
+                        </div>
+                    </div>
+                    <!-- 翻页控件 -->
+                    <div class="pagination" style="margin-top: 12px; background: transparent; border-top: none;">
+                        <button onclick="prevSimilarPage()">◀</button>
+                        <span class="pagination-info" id="similarPaginationInfo">第 1/2 页，共 8 条</span>
+                        <button onclick="nextSimilarPage()">▶</button>
+                    </div>
+                </div>
+                <div class="tab-content" id="addTab">
+                    <p style="color: #666; font-size: 12px; margin-bottom: 12px;">导入文档学习新知识：</p>
+                    <div class="form-group">
+                        <label class="form-label">选择导入方式</label>
+                        <div class="radio-group">
+                            <label class="radio-item"><input type="radio" name="learn-type" value="txt" checked> TXT文本</label>
+                            <label class="radio-item"><input type="radio" name="learn-type" value="image"> 图片(OCR)</label>
+                            <label class="radio-item"><input type="radio" name="learn-type" value="excel"> Excel</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">输入学习内容</label>
+                        <textarea class="form-textarea large" placeholder="输入要学习的内容..."></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="addLearning()">📚 开始学习</button>
+                </div>
+                <div class="tab-content" id="historyTab">
+                    <p style="color: #666; font-size: 12px; margin-bottom: 12px;">学习历史记录：</p>
+                    <table class="contact-table">
+                        <thead><tr><th>时间</th><th>内容摘要</th><th>关键词</th><th>状态</th></tr></thead>
+                        <tbody>
+                            <tr><td>2026-06-23 13:30</td><td>产品报价标准流程...</td><td>报价,折扣</td><td><span style="color:#4CAF50;">✓ 已学习</span></td></tr>
+                            <tr><td>2026-06-22 10:15</td><td>技术方案模板...</td><td>技术,方案</td><td><span style="color:#4CAF50;">✓ 已学习</span></td></tr>
+                            <tr><td>2026-06-21 16:45</td><td>客户咨询FAQ...</td><td>FAQ,咨询</td><td><span style="color:#4CAF50;">✓ 已学习</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('smartLearningModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 任务详情 -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>📋 任务详情</h3>
+                <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="detailContent">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="editTaskBtn" onclick="editTask()">✏️ 编辑</button>
+                <button class="btn btn-secondary" onclick="closeModal('detailModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提醒周期设置 -->
+    <div class="modal-overlay" id="reminderModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>⏰ 提醒周期设置</h3>
+                <button class="modal-close" onclick="closeModal('reminderModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">首次提醒时间</label>
+                    <select class="form-select">
+                        <option>08:30</option>
+                        <option>09:00</option>
+                        <option>10:00</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">周期提醒间隔</label>
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label class="form-label" style="font-size: 11px;">高优先级</label>
+                            <select class="form-select"><option>每3小时</option><option>每2小时</option></select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label" style="font-size: 11px;">中优先级</label>
+                            <select class="form-select"><option>每4小时</option><option>每3小时</option></select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label" style="font-size: 11px;">低优先级</label>
+                            <select class="form-select"><option>每6小时</option><option>每4小时</option></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveReminderSettings()">💾 保存设置</button>
+                <button class="btn btn-secondary" onclick="closeModal('reminderModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自动备份设置 -->
+    <div class="modal-overlay" id="backupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>💾 自动备份设置</h3>
+                <button class="modal-close" onclick="closeModal('backupModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h4>备份开关</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">启用自动备份</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>备份频率</h4>
+                    <div class="form-group">
+                        <select class="form-select">
+                            <option>每小时</option>
+                            <option selected>每4小时</option>
+                            <option>每8小时</option>
+                            <option>每天</option>
+                            <option>每周</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>备份设置</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">启动时备份</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">关闭时备份</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <label class="form-label">保留备份数量</label>
+                        <select class="form-select"><option>5</option><option selected>10</option><option>20</option></select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveBackupSettings()">💾 保存设置</button>
+                <button class="btn btn-secondary" onclick="closeModal('backupModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统设置 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>⚙️ 系统设置</h3>
+                <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h4>主题设置</h4>
+                    <div class="form-group">
+                        <label class="form-label">界面主题</label>
+                        <select class="form-select" id="themeSelect" onchange="changeTheme(this.value)">
+                            <option value="light">☀️ 浅色主题</option>
+                            <option value="dark">🌙 深色主题</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">字体大小</label>
+                        <select class="form-select">
+                            <option>小</option>
+                            <option selected>中</option>
+                            <option>大</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>提醒设置</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">启用声音提醒</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">显示系统通知</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>数据设置</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">自动保存</span>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <label class="form-label">自动保存间隔</label>
+                        <select class="form-select"><option>1分钟</option><option selected>5分钟</option><option>10分钟</option></select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveSystemSettings()">💾 保存设置</button>
+                <button class="btn btn-secondary" onclick="closeModal('settingsModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帮助文档 -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>❓ 帮助文档</h3>
+                <button class="modal-close" onclick="closeModal('helpModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="font-size: 12px; line-height: 1.8;">
+                <h4 style="color: #1E88E5; margin-bottom: 8px;">📖 使用指南</h4>
+                <p><strong>1. 新建任务</strong>：点击"新建"按钮或直接在任务信息区填写内容后点击"生成任务"</p>
+                <p><strong>2. 导入内容</strong>：选择导入方式（文本/图片/企业微信/MSG），输入内容后点击"解析"</p>
+                <p><strong>3. 智能推荐</strong>：输入关键模块后，点击"智能推荐"按钮获取答复人推荐</p>
+                <p><strong>4. 任务跟踪</strong>：在任务跟踪区查看、筛选、搜索任务，点击"详情"查看完整信息</p>
+                <p><strong>5. 智能学习</strong>：点击"智能学习&应答"，查看相似任务参考或添加新的学习内容</p>
+                <h4 style="color: #1E88E5; margin: 16px 0 8px;">⌨️ 快捷键</h4>
+                <p><strong>Ctrl+N</strong>：新建任务 &nbsp; <strong>Ctrl+S</strong>：保存任务</p>
+                <p><strong>Ctrl+F</strong>：搜索 &nbsp; <strong>Ctrl+E</strong>：导出任务</p>
+                <h4 style="color: #1E88E5; margin: 16px 0 8px;">📞 联系方式</h4>
+                <p>如有问题，请联系：support@company.com</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('helpModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入通讯录（V2.8：增加图片识别方式） -->
+    <div class="modal-overlay" id="importContactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📥 导入通讯录</h3>
+                <button class="modal-close" onclick="closeModal('importContactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; font-size: 12px; margin-bottom: 12px;">选择导入方式（V2.8新增图片识别）：</p>
+                <div class="import-option-card" onclick="selectImportOption('contact', 'excel', this)">
+                    <div class="card-title">📊 Excel文件</div>
+                    <div class="card-desc">导入.xlsx/.xls格式的通讯录文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('contact', 'txt', this)">
+                    <div class="card-title">📄 TXT文本</div>
+                    <div class="card-desc">导入每行一个联系人的文本文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('contact', 'csv', this)">
+                    <div class="card-title">📋 CSV文件</div>
+                    <div class="card-desc">导入逗号分隔的CSV格式文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('contact', 'image', this)">
+                    <div class="card-title">🖼️ 图片识别(OCR)</div>
+                    <div class="card-desc">上传名片或通讯录图片，自动识别文字</div>
+                </div>
+                <div id="contactImportArea" style="display: none; margin-top: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">选择文件</label>
+                        <input type="file" class="form-input" id="contactFileInput">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">或粘贴内容</label>
+                        <textarea class="form-textarea" id="contactPasteArea" placeholder="每行一个联系人，格式：姓名,工号,部门,电话,邮箱" style="min-height: 100px;"></textarea>
+                    </div>
+                    <!-- 图片识别区域 -->
+                    <div class="form-group" id="contactImageArea" style="display: none;">
+                        <div class="image-import-zone" onclick="document.getElementById('contactOcrInput').click()">
+                            <div class="icon">🖼️</div>
+                            <div class="text">点击选择图片或拖拽图片到此处</div>
+                            <div class="hint">支持 JPG、PNG 格式，将自动识别名片文字</div>
+                            <input type="file" id="contactOcrInput" accept="image/*" style="display: none;" onchange="handleContactOcr(this)">
+                        </div>
+                        <div id="contactOcrPreview" class="image-preview"></div>
+                        <div class="import-progress" id="contactOcrProgress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="contactOcrProgressFill">0%</div>
+                            </div>
+                            <div style="font-size: 11px; color: #666; margin-top: 4px;">正在识别文字...</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 冲突提示区域 -->
+                <div id="contactConflictArea" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="importContacts()">📥 开始导入</button>
+                <button class="btn btn-secondary" onclick="closeModal('importContactModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入推荐库（V2.8：与通讯录导入方式一致） -->
+    <div class="modal-overlay" id="importRecommendModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📥 导入推荐库</h3>
+                <button class="modal-close" onclick="closeModal('importRecommendModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; font-size: 12px; margin-bottom: 12px;">选择导入方式（与通讯录导入方式一致）：</p>
+                <div class="import-option-card" onclick="selectImportOption('recommend', 'excel', this)">
+                    <div class="card-title">📊 Excel文件</div>
+                    <div class="card-desc">导入.xlsx/.xls格式的推荐库文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('recommend', 'txt', this)">
+                    <div class="card-title">📄 TXT文本</div>
+                    <div class="card-desc">导入每行一个推荐人的文本文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('recommend', 'csv', this)">
+                    <div class="card-title">📋 CSV文件</div>
+                    <div class="card-desc">导入逗号分隔的CSV格式文件</div>
+                </div>
+                <div class="import-option-card" onclick="selectImportOption('recommend', 'image', this)">
+                    <div class="card-title">🖼️ 图片识别(OCR)</div>
+                    <div class="card-desc">上传包含推荐人信息的图片，自动识别文字</div>
+                </div>
+                <div id="recommendImportArea" style="display: none; margin-top: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">选择文件</label>
+                        <input type="file" class="form-input" id="recommendFileInput">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">或粘贴内容</label>
+                        <textarea class="form-textarea" id="recommendPasteArea" placeholder="每行一个推荐人，格式：姓名,工号,部门,关键模块,联系方式" style="min-height: 100px;"></textarea>
+                    </div>
+                    <!-- 图片识别区域 -->
+                    <div class="form-group" id="recommendImageArea" style="display: none;">
+                        <div class="image-import-zone" onclick="document.getElementById('recommendOcrInput').click()">
+                            <div class="icon">🖼️</div>
+                            <div class="text">点击选择图片或拖拽图片到此处</div>
+                            <div class="hint">支持 JPG、PNG 格式，将自动识别推荐人信息</div>
+                            <input type="file" id="recommendOcrInput" accept="image/*" style="display: none;" onchange="handleRecommendOcr(this)">
+                        </div>
+                        <div id="recommendOcrPreview" class="image-preview"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="importRecommend()">📥 开始导入</button>
+                <button class="btn btn-secondary" onclick="closeModal('importRecommendModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出任务模态框（V2.8：自定义导出字段） -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📤 导出任务</h3>
+                <button class="modal-close" onclick="closeModal('exportModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; font-size: 12px; margin-bottom: 12px;">选择导出字段（V2.8优化导出顺序）：</p>
+                <div class="export-fields">
+                    <span class="export-field-tag selected">✓ 任务创建时间</span>
+                    <span class="export-field-tag selected">✓ 任务名称</span>
+                    <span class="export-field-tag selected">✓ 预期答复时间</span>
+                    <span class="export-field-tag selected">✓ 重要程度</span>
+                    <span class="export-field-tag selected">✓ 任务具体内容</span>
+                    <span class="export-field-tag selected">✓ 产品型号和板卡</span>
+                    <span class="export-field-tag selected">✓ 关键模块</span>
+                    <span class="export-field-tag selected">✓ 咨询者姓名</span>
+                    <span class="export-field-tag selected">✓ 咨询者联系方式</span>
+                    <span class="export-field-tag selected">✓ 咨询者部门</span>
+                    <span class="export-field-tag selected">✓ 答复人姓名</span>
+                    <span class="export-field-tag selected">✓ 答复人部门</span>
+                    <span class="export-field-tag selected">✓ 所属行业</span>
+                    <span class="export-field-tag selected">✓ 备注信息</span>
+                    <span class="export-field-tag selected" style="background: #FFF3E0; color: #E65100;">✓ 处理时间</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">导出格式</label>
+                    <div class="radio-group">
+                        <label class="radio-item"><input type="radio" name="export-format" value="excel" checked> Excel (.xlsx)</label>
+                        <label class="radio-item"><input type="radio" name="export-format" value="csv"> CSV (.csv)</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">导出范围</label>
+                    <select class="form-select" id="exportRange">
+                        <option value="all">全部任务</option>
+                        <option value="pending">仅应答中</option>
+                        <option value="replied">仅已答复</option>
+                        <option value="selected">已选中的任务</option>
+                    </select>
+                </div>
+                <div style="background: #f5f5f5; padding: 10px; border-radius: 4px; font-size: 11px; color: #666;">
+                    <strong>说明：</strong>处理时间 = 任务关闭时间 - 任务创建时间
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="doExport()">📥 导出</button>
+                <button class="btn btn-secondary" onclick="closeModal('exportModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 示例数据
+        const sampleTasks = [
+            { id: 1, name: '产品报价咨询', status: 'pending', priority: 'high', owner: '张三', content: '客户需要产品报价咨询...', module: '产品报价', date: '2026-06-23', reminders: '3/6', closeTime: null },
+            { id: 2, name: '技术方案确认', status: 'suspended', priority: 'medium', owner: '李四', content: '需要确认技术方案...', module: '技术方案', date: '2026-06-22', reminders: '2/4', closeTime: null },
+            { id: 3, name: '需求调研', status: 'replied', priority: 'high', owner: '王五', content: '客户对产品功能有需求...', module: '需求调研', date: '2026-06-21', reminders: '1/6', closeTime: '2026-06-21 16:30:00' },
+            { id: 4, name: '合同条款', status: 'done', priority: 'low', owner: '赵六', content: '关于合同条款的详细咨询...', module: '合同条款', date: '2026-06-20', reminders: '1/2', closeTime: '2026-06-20 18:00:00' },
+            { id: 5, name: '产品演示预约', status: 'pending', priority: 'high', owner: '钱七', content: '客户预约产品演示...', module: '产品演示', date: '2026-06-23', reminders: '0/3', closeTime: null },
+            { id: 6, name: 'MAC认证配置', status: 'pending', priority: 'medium', owner: '赵六', content: '客户需要MAC认证技术支持...', module: 'MAC认证', date: '2026-06-22', reminders: '1/2', closeTime: null },
+            { id: 7, name: '802.1x认证调试', status: 'pending', priority: 'high', owner: '赵六', content: '802.1x认证问题排查...', module: '802.1x认证', date: '2026-06-23', reminders: '2/4', closeTime: null },
+            { id: 8, name: '采购清单确认', status: 'replied', priority: 'high', owner: '周九', content: '确认采购清单细节...', module: '采购清单', date: '2026-06-21', reminders: '2/4', closeTime: '2026-06-21 14:00:00' }
+        ];
+
+        const sampleLogs = [
+            { time: '13:50:00', action: '📤 导出任务', object: '全部任务', operator: '用户', note: '导出为Excel' },
+            { time: '13:45:00', action: '🧠 智能学习', object: '产品报价', operator: '张三', note: '新增学习记录' },
+            { time: '13:30:00', action: '📧 MSG导入', object: '邮件', operator: '李四', note: '导入3封邮件' },
+            { time: '13:15:00', action: '📋 新建任务', object: '产品演示预约', operator: '钱七', note: '创建新任务' },
+            { time: '13:00:00', action: '🎨 主题切换', object: '系统', operator: '用户', note: '切换到浅色主题' },
+            { time: '12:45:00', action: '💾 自动备份', object: '数据库', operator: '系统', note: '备份成功 (3.2MB)' },
+            { time: '12:30:00', action: '👥 通讯录导入', object: '通讯录', operator: '王五', note: '导入15条记录（含重名处理）' },
+            { time: '12:15:00', action: '🔮 智能推荐', object: '技术方案确认', operator: '李四', note: '推荐答复人: 赵六' }
+        ];
+
+        // V2.8新增：通讯录数据（含工号用于区分重名）
+        const sampleContacts = [
+            { name: '李明', code: 'EMP101', dept: '采购部', phone: '13812345678', email: 'liming@company.com' },
+            { name: '王五', code: 'EMP001', dept: '市场部', phone: '13800138003', email: 'wangwu@company.com' },
+            { name: '赵六', code: 'EMP002', dept: '销售部', phone: '13900139004', email: 'zhaoliu@company.com' },
+            { name: '钱七', code: 'EMP003', dept: '技术部', phone: '13700137005', email: 'qianqi@company.com' },
+            { name: '赵六', code: 'EMP102', dept: '技术部', phone: '13700137006', email: 'zhaoliu2@company.com' }  // 重名测试
+        ];
+
+        // V2.8新增：推荐库数据（支持多关键模块）
+        const sampleRecommends = [
+            { name: '王五', code: 'EMP001', dept: '市场部', phone: '13800138003', modules: ['产品报价', '报价单', '折扣方案'] },
+            { name: '赵六', code: 'EMP002', dept: '销售部', phone: '13900139004', modules: ['MAC认证', '802.1x认证', '网络准入'] },
+            { name: '钱七', code: 'EMP003', dept: '技术部', phone: '13700137005', modules: ['技术方案', '需求调研', '项目实施'] }
+        ];
+
+        // V2.8新增：相似任务数据
+        const sampleSimilarTasks = [
+            { id: 1, name: '产品报价咨询 #1', similarity: 95, replier: '王五', dept: '市场部', content: '已发送详细报价清单，包含标准价格和批量折扣方案' },
+            { id: 2, name: '价格方案确认', similarity: 85, replier: '赵六', dept: '销售部', content: '客户确认价格方案，订单处理中' },
+            { id: 3, name: '批量采购询价', similarity: 78, replier: '王五', dept: '市场部', content: '提供阶梯价格方案' },
+            { id: 4, name: '折扣方案咨询', similarity: 72, replier: '王五', dept: '市场部', content: '根据采购量提供折扣' },
+            { id: 5, name: '报价单模板', similarity: 68, replier: '王五', dept: '市场部', content: '使用标准报价单模板' },
+            { id: 6, name: '紧急报价', similarity: 65, replier: '王五', dept: '市场部', content: '加急处理报价请求' },
+            { id: 7, name: '项目报价', similarity: 60, replier: '王五', dept: '市场部', content: '大型项目综合报价' },
+            { id: 8, name: '年度报价', similarity: 55, replier: '王五', dept: '市场部', content: '年度采购框架报价' }
+        ];
+
+        // 状态映射
+        const statusMap = { pending: '进行中', suspended: '挂起', replied: '已答复', done: '完成' };
+        const priorityMap = { high: '高', medium: '中', low: '低' };
+        const statusClass = { pending: 'status-progress', suspended: 'status-pending', replied: 'status-replied', done: 'status-done' };
+        const priorityClass = { high: 'priority-high', medium: 'priority-medium', low: 'priority-low' };
+
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentView = 'pending';
+        let tasks = [...sampleTasks];
+        let selectedTaskId = null;  // V2.8新增：选中的任务ID
+        
+        // V2.8新增：相似任务翻页
+        let similarCurrentPage = 1;
+        const similarPageSize = 4;
+        
+        // V2.8新增：列宽调整
+        let isResizing = false;
+        let resizeCol = null;
+        let startX = 0;
+        let startWidth = 0;
+
+        // V2.8新增：导入选项
+        let currentImportType = 'contact';
+        let currentImportMethod = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTaskTable();
+            renderLogs();
+            renderContacts();
+            updateTime();
+            setInterval(updateTime, 1000);
+            updateCharCount();
+            updateLogSize();
+            initColumnResize();  // V2.8新增：初始化列宽调整
+            console.log('市场咨询任务跟踪工具 V2.11 - 增强版已加载');
+        });
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Toast提示
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+            addLog('📢 系统提示', 'Toast', '系统', message);
+        }
+
+        // 添加操作日志（V2.8：超过10KB自动保存）
+        function addLog(action, object, operator, note) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            sampleLogs.unshift({ time, action, object, operator, note });
+            renderLogs();
+            updateLogSize();
+        }
+
+        // V2.8新增：更新日志大小指示器
+        function updateLogSize() {
+            const logText = JSON.stringify(sampleLogs);
+            const sizeKB = (new Blob([logText]).size / 1024).toFixed(2);
+            document.getElementById('logSizeIndicator').textContent = `(${sizeKB} KB)`;
+            
+            // 超过10KB自动保存
+            if (sizeKB > 10) {
+                const now = new Date();
+                const timestamp = now.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/[\/:\s]/g, '');
+                const filename = `日志${timestamp}.txt`;
+                showToast(`📁 日志已自动保存为: ${filename}`, 'warning');
+            }
+        }
+
+        // 渲染任务表格
+        function renderTaskTable() {
+            const tbody = document.getElementById('taskTableBody');
+            let filtered = tasks;
+            
+            // 根据视图筛选
+            if (currentView === 'pending') {
+                filtered = filtered.filter(t => t.status === 'pending');
+            } else if (currentView === 'replied') {
+                filtered = filtered.filter(t => t.status === 'replied');
+            }
+            
+            // 分页
+            const pageSize = 5;
+            totalPages = Math.ceil(filtered.length / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * pageSize;
+            const pageData = filtered.slice(start, start + pageSize);
+            
+            // 渲染
+            tbody.innerHTML = pageData.map((t, i) => `
+                <tr class="task-row ${selectedTaskId === t.id ? 'selected' : ''}" onclick="selectTaskRow(${t.id}, event)">
+                    <td><input type="checkbox" data-id="${t.id}" onclick="event.stopPropagation()"></td>
+                    <td>${start + i + 1}</td>
+                    <td>${t.name}</td>
+                    <td><span class="status-tag ${statusClass[t.status]}">${statusMap[t.status]}</span></td>
+                    <td><span class="priority-tag ${priorityClass[t.priority]}">${priorityMap[t.priority]}</span></td>
+                    <td>${t.owner}</td>
+                    <td class="col-content">${t.content}</td>
+                    <td>${t.module}</td>
+                    <td>${t.date}</td>
+                    <td><span class="action-link" onclick="showTaskDetail(${t.id})">详情</span><span class="reminder-count" onclick="showReminder(${t.id})">提醒(${t.reminders})</span></td>
+                </tr>
+            `).join('');
+            
+            // 更新分页信息
+            document.getElementById('paginationInfo').textContent = `第 ${currentPage}/${totalPages} 页，共 ${filtered.length} 条`;
+            document.getElementById('pageJumpInput').max = totalPages;
+            document.getElementById('pageJumpInput').value = currentPage;
+            
+            // 更新统计
+            document.getElementById('totalTasks').textContent = tasks.length;
+            document.getElementById('pendingTasks').textContent = tasks.filter(t => t.status === 'pending').length;
+            document.getElementById('repliedTasks').textContent = tasks.filter(t => t.status === 'replied').length;
+        }
+
+        // V2.8新增：选中任务行
+        function selectTaskRow(id, event) {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'SPAN') return;
+            selectedTaskId = selectedTaskId === id ? null : id;
+            renderTaskTable();
+            
+            if (selectedTaskId) {
+                const task = tasks.find(t => t.id === id);
+                showToast(`📋 已选中任务: ${task.name}`, 'info');
+            }
+        }
+
+        // V2.8新增：初始化列宽调整
+        function initColumnResize() {
+            const headers = document.querySelectorAll('#taskTable th');
+            headers.forEach(th => {
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                th.appendChild(handle);
+                
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    isResizing = true;
+                    resizeCol = th;
+                    startX = e.pageX;
+                    startWidth = th.offsetWidth;
+                    th.classList.add('resizing');
+                    handle.classList.add('active');
+                });
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const diff = e.pageX - startX;
+                const newWidth = Math.max(50, startWidth + diff);
+                resizeCol.style.width = newWidth + 'px';
+                resizeCol.style.minWidth = newWidth + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    if (resizeCol) {
+                        resizeCol.classList.remove('resizing');
+                        const handle = resizeCol.querySelector('.resize-handle');
+                        if (handle) handle.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        // 渲染日志
+        function renderLogs() {
+            const tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = sampleLogs.slice(0, 10).map(log => `
+                <tr>
+                    <td>${log.time}</td>
+                    <td><span class="log-action">${log.action}</span></td>
+                    <td>${log.object}</td>
+                    <td>${log.operator}</td>
+                    <td>${log.note}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 渲染通讯录
+        function renderContacts() {
+            const tbody = document.getElementById('contactTableBody');
+            tbody.innerHTML = sampleContacts.map(c => `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.code || '-'}</td>
+                    <td>${c.dept}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.email}</td>
+                    <td><span class="action-link" onclick="editContact('${c.name}', '${c.code}')">编辑</span><span class="action-link" onclick="deleteContact('${c.name}', '${c.code}')">删除</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // 模态框操作
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // 点击遮罩关闭
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // 工具栏功能
+        function newTask() {
+            clearTaskForm();
+            selectedTaskId = null;
+            renderTaskTable();
+            showToast('📋 已清空表单，准备新建任务', 'success');
+        }
+
+        function saveTask() {
+            showToast('💾 任务保存成功！', 'success');
+            addLog('💾 保存任务', document.getElementById('taskName').value || '新任务', '用户', '保存成功');
+        }
+
+        function deleteTask() {
+            const checked = document.querySelectorAll('#taskTableBody input[type="checkbox"]:checked');
+            if (checked.length === 0) {
+                showToast('请先选择要删除的任务', 'error');
+                return;
+            }
+            if (confirm(`确定要删除选中的 ${checked.length} 个任务吗？`)) {
+                checked.forEach(cb => {
+                    const id = parseInt(cb.dataset.id);
+                    tasks = tasks.filter(t => t.id !== id);
+                });
+                renderTaskTable();
+                showToast(`🗑️ 已删除 ${checked.length} 个任务`, 'success');
+                addLog('🗑️ 删除任务', `${checked.length}个任务`, '用户', '批量删除');
+            }
+        }
+
+        // V2.8新增：导出模态框
+        function openExportModal() {
+            openModal('exportModal');
+        }
+
+        function doExport() {
+            const format = document.querySelector('input[name="export-format"]:checked').value;
+            const range = document.getElementById('exportRange').value;
+            
+            showToast(`📤 正在导出任务 (${format.toUpperCase()})...`, 'info');
+            setTimeout(() => {
+                showToast('✅ 任务导出成功！', 'success');
+                addLog('📤 导出任务', range === 'all' ? '全部任务' : range, '用户', `导出为${format.toUpperCase()}`);
+                closeModal('exportModal');
+            }, 1500);
+        }
+
+        function exportTasks() {
+            openExportModal();
+        }
+
+        function exportByStatus(status) {
+            document.getElementById('exportRange').value = status;
+            openExportModal();
+        }
+
+        // 内容导入（V2.11：图片/MSG增加文档导入区，企业微信/Outlook输入区，全模式预览区）
+        function updateImportMode(mode) {
+            const hints = {
+                text: '📌 当前模式：文本输入',
+                image: '📌 当前模式：图片OCR识别/文档导入，支持图片和文档两种方式',
+                wechat: '📌 当前模式：企业微信Webhook，请输入Webhook地址和消息内容',
+                msg: '📌 当前模式：MSG邮件解析/文档导入，支持MSG文件和文档两种方式',
+                outlook: '📌 当前模式：Outlook邮件，请选择账户和筛选条件'
+            };
+            document.getElementById('importHint').textContent = hints[mode];
+
+            // 显示/隐藏对应的输入区域
+            document.getElementById('textInputGroup').style.display = mode === 'text' ? 'block' : 'none';
+            document.getElementById('imageInputGroup').style.display = mode === 'image' ? 'block' : 'none';
+            document.getElementById('msgInputGroup').style.display = mode === 'msg' ? 'block' : 'none';
+            // V2.11：企业微信和Outlook输入区
+            document.getElementById('wechatInputGroup').style.display = mode === 'wechat' ? 'block' : 'none';
+            document.getElementById('outlookInputGroup').style.display = mode === 'outlook' ? 'block' : 'none';
+
+            // 清空预览区
+            document.getElementById('previewContent').innerHTML = '<span class="preview-empty">点击"解析"按钮后，解析结果将显示在这里</span>';
+            document.getElementById('contentPreviewBox').classList.remove('has-content');
+
+            showToast(`已切换到${mode === 'text' ? '文本' : mode === 'image' ? '图片/文档' : mode === 'wechat' ? '企业微信' : mode === 'msg' ? 'MSG邮件/文档' : 'Outlook邮件'}导入模式`, 'info');
+        }
+
+        // V2.8新增：处理图片选择
+        function handleImageSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('inputContent').value = `🖼️ 已选择图片: ${file.name}\n点击"解析"按钮进行OCR识别...`;
+                // V2.10：更新预览区
+                updatePreviewBox(`🖼️ 已选择图片: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮进行OCR识别...`, true);
+                showToast(`🖼️ 已选择图片: ${file.name}`, 'info');
+
+                // 显示缩略图
+                const preview = document.getElementById('imagePreview');
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="image-thumb">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // V2.8新增：处理MSG文件选择
+        function handleMsgSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('inputContent').value = `📧 已选择MSG: ${file.name}\n点击"解析"按钮解析邮件内容...`;
+                // V2.10：更新预览区
+                updatePreviewBox(`📧 已选择MSG文件: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮解析邮件内容...`, true);
+                showToast(`📧 已选择MSG文件: ${file.name}`, 'info');
+
+                // 显示文件列表
+                const fileList = document.getElementById('msgFileList');
+                fileList.innerHTML = `
+                    <div style="padding: 10px; background: #f5f5f5; border-radius: 4px; margin-top: 8px;">
+                        <span style="font-size: 12px;">📧 ${file.name}</span>
+                        <span style="font-size: 10px; color: #999; margin-left: 10px;">${(file.size / 1024).toFixed(1)} KB</span>
+                    </div>
+                `;
+            }
+        }
+
+        // V2.11新增：处理图片模式下的文档选择
+        function handleImageDocSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('inputContent').value = `📄 已选择文档: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮导入文档内容...`;
+                updatePreviewBox(`📄 已选择文档: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮导入文档内容...`, true);
+                showToast(`📄 已选择文档: ${file.name}`, 'info');
+            }
+        }
+
+        // V2.11新增：处理MSG模式下的文档选择
+        function handleMsgDocSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('inputContent').value = `📄 已选择文档: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮导入文档内容...`;
+                updatePreviewBox(`📄 已选择文档: ${file.name}\n大小: ${(file.size / 1024).toFixed(1)} KB\n\n点击"解析"按钮导入文档内容...`, true);
+                showToast(`📄 已选择文档: ${file.name}`, 'info');
+            }
+        }
+
+        // V2.10新增：统一内容预览区更新函数
+        function updatePreviewBox(content, hasData) {
+            const previewBox = document.getElementById('contentPreviewBox');
+            const previewContent = document.getElementById('previewContent');
+            previewContent.textContent = content;
+            if (hasData) {
+                previewBox.classList.add('has-content');
+            } else {
+                previewBox.classList.remove('has-content');
+            }
+        }
+
+        function parseContent() {
+            const mode = document.querySelector('input[name="import-type"]:checked').value;
+            const content = document.getElementById('inputContent').value;
+
+            if (mode === 'image') {
+                const inputContent = document.getElementById('inputContent').value;
+                // V2.11：判断是图片还是文档
+                if (inputContent.includes('📄')) {
+                    // 文档导入模式
+                    showToast('📄 正在导入文档内容...', 'info');
+                    setTimeout(() => {
+                        const docResult = `📄 文档导入结果：\n文件名：${inputContent.split(':')[1].split('\n')[0].trim()}\n\n文档内容已解析：\n客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。\n\n已自动填充到任务信息`;
+                        updatePreviewBox(docResult, true);
+                        document.getElementById('taskName').value = '文档导入任务';
+                        document.getElementById('taskContent').value = '客户需要产品报价咨询，请提供详细价格清单。';
+                        document.getElementById('taskPriority').value = 'medium';
+                        showToast('✅ 文档导入完成，已填充任务信息', 'success');
+                        addLog('📄 文档导入', '文档', '系统', '导入成功');
+                    }, 1500);
+                } else {
+                    // 图片OCR识别模式
+                    showToast('🔍 正在进行OCR图片识别...', 'info');
+                    setTimeout(() => {
+                        const ocrResult = '🖼️ OCR识别结果：\n发件人：张三\n联系方式：138****8888\n咨询内容：产品报价咨询\n关键模块：产品报价\n\n已自动填充到任务信息';
+                        updatePreviewBox(ocrResult, true);
+                        document.getElementById('taskName').value = '图片识别任务';
+                        document.getElementById('taskContent').value = '客户需要产品报价咨询，请提供详细价格清单。';
+                        document.getElementById('taskPriority').value = 'high';
+                        showToast('✅ OCR识别完成，已填充任务信息', 'success');
+                        addLog('🔍 OCR识别', '图片', '系统', '识别成功');
+                    }, 2000);
+                }
+            } else if (mode === 'msg') {
+                const inputContent = document.getElementById('inputContent').value;
+                // V2.11：判断是MSG还是文档
+                if (inputContent.includes('📄')) {
+                    // 文档导入模式
+                    showToast('📄 正在导入文档内容...', 'info');
+                    setTimeout(() => {
+                        const docResult = `📄 文档导入结果：\n文件名：${inputContent.split(':')[1].split('\n')[0].trim()}\n\n文档内容已解析：\n客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。\n\n已自动填充到任务信息`;
+                        updatePreviewBox(docResult, true);
+                        document.getElementById('taskName').value = '文档导入任务';
+                        document.getElementById('taskContent').value = '客户需要产品报价咨询，请提供详细价格清单。';
+                        document.getElementById('taskPriority').value = 'medium';
+                        showToast('✅ 文档导入完成，已填充任务信息', 'success');
+                        addLog('📄 文档导入', '文档', '系统', '导入成功');
+                    }, 1500);
+                } else {
+                    // MSG邮件解析模式
+                    showToast('📧 正在解析MSG邮件...', 'info');
+                    setTimeout(() => {
+                        const msgResult = '📧 MSG邮件解析结果：\n发件人：张三 <zhangsan@company.com>\n主题：产品报价咨询\n时间：2026-06-23 10:30\n\n正文：\n客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。\n\n已自动填充到任务信息';
+                        updatePreviewBox(msgResult, true);
+                        document.getElementById('taskName').value = '邮件解析任务';
+                        document.getElementById('taskContent').value = '客户发来邮件咨询产品报价，需要尽快回复。';
+                        document.getElementById('taskPriority').value = 'high';
+                        showToast('✅ MSG解析完成，已填充任务信息', 'success');
+                        addLog('📧 MSG解析', '邮件', '系统', '解析成功');
+                    }, 2000);
+                }
+            // V2.11：企业微信解析
+            } else if (mode === 'wechat') {
+                const webhookUrl = document.getElementById('wechatWebhookUrl').value;
+                const messageContent = document.getElementById('wechatMessageContent').value;
+                if (!webhookUrl) {
+                    showToast('⚠️ 请输入Webhook URL', 'warning');
+                    return;
+                }
+                if (!messageContent) {
+                    showToast('⚠️ 请输入消息内容', 'warning');
+                    return;
+                }
+                showToast('📤 正在发送企业微信消息...', 'info');
+                setTimeout(() => {
+                    const wechatResult = `📤 企业微信消息发送结果：\nWebhook: ${webhookUrl.substring(0, 40)}...\n消息内容：\n${messageContent}\n\n状态：发送成功\n已创建任务并保存发送记录`;
+                    updatePreviewBox(wechatResult, true);
+                    document.getElementById('taskName').value = '企业微信消息任务';
+                    document.getElementById('taskContent').value = messageContent;
+                    document.getElementById('taskPriority').value = 'medium';
+                    showToast('✅ 企业微信消息发送成功', 'success');
+                    addLog('📤 企业微信', 'Webhook', '系统', '消息发送成功');
+                }, 1500);
+            // V2.11：Outlook解析
+            } else if (mode === 'outlook') {
+                const account = document.getElementById('outlookAccount').value;
+                const filter = document.getElementById('outlookFilter').value;
+                if (!account) {
+                    showToast('⚠️ 请选择Outlook账户', 'warning');
+                    return;
+                }
+                showToast('📬 正在读取Outlook邮件...', 'info');
+                setTimeout(() => {
+                    const outlookResult = `📬 Outlook邮件读取结果：\n账户：${account}\n筛选条件：${filter || '全部邮件'}\n\n匹配邮件（3封）：\n1. [产品报价] 客户询价\n   发件人: zhangsan@company.com\n   时间: 2026-06-23 10:30\n\n2. [报价确认] 订单确认\n   发件人: lisi@company.com\n   时间: 2026-06-22 14:20\n\n3. [价格咨询] 技术方案\n   发件人: wangwu@company.com\n   时间: 2026-06-21 09:15\n\n已自动填充到任务信息`;
+                    updatePreviewBox(outlookResult, true);
+                    document.getElementById('taskName').value = 'Outlook邮件任务';
+                    document.getElementById('taskContent').value = '客户通过Outlook发送邮件咨询产品报价，需要处理。';
+                    document.getElementById('taskPriority').value = 'medium';
+                    showToast('✅ Outlook邮件读取完成', 'success');
+                    addLog('📬 Outlook读取', account, '系统', `读取${filter || '全部'}邮件`);
+                }, 2000);
+            } else {
+                if (!content.trim()) {
+                    showToast('请输入要解析的内容', 'error');
+                    return;
+                }
+                showToast('🔍 正在解析内容...', 'info');
+                setTimeout(() => {
+                    document.getElementById('taskName').value = '智能解析任务';
+                    document.getElementById('taskContent').value = content;
+                    document.getElementById('taskPriority').value = 'high';
+                    showToast('✅ 解析完成，已填充任务信息', 'success');
+                    addLog('🔍 内容解析', '文本解析', '系统', '解析成功');
+                }, 1500);
+            }
+        }
+
+        function clearContent() {
+            document.getElementById('inputContent').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('msgFileList').innerHTML = '';
+            // V2.10：清空企业微信和Outlook输入
+            document.getElementById('wechatWebhookUrl').value = '';
+            document.getElementById('wechatMessageContent').value = '';
+            document.getElementById('outlookAccount').value = '';
+            document.getElementById('outlookFilter').value = '';
+            // V2.10：清空预览区
+            updatePreviewBox('', false);
+            document.getElementById('previewContent').innerHTML = '<span class="preview-empty">点击"解析"按钮后，解析结果将显示在这里</span>';
+            showToast('🗑️ 已清空导入内容', 'info');
+        }
+
+        // 任务信息
+        function updateCharCount() {
+            const content = document.getElementById('taskContent').value;
+            document.getElementById('charCount').textContent = content.length;
+        }
+
+        function autoFillInquirer() {
+            const name = document.getElementById('inquirerName').value;
+            const contact = sampleContacts.find(c => c.name === name);
+            if (contact) {
+                document.getElementById('inquirerContact').value = contact.phone;
+                document.getElementById('inquirerDept').value = contact.dept;
+                document.getElementById('inquirerSource').textContent = '📌 来源：通讯录（自动填充）';
+                showToast(`📋 已自动填充 ${name} 的信息`, 'success');
+            } else {
+                document.getElementById('inquirerSource').textContent = '📌 未找到匹配记录';
+            }
+        }
+
+        // V2.8：智能推荐（支持工号）
+        function smartRecommendReplier() {
+            const module = document.getElementById('taskModule').value || '产品报价';
+            openModal('recommendModal');
+            document.getElementById('recommendSearch').value = module;
+            searchRecommend();
+            showToast(`🔮 根据"${module}"搜索推荐人...`, 'info');
+        }
+
+        // V2.8：搜索推荐人（支持多关键模块匹配）
+        function searchRecommend() {
+            const keyword = document.getElementById('recommendSearch').value.toLowerCase();
+            const list = document.getElementById('recommendList');
+            
+            let filtered = sampleRecommends;
+            if (keyword) {
+                filtered = sampleRecommends.filter(r => 
+                    r.name.toLowerCase().includes(keyword) ||
+                    r.modules.some(m => m.toLowerCase().includes(keyword))
+                );
+            }
+            
+            list.innerHTML = filtered.map(r => `
+                <div class="recommend-item" onclick="selectRecommend('${r.name}', '${r.code}', '${r.dept}', '${r.phone}')">
+                    <div class="name">${r.name} <span style="font-size: 10px; color: #999;">工号: ${r.code}</span></div>
+                    <div class="dept">${r.dept}</div>
+                    <div class="contact">📱 ${r.phone}</div>
+                    <div style="margin-top: 4px; font-size: 10px; color: #9C27B0;">🔑 关键模块: ${r.modules.join(', ')}</div>
+                </div>
+            `).join('');
+        }
+
+        // V2.8：选择推荐人
+        function selectRecommend(name, code, dept, contact) {
+            document.getElementById('replierName').value = name;
+            document.getElementById('replierDept').value = dept;
+            document.getElementById('replierContact').value = contact;
+            document.getElementById('replierSource').textContent = `📌 推荐来源：推荐库 (工号: ${code})`;
+            closeModal('recommendModal');
+            showToast(`🔮 已选择推荐人：${name} (${code})`, 'success');
+            addLog('🔮 智能推荐', name, '系统', `推荐答复人: ${dept} (${code})`);
+        }
+
+        function generateTask() {
+            const name = document.getElementById('taskName').value;
+            if (!name.trim()) {
+                showToast('请填写任务名称', 'error');
+                return;
+            }
+            const newId = Math.max(...tasks.map(t => t.id)) + 1;
+            tasks.unshift({
+                id: newId,
+                name: name,
+                status: 'pending',
+                priority: document.getElementById('taskPriority').value,
+                owner: document.getElementById('inquirerName').value || '未知',
+                content: document.getElementById('taskContent').value.substring(0, 30) + '...',
+                module: document.getElementById('taskModule').value || '未分类',
+                date: new Date().toLocaleDateString('zh-CN'),
+                reminders: '0/0',
+                closeTime: null
+            });
+            renderTaskTable();
+            showToast(`✅ 任务"${name}"创建成功！`, 'success');
+            addLog('📋 新建任务', name, '用户', '创建新任务');
+        }
+
+        function clearTaskForm() {
+            document.querySelectorAll('#taskCreateTime, #taskExpectTime, #taskName, #taskProduct, #inquirerName, #inquirerContact, #inquirerDept, #replierName, #replierContact, #replierDept, #taskIndustry, #taskModule, #taskNote').forEach(el => el.value = '');
+            document.getElementById('taskContent').value = '';
+            document.getElementById('taskPriority').value = 'high';
+            updateCharCount();
+        }
+
+        // 任务跟踪
+        function switchView(btn, view) {
+            document.querySelectorAll('.track-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentView = view;
+            currentPage = 1;
+            renderTaskTable();
+            showToast(`📊 已切换到"${view === 'pending' ? '查看应答中' : view === 'replied' ? '查看已答复' : '全部数据'}"视图`, 'info');
+        }
+
+        function filterTasks() {
+            showToast('🔍 筛选条件已更新', 'info');
+        }
+
+        function resetFilters() {
+            document.querySelectorAll('.filter-select').forEach(el => {
+                if (el.id === 'filterYear' || el.id === 'filterMonth') {
+                    el.value = 'all';
+                } else {
+                    el.value = 'all';
+                }
+            });
+            document.getElementById('globalSearch').value = '';
+            currentPage = 1;
+            renderTaskTable();
+            showToast('🔄 筛选条件已重置', 'info');
+        }
+
+        function searchTasks() {
+            const keyword = document.getElementById('globalSearch').value.toLowerCase();
+            if (!keyword) {
+                renderTaskTable();
+                return;
+            }
+            const filtered = tasks.filter(t => 
+                t.name.toLowerCase().includes(keyword) || 
+                t.content.toLowerCase().includes(keyword) ||
+                t.owner.toLowerCase().includes(keyword) ||
+                t.module.toLowerCase().includes(keyword)
+            );
+            const tbody = document.getElementById('taskTableBody');
+            tbody.innerHTML = filtered.map((t, i) => `
+                <tr class="task-row ${selectedTaskId === t.id ? 'selected' : ''}" onclick="selectTaskRow(${t.id}, event)">
+                    <td><input type="checkbox" data-id="${t.id}" onclick="event.stopPropagation()"></td>
+                    <td>${i + 1}</td>
+                    <td>${t.name}</td>
+                    <td><span class="status-tag ${statusClass[t.status]}">${statusMap[t.status]}</span></td>
+                    <td><span class="priority-tag ${priorityClass[t.priority]}">${priorityMap[t.priority]}</span></td>
+                    <td>${t.owner}</td>
+                    <td class="col-content">${t.content}</td>
+                    <td>${t.module}</td>
+                    <td>${t.date}</td>
+                    <td><span class="action-link" onclick="showTaskDetail(${t.id})">详情</span><span class="reminder-count" onclick="showReminder(${t.id})">提醒(${t.reminders})</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleSelectAll(checkbox) {
+            document.querySelectorAll('#taskTableBody input[type="checkbox"]').forEach(cb => cb.checked = checkbox.checked);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTaskTable();
+                showToast(`📄 已跳转到第 ${currentPage} 页`, 'info');
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTaskTable();
+                showToast(`📄 已跳转到第 ${currentPage} 页`, 'info');
+            }
+        }
+
+        function jumpToPage() {
+            const page = parseInt(document.getElementById('pageJumpInput').value);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderTaskTable();
+                showToast(`📄 已跳转到第 ${page} 页`, 'info');
+            } else {
+                showToast('请输入有效的页码', 'error');
+            }
+        }
+
+        // V2.8新增：相似任务翻页
+        function prevSimilarPage() {
+            if (similarCurrentPage > 1) {
+                similarCurrentPage--;
+                renderSimilarTasks();
+                showToast(`📄 相似任务: 第 ${similarCurrentPage} 页`, 'info');
+            }
+        }
+
+        function nextSimilarPage() {
+            const totalSimilarPages = Math.ceil(sampleSimilarTasks.length / similarPageSize);
+            if (similarCurrentPage < totalSimilarPages) {
+                similarCurrentPage++;
+                renderSimilarTasks();
+                showToast(`📄 相似任务: 第 ${similarCurrentPage} 页`, 'info');
+            }
+        }
+
+        function renderSimilarTasks() {
+            const start = (similarCurrentPage - 1) * similarPageSize;
+            const pageData = sampleSimilarTasks.slice(start, start + similarPageSize);
+            const totalSimilarPages = Math.ceil(sampleSimilarTasks.length / similarPageSize);
+            
+            document.getElementById('similarTaskList').innerHTML = pageData.map(t => `
+                <div class="recommend-item" onclick="applySimilarTask(this)">
+                    <div class="name">📋 ${t.name}</div>
+                    <div class="dept">相似度: ${t.similarity}% | 答复人: ${t.replier} | 部门: ${t.dept}</div>
+                    <div class="contact">答复内容: ${t.content}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('similarPaginationInfo').textContent = `第 ${similarCurrentPage}/${totalSimilarPages} 页，共 ${sampleSimilarTasks.length} 条`;
+        }
+
+        // 任务详情
+        function showTaskDetail(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            
+            // 计算处理时间
+            let processTime = '-';
+            if (task.closeTime) {
+                const createTime = new Date(task.date);
+                const closeTime = new Date(task.closeTime);
+                const diff = Math.round((closeTime - createTime) / (1000 * 60)); // 分钟
+                const hours = Math.floor(diff / 60);
+                const mins = diff % 60;
+                processTime = `${hours}小时${mins}分钟`;
+            }
+            
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="detail-row"><div class="detail-label">任务名称</div><div class="detail-value">${task.name}</div></div>
+                <div class="detail-row"><div class="detail-label">状态</div><div class="detail-value"><span class="status-tag ${statusClass[task.status]}">${statusMap[task.status]}</span></div></div>
+                <div class="detail-row"><div class="detail-label">优先级</div><div class="detail-value"><span class="priority-tag ${priorityClass[task.priority]}">${priorityMap[task.priority]}</span></div></div>
+                <div class="detail-row"><div class="detail-label">关键模块</div><div class="detail-value">${task.module}</div></div>
+                <div class="detail-row"><div class="detail-label">任务内容</div><div class="detail-value">${task.content}</div></div>
+                <div class="detail-row"><div class="detail-label">责任人</div><div class="detail-value">${task.owner}</div></div>
+                <div class="detail-row"><div class="detail-label">创建时间</div><div class="detail-value">${task.date}</div></div>
+                <div class="detail-row"><div class="detail-label">处理时间</div><div class="detail-value" style="color: #9C27B0; font-weight: bold;">${processTime}</div></div>
+            `;
+            openModal('detailModal');
+        }
+
+        function showReminder(id) {
+            showToast('⏰ 提醒设置已打开', 'info');
+        }
+
+        function editTask() {
+            showToast('✏️ 进入编辑模式', 'info');
+            closeModal('detailModal');
+        }
+
+        // V2.8新增：智能学习（支持选中任务）
+        function openSmartLearning() {
+            openModal('smartLearningModal');
+            
+            // 如果有选中的任务，显示选中信息
+            const selectedInfo = document.getElementById('selectedTaskInfo');
+            if (selectedTaskId) {
+                const task = tasks.find(t => t.id === selectedTaskId);
+                document.getElementById('selectedTaskName').textContent = task.name;
+                document.getElementById('selectedTaskModule').textContent = task.module;
+                selectedInfo.style.display = 'block';
+                document.getElementById('similarHint').textContent = `根据任务"${task.module}"匹配相似任务：`;
+            } else {
+                selectedInfo.style.display = 'none';
+            }
+            
+            similarCurrentPage = 1;
+            renderSimilarTasks();
+        }
+
+        function applySimilarTask(element) {
+            element.style.background = '#E8F5E9';
+            element.style.borderColor = '#4CAF50';
+            showToast('✅ 已引用该相似任务的答复内容', 'success');
+        }
+
+        function switchTab(element, tabId) {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        }
+
+        function addLearning() {
+            showToast('📚 正在学习新内容...', 'info');
+            setTimeout(() => {
+                showToast('✅ 学习完成，已更新知识库', 'success');
+                addLog('🧠 智能学习', '新内容', '系统', '学习成功');
+            }, 1500);
+        }
+
+        // 通讯录管理
+        function searchContacts() {
+            const keyword = document.getElementById('contactSearch').value.toLowerCase();
+            const tbody = document.getElementById('contactTableBody');
+            const filtered = sampleContacts.filter(c => 
+                c.name.toLowerCase().includes(keyword) ||
+                c.dept.toLowerCase().includes(keyword) ||
+                (c.code && c.code.toLowerCase().includes(keyword))
+            );
+            tbody.innerHTML = filtered.map(c => `
+                <tr>
+                    <td>${c.name}</td>
+                    <td>${c.code || '-'}</td>
+                    <td>${c.dept}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.email}</td>
+                    <td><span class="action-link" onclick="editContact('${c.name}', '${c.code}')">编辑</span><span class="action-link" onclick="deleteContact('${c.name}', '${c.code}')">删除</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function addContact() {
+            const name = document.getElementById('addContactName').value;
+            const code = document.getElementById('addContactCode').value;
+            
+            if (!name) {
+                showToast('请输入姓名', 'error');
+                return;
+            }
+            
+            // 检查重名
+            const exists = sampleContacts.find(c => c.name === name && c.code === code);
+            if (exists) {
+                showToast(`⚠️ 联系人 ${name} (${code}) 已存在`, 'warning');
+                return;
+            }
+            
+            sampleContacts.push({
+                name: name,
+                code: code || `EMP${String(sampleContacts.length + 100).slice(-3)}`,
+                dept: document.getElementById('addContactDept').value,
+                phone: document.getElementById('addContactPhone').value,
+                email: document.getElementById('addContactEmail').value
+            });
+            
+            renderContacts();
+            closeModal('addContactModal');
+            showToast(`✅ 联系人 ${name} 添加成功`, 'success');
+            addLog('👥 添加联系人', name, '用户', `工号: ${code || '自动分配'}`);
+        }
+
+        function editContact(name, code) {
+            showToast(`✏️ 正在编辑 ${name} (${code})`, 'info');
+        }
+
+        function deleteContact(name, code) {
+            if (confirm(`确定要删除联系人 ${name} (${code}) 吗？`)) {
+                const index = sampleContacts.findIndex(c => c.name === name && c.code === code);
+                if (index > -1) {
+                    sampleContacts.splice(index, 1);
+                    renderContacts();
+                    showToast(`🗑️ 联系人 ${name} 已删除`, 'success');
+                    addLog('🗑️ 删除联系人', name, '用户', `工号: ${code}`);
+                }
+            }
+        }
+
+        // V2.8新增：导入选项选择
+        function selectImportOption(type, method, element) {
+            currentImportType = type;
+            currentImportMethod = method;
+            
+            // 取消其他选中
+            element.parentElement.querySelectorAll('.import-option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            
+            // 显示对应的导入区域
+            if (type === 'contact') {
+                document.getElementById('contactImportArea').style.display = 'block';
+                document.getElementById('contactImageArea').style.display = method === 'image' ? 'block' : 'none';
+            } else {
+                document.getElementById('recommendImportArea').style.display = 'block';
+                document.getElementById('recommendImageArea').style.display = method === 'image' ? 'block' : 'none';
+            }
+            
+            showToast(`已选择${method === 'excel' ? 'Excel' : method === 'txt' ? 'TXT文本' : method === 'csv' ? 'CSV' : '图片识别'}导入方式`, 'info');
+        }
+
+        // V2.8新增：通讯录图片OCR识别
+        function handleContactOcr(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const preview = document.getElementById('contactOcrPreview');
+                const progress = document.getElementById('contactOcrProgress');
+                const progressFill = document.getElementById('contactOcrProgressFill');
+                
+                // 显示缩略图
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="image-thumb">`;
+                };
+                reader.readAsDataURL(file);
+                
+                // 显示进度
+                progress.style.display = 'block';
+                let percent = 0;
+                const interval = setInterval(() => {
+                    percent += 10;
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = percent + '%';
+                    
+                    if (percent >= 100) {
+                        clearInterval(interval);
+                        progress.style.display = 'none';
+                        
+                        // 模拟识别结果
+                        document.getElementById('contactPasteArea').value = `李明,EMP101,采购部,13812345678,liming@company.com
+王五,EMP001,市场部,13800138003,wangwu@company.com
+赵六,EMP002,销售部,13900139004,zhaoliu@company.com`;
+                        
+                        showToast('✅ 图片识别完成，已提取通讯录信息', 'success');
+                        addLog('🖼️ 图片OCR', '通讯录图片', '系统', '识别成功');
+                    }
+                }, 200);
+            }
+        }
+
+        // V2.8新增：推荐库图片OCR识别
+        function handleRecommendOcr(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const preview = document.getElementById('recommendOcrPreview');
+                
+                // 显示缩略图
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="image-thumb">`;
+                };
+                reader.readAsDataURL(file);
+                
+                // 模拟识别
+                setTimeout(() => {
+                    document.getElementById('recommendPasteArea').value = `王五,EMP001,市场部,产品报价;报价单,13800138003
+赵六,EMP002,销售部,MAC认证;802.1x认证,13900139004
+钱七,EMP003,技术部,技术方案;需求调研,13700137005`;
+                    
+                    showToast('✅ 图片识别完成，已提取推荐人信息', 'success');
+                    addLog('🖼️ 图片OCR', '推荐库图片', '系统', '识别成功');
+                }, 1500);
+            }
+        }
+
+        function importContacts() {
+            if (currentImportMethod === 'image') {
+                showToast('🖼️ 正在进行图片识别...', 'info');
+                setTimeout(() => {
+                    showToast('✅ 通讯录导入成功！', 'success');
+                    addLog('👥 通讯录导入', '图片OCR', '用户', '导入成功');
+                }, 2000);
+            } else {
+                showToast('📥 正在导入通讯录...', 'info');
+                setTimeout(() => {
+                    showToast('✅ 通讯录导入成功！', 'success');
+                    addLog('👥 通讯录导入', currentImportMethod.toUpperCase(), '用户', '导入成功');
+                }, 1500);
+            }
+        }
+
+        function importRecommend() {
+            if (currentImportMethod === 'image') {
+                showToast('🖼️ 正在进行图片识别...', 'info');
+                setTimeout(() => {
+                    showToast('✅ 推荐库导入成功！', 'success');
+                    addLog('🔮 推荐库导入', '图片OCR', '用户', '导入成功');
+                }, 2000);
+            } else {
+                showToast('📥 正在导入推荐库...', 'info');
+                setTimeout(() => {
+                    showToast('✅ 推荐库导入成功！', 'success');
+                    addLog('🔮 推荐库导入', currentImportMethod.toUpperCase(), '用户', '导入成功');
+                }, 1500);
+            }
+        }
+
+        // 其他功能
+        function saveReminderSettings() {
+            showToast('⏰ 提醒设置已保存', 'success');
+            addLog('⏰ 保存设置', '提醒周期', '用户', '保存成功');
+        }
+
+        function saveBackupSettings() {
+            showToast('💾 备份设置已保存', 'success');
+            addLog('💾 保存设置', '自动备份', '用户', '保存成功');
+        }
+
+        function saveSystemSettings() {
+            showToast('⚙️ 系统设置已保存', 'success');
+            addLog('⚙️ 保存设置', '系统设置', '用户', '保存成功');
+        }
+
+        function changeTheme(theme) {
+            showToast(`🎨 已切换到${theme === 'light' ? '浅色' : '深色'}主题`, 'info');
+            document.getElementById('themeStatus').textContent = theme === 'light' ? '☀️ 浅色主题' : '🌙 深色主题';
+            addLog('🎨 主题切换', theme === 'light' ? '浅色' : '深色', '用户', '切换主题');
+        }
+
+        function toggleTheme() {
+            const select = document.getElementById('themeSelect');
+            select.value = select.value === 'light' ? 'dark' : 'light';
+            changeTheme(select.value);
+        }
+
+        function exportLogs() {
+            const now = new Date();
+            const timestamp = now.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/[\/:\s]/g, '');
+            const filename = `日志${timestamp}.txt`;
+            showToast(`📁 正在导出日志: ${filename}`, 'info');
+            setTimeout(() => {
+                showToast('✅ 日志导出成功！', 'success');
+            }, 1000);
+        }
+
+        function showHelp(type) {
+            openModal('helpModal');
+        }
+    </script>
+</body>
+</html>
