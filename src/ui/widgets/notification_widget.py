@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 提醒管理模块
 Notification Management Module
@@ -31,9 +31,9 @@ from PyQt5.QtWidgets import (
     QTextEdit,
 )
 
-from ..database.models import Task, Reminder
-from ..database.er_diagram import ReminderDAO
-from ..utils.logger import get_logger
+from ...database.models import Task, Reminder
+from ...database.er_diagram import ReminderDAO
+from ...utils.logger import get_logger
 
 logger = get_logger(__name__)
 
