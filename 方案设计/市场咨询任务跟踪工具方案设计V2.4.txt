@@ -1,0 +1,553 @@
+# 市场咨询任务跟踪工具方案设计 V2.4
+
+**项目名称**：市场咨询任务跟踪工具  
+**版本**：V2.4  
+**编制日期**：2026-06-23  
+**文档状态**：正式发布  
+
+---
+
+## 1. 文档修订记录
+
+| 版本 | 修订日期 | 修订人 | 修订内容 |
+|------|----------|--------|----------|
+| V1.0 | 2026-06-11 | 开发组 | 初始架构设计 |
+| V1.1 | 2026-06-12 | 开发组 | 添加数据库设计 |
+| V1.2 | 2026-06-13 | 开发组 | 添加推荐算法设计 |
+| V1.3 | 2026-06-14 | 开发组 | 添加通讯录模块设计 |
+| V1.4 | 2026-06-15 | 开发组 | 添加提醒模块设计 |
+| V1.5 | 2026-06-16 | 开发组 | 添加导入导出模块设计 |
+| V1.6 | 2026-06-17 | 开发组 | 添加推荐库模块设计 |
+| V1.7 | 2026-06-18 | 开发组 | 添加主题模块设计 |
+| V1.8 | 2026-06-19 | 开发组 | 添加备份模块设计 |
+| V1.9 | 2026-06-20 | 开发组 | 添加学习积累模块设计 |
+| V1.10 | 2026-06-21 | 开发组 | 添加OCR识别设计 |
+| V1.11 | 2026-06-22 | 开发组 | 代码优化设计 |
+| V2.0 | 2026-06-22 | 开发组 | Excel导入设计 |
+| V2.1 | 2026-06-23 | 开发组 | MSG导入融合设计 |
+| V2.2 | 2026-06-23 | 开发组 | 界面优化设计：MSG融合、智能学习&应答完善 |
+| V2.3 | 2026-06-23 | 开发组 | 界面原型V2.8同步：列宽调整、智能学习翻页、日志自动保存 |
+| **V2.4** | **2026-06-23** | **开发组** | **界面原型V2.12同步：内容导入增强（企业微信/Outlook输入区、全模式预览区）** |
+
+---
+
+## 2. 系统架构
+
+### 2.1 技术栈
+
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| 前端 | PyQt5 | GUI框架 |
+| 业务逻辑 | Python 3.8+ | 核心业务逻辑 |
+| 数据存储 | SQLite | 本地数据库 |
+| OCR识别 | PaddleOCR/Tesseract | 图片文字识别 |
+| 数据分析 | Pandas | 数据处理 |
+| 打包工具 | PyInstaller | 可执行文件生成 |
+
+### 2.2 项目结构
+
+```
+src/
+├── main.py                 # 程序入口
+├── ui/
+│   ├── main_window.py     # 主窗口
+│   └── widgets/           # 组件
+│       ├── task_info_widget.py      # 任务信息组件
+│       ├── task_track_widget.py     # 任务跟踪组件
+│       ├── recommendation_widget.py  # 推荐组件
+│       ├── notification_widget.py    # 提醒组件
+│       ├── import_export_widget.py   # 导入导出组件
+│       ├── statistics_widget.py      # 统计组件
+│       ├── library_widget.py         # 推荐库组件
+│       ├── learning_widget.py        # 智能学习组件
+│       ├── backup_widget.py          # 备份组件
+│       └── theme_widget.py           # 主题组件
+├── database/
+│   ├── connection.py       # 数据库连接
+│   └── models.py           # 数据模型
+├── services/
+│   ├── task_service.py     # 任务服务
+│   ├── ocr_service.py      # OCR服务
+│   ├── backup_service.py    # 备份服务
+│   └── learning_service.py  # 学习服务
+└── utils/
+    ├── logger.py           # 日志工具
+    └── helpers.py          # 辅助工具
+```
+
+---
+
+## 3. 核心模块设计
+
+### 3.1 任务信息管理模块
+
+#### 3.1.1 数据模型
+
+```python
+class Task:
+    task_id: str           # 任务ID
+    task_name: str         # 任务名称
+    inquirer: str          # 咨询人
+    inquirer_dept: str     # 咨询人部门
+    inquirer_company: str  # 咨询人公司
+    key_module: str        # 关键模块（V2.8：移到答复人之前）
+    task_content: str      # 任务内容
+    urgency: str           # 紧急程度
+    respondent: str        # 应答人（V2.8：从原位置移到这里）
+    respondent_dept: str  # 应答人部门
+    industry: str          # 行业
+    status: str            # 状态
+    expected_reply_time: datetime  # 预期答复时间
+    remark: str            # 备注
+    created_at: datetime   # 创建时间
+    updated_at: datetime   # 更新时间
+```
+
+#### 3.1.2 核心功能
+
+| 功能 | 说明 |
+|------|------|
+| 创建任务 | 填写任务信息，保存到数据库 |
+| 编辑任务 | 修改任务信息，更新数据库 |
+| 删除任务 | 软删除任务，保留历史记录 |
+| 查询任务 | 按条件筛选任务 |
+| 导出任务 | 导出为Excel格式，包含处理时间计算 |
+
+### 3.2 数据导入模块
+
+#### 3.2.1 导入方式架构（V2.12）
+
+```
+导入导出组件
+├── 文本输入区
+├── 图片导入区（OCR识别）
+├── MSG邮件导入区
+├── 企业微信导入区（V2.12新增输入区）
+│   ├── Webhook URL输入框
+│   └── 消息内容输入框
+├── Outlook导入区（V2.12新增输入区）
+│   ├── 账户选择下拉框
+│   └── 邮件筛选输入框
+└── 统一内容预览区（V2.12）
+```
+
+#### 3.2.2 企业微信输入区设计（V2.12新增）
+
+```python
+class WechatInputWidget(QWidget):
+    """企业微信输入组件"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.init_ui()
+
+    def init_ui(self):
+        """初始化UI"""
+        # Webhook URL输入
+        self.webhook_label = QLabel("🔗 Webhook URL")
+        self.webhook_input = QLineEdit()
+        self.webhook_input.setPlaceholderText(
+            "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx"
+        )
+
+        # 消息内容输入
+        self.message_label = QLabel("💬 消息内容")
+        self.message_input = QTextEdit()
+        self.message_input.setPlaceholderText("输入要发送的消息内容...")
+```
+
+#### 3.2.3 Outlook输入区设计（V2.12新增）
+
+```python
+class OutlookInputWidget(QWidget):
+    """Outlook输入组件"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.init_ui()
+
+    def init_ui(self):
+        """初始化UI"""
+        # 账户选择
+        self.account_label = QLabel("📧 Outlook账户")
+        self.account_combo = QComboBox()
+        self.account_combo.addItem("-- 请选择账户 --", "")
+        self.account_combo.addItem("zhangsan@company.com", "zhangsan@company.com")
+        self.account_combo.addItem("lisi@company.com", "lisi@company.com")
+
+        # 邮件筛选
+        self.filter_label = QLabel("🔍 邮件筛选")
+        self.filter_input = QLineEdit()
+        self.filter_input.setPlaceholderText("输入发件人或主题关键词")
+```
+
+#### 3.2.4 统一内容预览区设计（V2.12新增）
+
+```python
+class ContentPreviewWidget(QWidget):
+    """统一内容预览组件"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.init_ui()
+
+    def init_ui(self):
+        """初始化UI"""
+        # 预览框
+        self.preview_box = QTextEdit()
+        self.preview_box.setReadOnly(True)
+        self.preview_box.setPlaceholderText(
+            '点击"解析"按钮后，解析结果将显示在这里'
+        )
+
+    def update_preview(self, content: str, has_data: bool = False):
+        """更新预览内容"""
+        self.preview_box.setText(content)
+        if has_data:
+            self.preview_box.setStyleSheet(
+                "QTextEdit { border: 2px solid #4CAF50; }"
+            )
+        else:
+            self.preview_box.setStyleSheet(
+                "QTextEdit { border: 1px solid #ccc; }"
+            )
+```
+
+#### 3.2.5 导入方式切换逻辑（V2.12）
+
+```python
+def update_import_mode(mode: str):
+    """
+    切换导入模式
+
+    模式说明：
+    - text: 文本输入模式
+    - image: 图片OCR识别模式
+    - msg: MSG邮件解析模式
+    - wechat: 企业微信模式（显示Webhook和消息输入区）
+    - outlook: Outlook模式（显示账户选择和筛选输入区）
+    """
+    # 隐藏所有输入区域
+    self.text_group.hide()
+    self.image_group.hide()
+    self.msg_group.hide()
+    self.wechat_group.hide()  # V2.12新增
+    self.outlook_group.hide()  # V2.12新增
+
+    # 显示当前模式对应的输入区域
+    mode_widgets = {
+        'text': self.text_group,
+        'image': self.image_group,
+        'msg': self.msg_group,
+        'wechat': self.wechat_group,
+        'outlook': self.outlook_group
+    }
+    mode_widgets[mode].show()
+
+    # 清空预览区
+    self.preview_widget.update_preview('', False)
+```
+
+#### 3.2.6 MSG邮件导入设计
+
+| 功能 | 实现方式 |
+|------|----------|
+| 文件选择 | QFileDialog，选择.msg文件 |
+| 解析引擎 | extract_msg库解析MSG格式 |
+| 信息提取 | 发件人、收件人、主题、正文、时间 |
+| 任务生成 | 解析后自动填充任务信息 |
+
+#### 3.2.7 界面集成
+
+| 组件 | 说明 |
+|------|------|
+| 导入方式选择 | RadioButtonGroup |
+| 输入区域 | QStackedWidget，动态切换 |
+| 企业微信输入 | V2.12新增专用输入组件 |
+| Outlook输入 | V2.12新增专用输入组件 |
+| 预览区 | V2.12统一内容预览组件 |
+| 解析按钮 | QPushButton，触发解析逻辑 |
+| 状态提示 | QLabel，显示解析状态 |
+
+### 3.3 智能学习&应答模块
+
+#### 3.3.1 功能架构
+
+```
+智能学习Widget
+├── 添加记录区
+│   ├── 文档输入（TXT/Excel/图片OCR）
+│   ├── 问题/场景输入
+│   ├── 解决方案输入
+│   └── 保存按钮
+├── 任务关联区
+│   ├── 任务信息显示
+│   ├── 关键模块显示
+│   └── 关联状态
+├── 智能匹配区
+│   ├── 匹配结果显示
+│   ├── 匹配度评分
+│   └── 分页导航（V2.8新增）
+└── 学习统计区
+    ├── 记录总数
+    ├── 本月新增
+    ├── 关联任务数
+    └── 待审核数
+```
+
+#### 3.3.2 关键模块匹配算法
+
+```python
+def calculate_match_score(key_module1: str, key_module2: str) -> float:
+    """
+    计算关键模块匹配度
+
+    算法：
+    1. 关键词提取
+    2. Jaccard相似度计算
+    3. 返回0-100的匹配度分数
+    """
+    keywords1 = extract_keywords(key_module1)
+    keywords2 = extract_keywords(key_module2)
+    intersection = keywords1 & keywords2
+    union = keywords1 | keywords2
+    return len(intersection) / len(union) * 100
+```
+
+#### 3.3.3 多选任务检测
+
+| 检测时机 | 实现方式 |
+|----------|----------|
+| 导航切换 | 在_on_nav_changed中检测 |
+| 组件 | TaskTrackWidget.get_selected_count() |
+| 触发条件 | selected_count > 1 |
+| 错误提示 | QMessageBox.warning |
+
+### 3.4 任务跟踪模块
+
+#### 3.4.1 表格列宽调整（V2.8新增）
+
+```python
+class ResizableTableWidget(QTableWidget):
+    """可调整列宽的表格组件"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCornerButtonEnabled(False)
+        self.horizontalHeader().setStretchLastSection(True)
+
+    def init_column_resize(self):
+        """初始化列宽拖动功能"""
+        self.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Interactive
+        )
+        # 保存列宽设置到配置文件
+```
+
+#### 3.4.2 通讯录导入（V2.8增强）
+
+| 导入方式 | 说明 |
+|----------|------|
+| 手动输入 | 添加联系人表单 |
+| Excel导入 | 批量导入联系人 |
+| **图片识别(OCR)** | **新增：扫描名片导入** |
+| **TXT文本** | **新增：文本格式批量导入** |
+
+### 3.5 通讯录重名处理（V2.8新增）
+
+```python
+def get_contact_by_name(name: str, employee_id: str = None) -> Contact:
+    """
+    根据姓名和工号获取联系人
+
+    处理逻辑：
+    1. 优先按工号精确匹配
+    2. 工号为空时按姓名模糊匹配
+    3. 多个匹配时返回第一个
+    """
+    if employee_id:
+        return db.query(Contact).filter(
+            Contact.name == name,
+            Contact.employee_id == employee_id
+        ).first()
+    else:
+        return db.query(Contact).filter(
+            Contact.name == name
+        ).first()
+```
+
+### 3.6 推荐库多映射（V2.8新增）
+
+```python
+class RecommendationMapping:
+    """推荐库多映射"""
+
+    def search_recommendations(self, key_module: str) -> List[Recommendation]:
+        """
+        根据关键模块搜索推荐人
+
+        支持：
+        1. 精确匹配
+        2. 模糊匹配
+        3. 多模块关联
+        """
+        recommendations = []
+        for mapping in self.mappings:
+            if key_module in mapping.modules:
+                recommendations.append(mapping)
+        return recommendations
+```
+
+### 3.7 智能学习翻页功能（V2.8新增）
+
+```python
+class LearningPagination:
+    """智能学习翻页功能"""
+
+    def __init__(self, page_size: int = 10):
+        self.page_size = page_size
+        self.current_page = 1
+        self.total_pages = 1
+
+    def get_page_data(self, task_id: str) -> List[SimilarTask]:
+        """获取选中任务的相似任务分页数据"""
+        similar_tasks = self.find_similar_tasks(task_id)
+        total = len(similar_tasks)
+        self.total_pages = (total + self.page_size - 1) // self.page_size
+
+        start = (self.current_page - 1) * self.page_size
+        end = start + self.page_size
+        return similar_tasks[start:end]
+```
+
+### 3.8 日志自动保存（V2.8新增）
+
+```python
+class AutoSaveLog:
+    """日志自动保存"""
+
+    MAX_LOG_SIZE = 10 * 1024  # 10KB
+
+    def add_log(self, operation: str, target: str, operator: str, remark: str):
+        """添加日志"""
+        self.logs.append(LogEntry(...))
+        self.check_and_save()
+
+    def check_and_save(self):
+        """检查日志大小，超过阈值自动保存"""
+        log_content = self.get_log_content()
+        if len(log_content.encode('utf-8')) > self.MAX_LOG_SIZE:
+            self.save_to_file()
+            self.logs = []  # 清空内存中的日志
+
+    def save_to_file(self):
+        """保存日志到文件"""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"logs/log_{timestamp}.txt"
+        # 写入文件
+```
+
+### 3.9 任务导出增强（V2.8新增）
+
+```python
+class TaskExport:
+    """任务导出增强"""
+
+    def export_with_custom_fields(self, task_ids: List[str], fields: List[str]):
+        """
+        自定义字段导出
+
+        新增处理时间计算：
+        处理时间 = 答复时间 - 创建时间
+        """
+        tasks = self.get_tasks(task_ids)
+        for task in tasks:
+            if task.reply_time and task.created_at:
+                task.process_time = task.reply_time - task.created_at
+        return self.to_excel(tasks, fields)
+```
+
+---
+
+## 4. 数据库设计
+
+### 4.1 主要数据表
+
+| 表名 | 说明 |
+|------|------|
+| tasks | 任务信息表 |
+| contacts | 通讯录表（新增employee_id字段用于区分重名） |
+| recommendations | 推荐库表（支持多关键模块映射） |
+| learning_records | 智能学习记录表 |
+| logs | 操作日志表 |
+
+### 4.2 通讯录表结构（V2.8更新）
+
+```sql
+CREATE TABLE contacts (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    employee_id VARCHAR(50),  -- V2.8新增：用于区分重名
+    department VARCHAR(100),
+    phone VARCHAR(50),
+    email VARCHAR(100),
+    created_at DATETIME,
+    updated_at DATETIME
+);
+```
+
+### 4.3 推荐库表结构（V2.8更新）
+
+```sql
+CREATE TABLE recommendations (
+    id INTEGER PRIMARY KEY,
+    person_name VARCHAR(100) NOT NULL,
+    key_modules TEXT,  -- V2.8更新：存储多个关键模块，JSON格式
+    response_template TEXT,
+    department VARCHAR(100),
+    created_at DATETIME,
+    updated_at DATETIME
+);
+```
+
+---
+
+## 5. 接口设计
+
+### 5.1 任务导出接口
+
+```python
+@router.post('/api/tasks/export')
+def export_tasks(request: ExportRequest):
+    """
+    导出任务接口
+
+    请求参数：
+    - task_ids: 任务ID列表
+    - fields: 要导出的字段列表
+    - status: 导出状态筛选（应答中/已答复）
+    """
+    tasks = task_service.get_tasks(
+        ids=request.task_ids,
+        status=request.status
+    )
+
+    # V2.8增强：添加处理时间计算
+    for task in tasks:
+        if task.reply_time and task.created_at:
+            task.process_time = calculate_process_time(task)
+
+    return export_to_excel(tasks, request.fields)
+```
+
+---
+
+## 6. 参考文档
+
+- 界面原型：界面原型V2.12.html
+- 需求文档：市场咨询任务跟踪工具需求文档V2.7.txt
+- 测试用例：市场咨询任务跟踪工具测试用例V3.8.txt
+
+---
+
+**文档结束**
