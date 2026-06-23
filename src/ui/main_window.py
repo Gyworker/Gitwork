@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         self.nav_list.setMaximumWidth(180)
         self.nav_list.currentRowChanged.connect(self._on_nav_changed)
 
-        # 添加导航项 - V1.9界面设计
+        # 添加导航项 - V2.0界面设计：智能学习&应答
         nav_items = [
             ("📋 任务信息", "task"),
             ("📊 任务跟踪", "track"),
@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
             ("📁 数据导入", "import"),
             ("📈 统计分析", "statistics"),
             ("📚 推荐库", "library"),
-            ("📚 学习积累", "learning"),  # V1.9新增
+            ("🧠 智能学习&应答", "learning"),  # V2.0更新：原"学习积累"
             ("💾 自动备份", "backup"),    # V1.9新增
             ("🎨 主题设置", "theme"),     # V1.9新增
         ]
@@ -93,9 +93,9 @@ class MainWindow(QMainWindow):
         self.nav_items_map = {}
         for item_text, item_id in nav_items:
             item = QListWidgetItem(item_text)
-            # 设置不同颜色区分新增功能
+            # 设置不同颜色区分功能模块
             if item_id in ["learning"]:
-                item.setForeground(Qt.darkGreen)
+                item.setForeground(Qt.darkBlue)  # V2.0更新：蓝色强调智能学习功能
             elif item_id in ["backup"]:
                 item.setForeground(Qt.darkOrange)
             elif item_id in ["theme"]:
@@ -135,10 +135,10 @@ class MainWindow(QMainWindow):
             self.library_widget.setAlignment(Qt.AlignCenter)
 
         try:
-            from .widgets.learning_widget import LearningWidget
-            self.learning_widget = LearningWidget()
+            from .widgets.learning_widget import SmartLearningWidget
+            self.learning_widget = SmartLearningWidget()
         except ImportError:
-            self.learning_widget = QLabel("📚 学习积累功能开发中...")
+            self.learning_widget = QLabel("🧠 智能学习&应答功能开发中...")
             self.learning_widget.setAlignment(Qt.AlignCenter)
 
         try:
@@ -186,6 +186,7 @@ class MainWindow(QMainWindow):
         self.task_info_widget.task_selected.connect(self._on_task_selected)
         self.task_info_widget.task_created.connect(self._on_task_created)
         self.task_info_widget.task_updated.connect(self._on_task_updated)
+        self.task_info_widget.task_context_changed.connect(self._on_task_context_changed)  # V2.0新增
 
         # 任务跟踪组件信号
         self.task_track_widget.track_record_added.connect(self._on_track_record_added)
@@ -210,6 +211,15 @@ class MainWindow(QMainWindow):
         """任务更新事件"""
         logger.info(f"任务更新: {task_id}")
         self.statusBar().showMessage(f"任务更新成功: {task_id}", 3000)
+
+    def _on_task_context_changed(self, task_id: str, key_module: str) -> None:
+        """V2.0新增：任务上下文变化事件（用于智能学习组件）"""
+        logger.info(f"任务上下文变化: task_id={task_id}, key_module={key_module}")
+        self.statusBar().showMessage(f"任务上下文已更新: {task_id} - {key_module}", 3000)
+
+        # 将任务上下文传递给智能学习组件
+        if hasattr(self.learning_widget, 'set_task_context'):
+            self.learning_widget.set_task_context(task_id, key_module)
 
     def _on_track_record_added(self, record_id: str) -> None:
         """跟踪记录添加事件"""
@@ -344,10 +354,10 @@ class MainWindow(QMainWindow):
         backup_btn.setStyleSheet("background-color: #FF9800; color: white; border: none;")
         toolbar.addWidget(backup_btn)
 
-        # 学习积累按钮 - V1.9新增
-        learning_btn = QPushButton("📚 学习积累")
+        # 智能学习&应答按钮 - V2.0更新
+        learning_btn = QPushButton("🧠 智能学习")
         learning_btn.setMaximumWidth(100)
-        learning_btn.setStyleSheet("background-color: #4CAF50; color: white; border: none;")
+        learning_btn.setStyleSheet("background-color: #1565C0; color: white; border: none;")
         toolbar.addWidget(learning_btn)
 
         toolbar.addSeparator()

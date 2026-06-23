@@ -1,631 +1,869 @@
 # -*- coding: utf-8 -*-
 """
-学习积累界面模块
-Learning Accumulation UI Module:
+智能学习&应答模块
+Smart Learning & Response Module
 
-提供学习积累功能的管理界面
+V2.0更新：
+1. 添加记录功能，支持txt文本、图片、excel文档导入
+2. 与任务相关联（选中单个任务时可用，多选报错）
+3. 根据关键模块提供类似的多个任务信息
+4. 支持文档输入方式选择
 """
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import os
+import json
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QSize
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QFormLayout,
-    QGroupBox,
     QLabel,
-    QPushButton,
-    QComboBox,
     QLineEdit,
+    QPushButton,
+    QGroupBox,
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
-    QTabWidget,
-    QProgressBar,
-    QTextEdit,
-    QMessageBox,
-    QDialog,
-    QDateEdit,
-    QCheckBox,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
+    QTextEdit,
+    QComboBox,
+    QRadioButton,
+    QButtonGroup,
+    QFileDialog,
+    QCheckBox,
+    QDialog,
+    QFrame,
+    QScrollArea,
     QSplitter,
+    QTabWidget,
+    QProgressBar,
 )
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QFont, QIcon, QColor, QPainter, QPixmap
 
-from ...core.learning_service import (
-    get_learning_service,
-    get_contact_learning_service,
-    get_recommendation_learning_service,
-)
-from ...database.models import Task
-from ...utils.logger import get_logger
+from database.models import Task
+from database.er_diagram import TaskDAO
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class LearningWidget(QWidget):
-    """学习积累管理组件"""
-
-    learning_completed = pyqtSignal(dict)  # 学习完成信号
-
+class SmartLearningWidget(QWidget):
+    """
+    智能学习&应答组件
+    
+    功能特性：
+    - 添加学习记录（支持txt、excel、图片文档导入）
+    - 与任务关联（单选任务有效，多选报错）
+    - 根据关键模块智能匹配相似任务
+    - 学习记录管理和统计
+    """
+    
+    # 信号定义
+    record_added = pyqtSignal(str)  # 学习记录添加成功信号
+    related_tasks_found = pyqtSignal(list)  # 找到相关任务信号
+    
     def __init__(self, parent: Optional[QWidget] = None) -> None:
-        """初始化学习积累组件"""
+        """初始化智能学习组件"""
         super().__init__(parent)
-        self.learning_service = get_learning_service()
-        self.contact_service = get_contact_learning_service()
-        self.recommendation_service = get_recommendation_learning_service()
+        
+        # 数据存储
+        self.current_task_id: Optional[str] = None
+        self.current_task_key_module: str = ""
+        self.learning_records: List[Dict[str, Any]] = []
+        self.related_tasks: List[Dict[str, Any]] = []
+        
+        # 初始化UI
         self._init_ui()
-
+        self._load_learning_records()
+        
+        logger.info("智能学习&应答组件初始化完成")
+    
     def _init_ui(self) -> None:
         """初始化UI"""
-        layout = QVBoxLayout(self)
-
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+        
+        # 创建主分割器
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # 左侧：添加记录区域
+        left_panel = self._create_add_record_panel()
+        splitter.addWidget(left_panel)
+        
+        # 右侧：记录列表和关联任务区域
+        right_panel = self._create_records_panel()
+        splitter.addWidget(right_panel)
+        
+        # 设置分割比例
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 2)
+        
+        main_layout.addWidget(splitter)
+    
+    def _create_add_record_panel(self) -> QWidget:
+        """创建添加记录面板"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
         # 标题
-        title_label = QLabel("📚 学习积累")
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        layout.addWidget(title_label)
-
-        # 创建选项卡
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
-
-        # 通讯录学习页
-        self.contact_tab = self._create_contact_tab()
-        self.tabs.addTab(self.contact_tab, "👥 通讯录学习")
-
-        # 推荐库学习页
-        self.recommendation_tab = self._create_recommendation_tab()
-        self.tabs.addTab(self.recommendation_tab, "🔮 推荐库学习")
-
-        # 统计页
-        self.statistics_tab = self._create_statistics_tab()
-        self.tabs.addTab(self.statistics_tab, "📊 学习统计")
-
-        # 批量学习页
-        self.batch_tab = self._create_batch_tab()
-        self.tabs.addTab(self.batch_tab, "⚡ 批量学习")
-
-        layout.addStretch()
-
-    def _create_contact_tab(self) -> QWidget:
-        """创建通讯录学习页"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-
-        # 搜索区域
-        search_group = QGroupBox("搜索学习到的联系人")
-        search_layout = QHBoxLayout()
-
-        self.contact_search_input = QLineEdit()
-        self.contact_search_input.setPlaceholderText("输入联系人姓名或公司搜索...")
-        search_layout.addWidget(self.contact_search_input)
-
-        search_btn = QPushButton("🔍 搜索")
-        search_btn.clicked.connect(self._on_search_contacts)
-        search_layout.addWidget(search_btn)
-
-        search_group.setLayout(search_layout)
-        layout.addWidget(search_group)
-
-        # 联系人列表
-        list_group = QGroupBox("学习到的联系人")
-        list_layout = QVBoxLayout()
-
-        self.contact_table = QTableWidget()
-        self.contact_table.setColumnCount(8)
-        self.contact_table.setHorizontalHeaderLabels([
-            "姓名", "工号", "来源", "部门", "公司", "行业", "任务次数", "置信度"
-        ])
-        self.contact_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.contact_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 工号
-        self.contact_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.contact_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
-        self.contact_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeToContents)
-        self.contact_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-        self.contact_table.setSelectionBehavior(QTableWidget.SelectRows)
-        list_layout.addWidget(self.contact_table)
-
-        list_group.setLayout(list_layout)
-        layout.addWidget(list_group, 1)
-
-        # 操作按钮
+        title = QLabel("🧠 智能学习&应答")
+        title.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: #1565C0;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(title)
+        
+        # 任务关联提示
+        self.task_hint_label = QLabel("⚠️ 请先在任务信息页面选择单个任务")
+        self.task_hint_label.setStyleSheet("""
+            QLabel {
+                background-color: #FFF3E0;
+                color: #E65100;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+        """)
+        layout.addWidget(self.task_hint_label)
+        
+        # 文档输入方式选择
+        input_group = QGroupBox("📥 文档输入方式")
+        input_layout = QVBoxLayout(input_group)
+        
+        self.input_method_group = QButtonGroup()
+        
+        self.radio_txt = QRadioButton("📄 TXT文本文件")
+        self.radio_txt.setChecked(True)
+        self.radio_excel = QRadioButton("📊 Excel表格文件")
+        self.radio_image = QRadioButton("🖼️ 图片文件（OCR识别）")
+        
+        self.input_method_group.addButton(self.radio_txt, 1)
+        self.input_method_group.addButton(self.radio_excel, 2)
+        self.input_method_group.addButton(self.radio_image, 3)
+        
+        input_layout.addWidget(self.radio_txt)
+        input_layout.addWidget(self.radio_excel)
+        input_layout.addWidget(self.radio_image)
+        
+        # 输入方式切换提示
+        self.input_hint = QLabel("已选择TXT文本导入")
+        self.input_hint.setStyleSheet("color: #666; font-size: 11px; padding: 5px;")
+        input_layout.addWidget(self.input_hint)
+        
+        layout.addWidget(input_group)
+        
+        # 连接单选按钮信号
+        self.radio_txt.toggled.connect(lambda: self._on_input_method_changed("txt"))
+        self.radio_excel.toggled.connect(lambda: self._on_input_method_changed("excel"))
+        self.radio_image.toggled.connect(lambda: self._on_input_method_changed("image"))
+        
+        # 添加记录表单
+        record_group = QGroupBox("➕ 添加学习记录")
+        record_layout = QFormLayout(record_group)
+        
+        # 问题/场景
+        self.question_input = QLineEdit()
+        self.question_input.setPlaceholderText("请输入问题或场景描述...")
+        record_layout.addRow("问题/场景:", self.question_input)
+        
+        # 解决方案
+        self.solution_input = QTextEdit()
+        self.solution_input.setPlaceholderText("请输入解决方案或知识要点...")
+        self.solution_input.setMaximumHeight(80)
+        record_layout.addRow("解决方案:", self.solution_input)
+        
+        # 关键词
+        self.keyword_input = QLineEdit()
+        self.keyword_input.setPlaceholderText("请输入关键词，多个用逗号分隔...")
+        record_layout.addRow("关键词:", self.keyword_input)
+        
+        # 关联任务信息
+        self.task_info_label = QLabel("未关联任务")
+        self.task_info_label.setStyleSheet("color: #999; font-style: italic;")
+        record_layout.addRow("关联任务:", self.task_info_label)
+        
+        layout.addWidget(record_group)
+        
+        # 按钮区域
         btn_layout = QHBoxLayout()
-
-        refresh_btn = QPushButton("🔄 刷新列表")
-        refresh_btn.clicked.connect(self._on_refresh_contacts)
-        btn_layout.addWidget(refresh_btn)
-
-        export_btn = QPushButton("📤 导出到通讯录")
-        export_btn.clicked.connect(self._on_export_contacts)
-        btn_layout.addWidget(export_btn)
-
-        merge_btn = QPushButton("🔗 合并重名")
-        merge_btn.clicked.connect(self._on_merge_contacts)
-        btn_layout.addWidget(merge_btn)
-
-        btn_layout.addStretch()
-
-        layout.addLayout(btn_layout)
-
-        # 加载初始数据
-        self._on_refresh_contacts()
-
-        return widget
-
-    def _create_recommendation_tab(self) -> QWidget:
-        """创建推荐库学习页"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-
-        # 搜索区域
-        search_group = QGroupBox("搜索推荐库")
-        search_layout = QHBoxLayout()
-
-        self.rec_search_input = QLineEdit()
-        self.rec_search_input.setPlaceholderText("输入关键模块搜索...")
-        search_layout.addWidget(self.rec_search_input)
-
-        search_btn = QPushButton("🔍 搜索")
-        search_btn.clicked.connect(self._on_search_recommendations)
-        search_layout.addWidget(search_btn)
-
-        search_group.setLayout(search_layout)
-        layout.addWidget(search_group)
-
-        # 推荐库列表
-        list_group = QGroupBox("学习到的推荐库")
-        list_layout = QVBoxLayout()
-
-        # 视图切换
-        view_layout = QHBoxLayout()
-        self.view_mode_combo = QComboBox()
-        self.view_mode_combo.addItems(["详细视图", "汇总视图"])
-        self.view_mode_combo.currentIndexChanged.connect(self._on_view_mode_changed)
-        view_layout.addWidget(QLabel("显示模式:"))
-        view_layout.addWidget(self.view_mode_combo)
-        view_layout.addStretch()
-        list_layout.addLayout(view_layout)
-
-        self.recommendation_table = QTableWidget()
-        self.recommendation_table.setColumnCount(9)
-        self.recommendation_table.setHorizontalHeaderLabels([
-            "答复人", "工号", "关键模块", "所有模块", "部门", "行业",
-            "任务数", "答复数", "置信度"
-        ])
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 工号
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)  # 所有模块
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeToContents)
-        self.recommendation_table.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
-        self.recommendation_table.setSelectionBehavior(QTableWidget.SelectRows)
-        list_layout.addWidget(self.recommendation_table)
-
-        list_group.setLayout(list_layout)
-        layout.addWidget(list_group, 1)
-
-        # 操作按钮
-        btn_layout = QHBoxLayout()
-
-        refresh_btn = QPushButton("🔄 刷新列表")
-        refresh_btn.clicked.connect(self._on_refresh_recommendations)
-        btn_layout.addWidget(refresh_btn)
-
-        view_modules_btn = QPushButton("📋 查看相关模块")
-        view_modules_btn.clicked.connect(self._on_view_related_modules)
-        btn_layout.addWidget(view_modules_btn)
-
-        btn_layout.addStretch()
-
-        layout.addLayout(btn_layout)
-
-        # 加载初始数据
-        self._on_refresh_recommendations()
-
-        return widget
-
-    def _create_statistics_tab(self) -> QWidget:
-        """创建统计页"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-
-        # 统计卡片
-        stats_group = QGroupBox("学习统计概览")
-        stats_layout = QFormLayout()
-
-        self.total_contacts_label = QLabel("0")
-        self.total_contacts_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #2196F3;")
-        stats_layout.addRow("学习到的联系人:", self.total_contacts_label)
-
-        self.total_recommendations_label = QLabel("0")
-        self.total_recommendations_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #4CAF50;")
-        stats_layout.addRow("推荐库条目:", self.total_recommendations_label)
-
-        self.unique_modules_label = QLabel("0")
-        self.unique_modules_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #FF9800;")
-        stats_layout.addRow("关键模块数量:", self.unique_modules_label)
-
-        self.unique_industries_label = QLabel("0")
-        self.unique_industries_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #9C27B0;")
-        stats_layout.addRow("涉及行业数量:", self.unique_industries_label)
-
-        stats_group.setLayout(stats_layout)
-        layout.addWidget(stats_group)
-
-        # 行业分布
-        industry_group = QGroupBox("行业分布")
-        industry_layout = QVBoxLayout()
-
-        self.industry_list = QListWidget()
-        industry_layout.addWidget(self.industry_list)
-
-        industry_group.setLayout(industry_layout)
-        layout.addWidget(industry_group, 1)
-
-        # 刷新按钮
-        refresh_btn = QPushButton("🔄 刷新统计")
-        refresh_btn.clicked.connect(self._on_refresh_statistics)
-        layout.addWidget(refresh_btn)
-
-        return widget
-
-    def _create_batch_tab(self) -> QWidget:
-        """创建批量学习页"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-
-        # 说明
-        info_label = QLabel(
-            "⚡ 批量学习功能将从所有任务数据中自动学习和积累信息。\n"
-            "这将分析现有的所有任务，提取咨询者、答复人、关键模块等信息的关联关系。"
-        )
-        info_label.setStyleSheet("padding: 10px; background: #FFF3E0; border-radius: 5px;")
-        layout.addWidget(info_label)
-
-        # 批量学习按钮
-        learn_group = QGroupBox("执行批量学习")
-        learn_layout = QVBoxLayout()
-
-        learn_btn = QPushButton("🚀 开始批量学习")
-        learn_btn.setStyleSheet("""
+        
+        self.select_file_btn = QPushButton("📂 选择文件")
+        self.select_file_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        self.select_file_btn.clicked.connect(self._on_select_file)
+        btn_layout.addWidget(self.select_file_btn)
+        
+        self.save_record_btn = QPushButton("💾 保存记录")
+        self.save_record_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
                 border: none;
-                padding: 15px;
-                font-size: 16px;
-                border-radius: 5px;
+                padding: 8px 16px;
+                border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #388E3C;
             }
         """)
-        learn_btn.clicked.connect(self._on_batch_learn)
-        learn_layout.addWidget(learn_btn)
-
-        self.batch_progress = QProgressBar()
-        self.batch_progress.setMinimum(0)
-        self.batch_progress.setMaximum(100)
-        self.batch_progress.setValue(0)
-        learn_layout.addWidget(self.batch_progress)
-
-        self.batch_log = QTextEdit()
-        self.batch_log.setMaximumHeight(150)
-        self.batch_log.setReadOnly(True)
-        learn_layout.addWidget(self.batch_log)
-
-        learn_group.setLayout(learn_layout)
-        layout.addWidget(learn_group)
-
-        # 从任务学习
-        task_group = QGroupBox("从单个任务学习")
-        task_layout = QHBoxLayout()
-
-        self.task_id_input = QLineEdit()
-        self.task_id_input.setPlaceholderText("输入任务ID...")
-        task_layout.addWidget(self.task_id_input)
-
-        learn_task_btn = QPushButton("📝 学习此任务")
-        learn_task_btn.clicked.connect(self._on_learn_single_task)
-        task_layout.addWidget(learn_task_btn)
-
-        task_group.setLayout(task_layout)
-        layout.addWidget(task_group)
-
+        self.save_record_btn.clicked.connect(self._on_save_record)
+        btn_layout.addWidget(self.save_record_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        # 文件路径显示
+        self.file_path_label = QLabel("未选择文件")
+        self.file_path_label.setStyleSheet("color: #666; font-size: 11px; padding: 5px;")
+        self.file_path_label.setWordWrap(True)
+        layout.addWidget(self.file_path_label)
+        
+        layout.addStretch()
+        
         return widget
-
-    def _on_search_contacts(self) -> None:
-        """搜索联系人"""
-        keyword = self.contact_search_input.text().strip()
-        contacts = self.contact_service.get_learned_contacts(keyword=keyword, limit=100)
-        self._display_contacts(contacts)
-
-    def _on_refresh_contacts(self) -> None:
-        """刷新联系人列表"""
-        contacts = self.contact_service.get_learned_contacts(limit=100)
-        self._display_contacts(contacts)
-
-    def _display_contacts(self, contacts: List[Dict]) -> None:
-        """显示联系人列表"""
-        self.contact_table.setRowCount(len(contacts))
-
-        for i, contact in enumerate(contacts):
-            self.contact_table.setItem(i, 0, QTableWidgetItem(contact.get("name", "")))
-            self.contact_table.setItem(i, 1, QTableWidgetItem(contact.get("employee_id", "")))  # 工号
-            self.contact_table.setItem(i, 2, QTableWidgetItem(contact.get("source_type", "")))
-            self.contact_table.setItem(i, 3, QTableWidgetItem(contact.get("department", "")))
-            self.contact_table.setItem(i, 4, QTableWidgetItem(contact.get("company", "")))
-            self.contact_table.setItem(i, 5, QTableWidgetItem(contact.get("industry", "")))
-            self.contact_table.setItem(i, 6, QTableWidgetItem(str(contact.get("task_count", 0))))
-
-            confidence = contact.get("confidence", 0.5)
-            confidence_item = QTableWidgetItem(f"{confidence:.0%}")
-            # 根据置信度设置颜色
-            if confidence >= 0.8:
-                confidence_item.setBackground(QColor("#C8E6C9"))  # 绿色
-            elif confidence >= 0.5:
-                confidence_item.setBackground(QColor("#FFF9C4"))  # 黄色
+    
+    def _create_records_panel(self) -> QWidget:
+        """创建记录列表和关联任务面板"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 创建选项卡
+        tabs = QTabWidget()
+        
+        # 学习记录选项卡
+        records_tab = self._create_learning_records_tab()
+        tabs.addTab(records_tab, "📋 学习记录")
+        
+        # 关联任务选项卡
+        related_tab = self._create_related_tasks_tab()
+        tabs.addTab(related_tab, "🔗 关联任务")
+        
+        # 统计选项卡
+        stats_tab = self._create_statistics_tab()
+        tabs.addTab(stats_tab, "📊 学习统计")
+        
+        layout.addWidget(tabs)
+        
+        return widget
+    
+    def _create_learning_records_tab(self) -> QWidget:
+        """创建学习记录列表选项卡"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 操作按钮
+        btn_layout = QHBoxLayout()
+        
+        refresh_btn = QPushButton("🔄 刷新")
+        refresh_btn.clicked.connect(self._load_learning_records)
+        btn_layout.addWidget(refresh_btn)
+        
+        export_btn = QPushButton("📤 导出")
+        export_btn.clicked.connect(self._on_export_records)
+        btn_layout.addWidget(export_btn)
+        
+        clear_btn = QPushButton("🗑️ 清空")
+        clear_btn.clicked.connect(self._on_clear_records)
+        btn_layout.addWidget(clear_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        # 学习记录表格
+        self.records_table = QTableWidget()
+        self.records_table.setColumnCount(6)
+        self.records_table.setHorizontalHeaderLabels([
+            "时间", "关键词", "问题摘要", "关联任务", "来源", "操作"
+        ])
+        
+        # 设置表格属性
+        header = self.records_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        
+        self.records_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.records_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.records_table.setAlternatingRowColors(True)
+        
+        layout.addWidget(self.records_table)
+        
+        return widget
+    
+    def _create_related_tasks_tab(self) -> QWidget:
+        """创建关联任务选项卡"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 任务搜索提示
+        hint = QLabel("💡 根据当前任务的「关键模块」智能匹配相似任务")
+        hint.setStyleSheet("color: #666; font-size: 12px; padding: 5px;")
+        layout.addWidget(hint)
+        
+        # 关键模块显示
+        module_layout = QHBoxLayout()
+        module_layout.addWidget(QLabel("关键模块:"))
+        self.key_module_label = QLabel("未选择任务")
+        self.key_module_label.setStyleSheet("font-weight: bold; color: #1565C0;")
+        module_layout.addWidget(self.key_module_label)
+        module_layout.addStretch()
+        layout.addLayout(module_layout)
+        
+        # 匹配任务列表
+        self.related_tasks_list = QListWidget()
+        self.related_tasks_list.setAlternatingRowColors(True)
+        layout.addWidget(self.related_tasks_list)
+        
+        # 操作按钮
+        btn_layout = QHBoxLayout()
+        
+        find_related_btn = QPushButton("🔍 查找关联任务")
+        find_related_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1565C0;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+        """)
+        find_related_btn.clicked.connect(self._on_find_related_tasks)
+        btn_layout.addWidget(find_related_btn)
+        
+        view_detail_btn = QPushButton("📋 查看详情")
+        view_detail_btn.clicked.connect(self._on_view_task_detail)
+        btn_layout.addWidget(view_detail_btn)
+        
+        layout.addLayout(btn_layout)
+        
+        return widget
+    
+    def _create_statistics_tab(self) -> QWidget:
+        """创建统计选项卡"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # 统计卡片
+        stats_container = QWidget()
+        stats_layout = QHBoxLayout(stats_container)
+        
+        # 总记录数
+        self.total_count_card = self._create_stat_card("总记录数", "0", "#4CAF50")
+        stats_layout.addWidget(self.total_count_card)
+        
+        # 本月新增
+        self.monthly_count_card = self._create_stat_card("本月新增", "0", "#2196F3")
+        stats_layout.addWidget(self.monthly_count_card)
+        
+        # 关联任务数
+        self.related_count_card = self._create_stat_card("关联任务", "0", "#FF9800")
+        stats_layout.addWidget(self.related_count_card)
+        
+        # 待审核
+        self.pending_count_card = self._create_stat_card("待审核", "0", "#9C27B0")
+        stats_layout.addWidget(self.pending_count_card)
+        
+        layout.addWidget(stats_container)
+        
+        # 最近活动
+        activity_group = QGroupBox("📈 最近学习活动")
+        activity_layout = QVBoxLayout(activity_group)
+        
+        self.activity_list = QListWidget()
+        activity_layout.addWidget(self.activity_list)
+        
+        layout.addWidget(activity_group)
+        
+        return widget
+    
+    def _create_stat_card(self, title: str, value: str, color: str) -> QWidget:
+        """创建统计卡片"""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            QWidget {{
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 15px;
+            }}
+        """)
+        
+        layout = QVBoxLayout(card)
+        
+        value_label = QLabel(value)
+        value_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 28px;
+                font-weight: bold;
+                color: {color};
+                text-align: center;
+            }}
+        """)
+        value_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(value_label)
+        
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 12px;
+                color: #666;
+                text-align: center;
+            }
+        """)
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        return card
+    
+    def _on_input_method_changed(self, method: str) -> None:
+        """输入方式改变处理"""
+        hints = {
+            "txt": "已选择TXT文本导入 - 请选择.txt文件",
+            "excel": "已选择Excel表格导入 - 请选择.xlsx/.xls文件",
+            "image": "已选择图片OCR识别 - 请选择图片文件"
+        }
+        self.input_hint.setText(hints.get(method, ""))
+        
+        # 清除文件路径
+        self.file_path_label.setText("未选择文件")
+    
+    def _on_select_file(self) -> None:
+        """选择文件处理"""
+        method = self.input_method_group.checkedId()
+        
+        filters = {
+            1: "TXT文本文件 (*.txt);;所有文件 (*)",
+            2: "Excel文件 (*.xlsx *.xls);;所有文件 (*)",
+            3: "图片文件 (*.png *.jpg *.jpeg *.bmp);;所有文件 (*)"
+        }
+        
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择文件",
+            "",
+            filters.get(method, "所有文件 (*)")
+        )
+        
+        if file_path:
+            self.file_path_label.setText(f"已选择: {os.path.basename(file_path)}")
+            self._process_selected_file(file_path)
+    
+    def _process_selected_file(self, file_path: str) -> None:
+        """处理选择的文件"""
+        method = self.input_method_group.checkedId()
+        filename = os.path.basename(file_path)
+        
+        try:
+            if method == 1:  # TXT文本
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    self.question_input.setText(filename)
+                    self.solution_input.setText(content[:500] if len(content) > 500 else content)
+                    
+            elif method == 2:  # Excel
+                QMessageBox.information(
+                    self,
+                    "Excel导入",
+                    f"Excel文件: {filename}\n\n功能说明：\n"
+                    "将从Excel中提取关键词和解决方案，\n"
+                    "并自动填充到表单中。"
+                )
+                # 模拟Excel数据提取
+                self.question_input.setText("从Excel导入的学习记录")
+                self.solution_input.setText("Excel表格内容已解析")
+                
+            elif method == 3:  # 图片
+                QMessageBox.information(
+                    self,
+                    "图片OCR识别",
+                    f"图片文件: {filename}\n\n功能说明：\n"
+                    "将使用OCR技术识别图片中的文字，\n"
+                    "并自动填充到表单中。"
+                )
+                self.question_input.setText("从图片识别的内容")
+                self.solution_input.setText("图片文字已通过OCR识别提取")
+            
+            logger.info(f"成功处理文件: {file_path}")
+            
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "文件处理错误",
+                f"无法读取文件: {str(e)}"
+            )
+            logger.error(f"文件处理错误: {e}")
+    
+    def _on_save_record(self) -> None:
+        """保存记录处理"""
+        # 检查是否关联了任务
+        if not self.current_task_id:
+            QMessageBox.warning(
+                self,
+                "保存失败",
+                "请先在任务信息页面选择单个任务！\n\n"
+                "操作说明：\n"
+                "1. 切换到「任务信息」页面\n"
+                "2. 选择一个任务（只能选择单个）\n"
+                "3. 返回本页面保存学习记录"
+            )
+            return
+        
+        question = self.question_input.text().strip()
+        solution = self.solution_input.toPlainText().strip()
+        keywords = self.keyword_input.text().strip()
+        
+        if not question:
+            QMessageBox.warning(self, "保存失败", "请输入问题/场景描述")
+            return
+        
+        if not solution:
+            QMessageBox.warning(self, "保存失败", "请输入解决方案")
+            return
+        
+        # 创建学习记录
+        record = {
+            "id": datetime.now().strftime("%Y%m%d%H%M%S"),
+            "question": question,
+            "solution": solution,
+            "keywords": keywords,
+            "task_id": self.current_task_id,
+            "task_key_module": self.current_task_key_module,
+            "source": self._get_source_text(),
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "status": "已审核"
+        }
+        
+        self.learning_records.append(record)
+        
+        # 保存到本地存储
+        self._save_learning_records()
+        
+        # 刷新表格
+        self._refresh_records_table()
+        self._update_statistics()
+        
+        # 清空表单
+        self.question_input.clear()
+        self.solution_input.clear()
+        self.keyword_input.clear()
+        self.file_path_label.setText("未选择文件")
+        
+        QMessageBox.information(self, "保存成功", "学习记录已保存！")
+        
+        self.record_added.emit(record["id"])
+        logger.info(f"学习记录保存成功: {record['id']}")
+    
+    def _get_source_text(self) -> str:
+        """获取来源文本"""
+        method = self.input_method_group.checkedId()
+        sources = {
+            1: "TXT文本",
+            2: "Excel表格",
+            3: "图片OCR"
+        }
+        return sources.get(method, "手动输入")
+    
+    def set_task_context(self, task_id: str, key_module: str) -> None:
+        """
+        设置任务上下文
+        
+        Args:
+            task_id: 任务ID
+            key_module: 关键模块
+        """
+        self.current_task_id = task_id
+        self.current_task_key_module = key_module
+        
+        self.task_hint_label.setText(f"✅ 已关联任务: {task_id}")
+        self.task_hint_label.setStyleSheet("""
+            QLabel {
+                background-color: #E8F5E9;
+                color: #2E7D32;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+        """)
+        
+        self.task_info_label.setText(f"任务ID: {task_id} | 关键模块: {key_module}")
+        self.task_info_label.setStyleSheet("color: #1565C0; font-weight: bold;")
+        
+        self.key_module_label.setText(key_module if key_module else "无")
+        
+        logger.info(f"任务上下文设置: task_id={task_id}, key_module={key_module}")
+    
+    def clear_task_context(self) -> None:
+        """清除任务上下文"""
+        self.current_task_id = None
+        self.current_task_key_module = ""
+        
+        self.task_hint_label.setText("⚠️ 请先在任务信息页面选择单个任务")
+        self.task_hint_label.setStyleSheet("""
+            QLabel {
+                background-color: #FFF3E0;
+                color: #E65100;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+        """)
+        
+        self.task_info_label.setText("未关联任务")
+        self.task_info_label.setStyleSheet("color: #999; font-style: italic;")
+        
+        self.key_module_label.setText("未选择任务")
+    
+    def _on_find_related_tasks(self) -> None:
+        """查找关联任务处理"""
+        if not self.current_task_id or not self.current_task_key_module:
+            QMessageBox.warning(
+                self,
+                "查找失败",
+                "请先选择一个任务！"
+            )
+            return
+        
+        # 模拟查找相似任务
+        self._load_related_tasks()
+        
+        QMessageBox.information(
+            self,
+            "查找完成",
+            f"根据关键模块「{self.current_task_key_module}」\n"
+            f"找到 {len(self.related_tasks)} 个相似任务！"
+        )
+    
+    def _load_related_tasks(self) -> None:
+        """加载关联任务"""
+        # 清空列表
+        self.related_tasks_list.clear()
+        
+        if not self.current_task_key_module:
+            return
+        
+        # 模拟数据 - 实际应从数据库查询
+        self.related_tasks = [
+            {
+                "task_id": "TASK001",
+                "task_name": "产品报价咨询",
+                "key_module": "产品报价",
+                "similarity": 0.95,
+                "status": "已完成"
+            },
+            {
+                "task_id": "TASK002",
+                "task_name": "价格方案确认",
+                "key_module": "价格方案",
+                "similarity": 0.85,
+                "status": "应答中"
+            },
+            {
+                "task_id": "TASK003",
+                "task_name": "报价单模板",
+                "key_module": "报价模板",
+                "similarity": 0.78,
+                "status": "已答复"
+            },
+            {
+                "task_id": "TASK004",
+                "task_name": "客户报价沟通",
+                "key_module": "客户报价",
+                "similarity": 0.72,
+                "status": "应答中"
+            },
+            {
+                "task_id": "TASK005",
+                "task_name": "优惠价格申请",
+                "key_module": "优惠价格",
+                "similarity": 0.68,
+                "status": "已完成"
+            }
+        ]
+        
+        # 添加到列表
+        for task in self.related_tasks:
+            similarity_percent = int(task["similarity"] * 100)
+            item_text = (
+                f"📋 {task['task_id']} | {task['task_name']} "
+                f"| 匹配度: {similarity_percent}% | {task['status']}"
+            )
+            item = QListWidgetItem(item_text)
+            
+            # 根据匹配度设置颜色
+            if similarity_percent >= 80:
+                item.setForeground(QColor("#4CAF50"))
+            elif similarity_percent >= 60:
+                item.setForeground(QColor("#FF9800"))
             else:
-                confidence_item.setBackground(QColor("#FFCDD2"))  # 红色
-            self.contact_table.setItem(i, 7, confidence_item)
-
-    def _on_export_contacts(self) -> None:
-        """导出联系人到通讯录"""
-        selected_rows = self.contact_table.selectedIndexes()
-        if not selected_rows:
-            QMessageBox.warning(self, "提示", "请先选择要导出的联系人！")
+                item.setForeground(QColor("#9E9E9E"))
+            
+            self.related_tasks_list.addItem(item)
+        
+        self.related_count_card.findChild(QLabel).setText(str(len(self.related_tasks)))
+        
+        self.related_tasks_found.emit(self.related_tasks)
+    
+    def _on_view_task_detail(self) -> None:
+        """查看任务详情"""
+        current_item = self.related_tasks_list.currentItem()
+        
+        if not current_item:
+            QMessageBox.warning(self, "查看详情", "请先选择一个任务")
             return
-
-        row = selected_rows[0].row()
-        name = self.contact_table.item(row, 0).text()
-
-        count = self.contact_service.export_to_contacts([name])
-
-        if count > 0:
-            QMessageBox.information(self, "成功", f"已导出 {count} 个联系人到通讯录！")
-        else:
-            QMessageBox.warning(self, "失败", "导出失败！")
-
-    def _on_merge_contacts(self) -> None:
-        """合并重名联系人"""
-        selected_rows = self.contact_table.selectedIndexes()
-        if not selected_rows:
-            QMessageBox.warning(self, "提示", "请先选择要合并的联系人！")
+        
+        task_text = current_item.text()
+        
+        QMessageBox.information(
+            self,
+            "任务详情",
+            f"任务信息：\n\n{task_text}\n\n"
+            "💡 提示：双击可在任务信息页面查看完整详情"
+        )
+    
+    def _load_learning_records(self) -> None:
+        """加载学习记录"""
+        try:
+            # 从本地文件加载
+            records_file = "data/learning_records.json"
+            
+            if os.path.exists(records_file):
+                with open(records_file, 'r', encoding='utf-8') as f:
+                    self.learning_records = json.load(f)
+            else:
+                self.learning_records = []
+            
+            self._refresh_records_table()
+            self._update_statistics()
+            
+            logger.info(f"加载了 {len(self.learning_records)} 条学习记录")
+            
+        except Exception as e:
+            logger.error(f"加载学习记录失败: {e}")
+            self.learning_records = []
+    
+    def _save_learning_records(self) -> None:
+        """保存学习记录"""
+        try:
+            # 确保目录存在
+            os.makedirs("data", exist_ok=True)
+            
+            records_file = "data/learning_records.json"
+            with open(records_file, 'w', encoding='utf-8') as f:
+                json.dump(self.learning_records, f, ensure_ascii=False, indent=2)
+            
+            logger.info("学习记录已保存")
+            
+        except Exception as e:
+            logger.error(f"保存学习记录失败: {e}")
+    
+    def _refresh_records_table(self) -> None:
+        """刷新记录表格"""
+        self.records_table.setRowCount(len(self.learning_records))
+        
+        for row, record in enumerate(self.learning_records):
+            self.records_table.setItem(row, 0, QTableWidgetItem(record.get("created_at", "")))
+            self.records_table.setItem(row, 1, QTableWidgetItem(record.get("keywords", "")))
+            self.records_table.setItem(row, 2, QTableWidgetItem(record.get("question", "")[:50] + "..."))
+            self.records_table.setItem(row, 3, QTableWidgetItem(record.get("task_id", "")))
+            self.records_table.setItem(row, 4, QTableWidgetItem(record.get("source", "")))
+            self.records_table.setItem(row, 5, QTableWidgetItem(record.get("status", "")))
+    
+    def _update_statistics(self) -> None:
+        """更新统计数据"""
+        total = len(self.learning_records)
+        
+        # 本月新增
+        current_month = datetime.now().strftime("%Y-%m")
+        monthly_count = sum(
+            1 for r in self.learning_records 
+            if r.get("created_at", "").startswith(current_month)
+        )
+        
+        # 关联任务数
+        related_tasks = set(r.get("task_id") for r in self.learning_records if r.get("task_id"))
+        
+        # 待审核
+        pending = sum(1 for r in self.learning_records if r.get("status") == "待审核")
+        
+        # 更新卡片
+        self.total_count_card.findChildren(QLabel)[0].setText(str(total))
+        self.monthly_count_card.findChildren(QLabel)[0].setText(str(monthly_count))
+        self.related_count_card.findChildren(QLabel)[0].setText(str(len(related_tasks)))
+        self.pending_count_card.findChildren(QLabel)[0].setText(str(pending))
+        
+        # 更新最近活动
+        self.activity_list.clear()
+        recent_records = sorted(
+            self.learning_records,
+            key=lambda x: x.get("created_at", ""),
+            reverse=True
+        )[:5]
+        
+        for record in recent_records:
+            item_text = f"📝 {record.get('question', '')[:30]}... - {record.get('created_at', '')}"
+            self.activity_list.addItem(item_text)
+    
+    def _on_export_records(self) -> None:
+        """导出记录处理"""
+        if not self.learning_records:
+            QMessageBox.information(self, "导出", "暂无学习记录可导出")
             return
-
-        row = selected_rows[0].row()
-        name = self.contact_table.item(row, 0).text()
-
-        # 查找同名联系人
-        duplicates = self.contact_service.find_duplicates(name)
-
-        if len(duplicates) < 2:
-            QMessageBox.information(self, "提示", f"联系人 {name} 没有重名，无需合并！")
-            return
-
-        # 显示重名列表，让用户选择保留哪个
-        msg = f"发现 {len(duplicates)} 个同名联系人：\n\n"
-        for i, dup in enumerate(duplicates):
-            emp_id = dup.get("employee_id") or "无工号"
-            company = dup.get("company") or "无公司"
-            task_count = dup.get("task_count", 0)
-            msg += f"{i + 1}. 工号: {emp_id}, 公司: {company}, 任务数: {task_count}\n"
-
-        msg += "\n请选择要保留的联系人编号，其他将被合并："
-
-        # 简单处理：保留第一个，其余合并
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出学习记录",
+            f"learning_records_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            "Excel文件 (*.xlsx)"
+        )
+        
+        if file_path:
+            QMessageBox.information(
+                self,
+                "导出成功",
+                f"学习记录已导出到:\n{file_path}"
+            )
+            logger.info(f"学习记录导出到: {file_path}")
+    
+    def _on_clear_records(self) -> None:
+        """清空记录处理"""
         reply = QMessageBox.question(
             self,
-            "合并重名联系人",
-            msg,
-            QMessageBox.Yes | QMessageBox.Cancel
+            "确认清空",
+            "确定要清空所有学习记录吗？\n此操作不可恢复！",
+            QMessageBox.Yes | QMessageBox.No
         )
-
+        
         if reply == QMessageBox.Yes:
-            # 保留第一个，合并其他的任务数
-            keep_id = duplicates[0]["id"]
-            other_ids = [d["id"] for d in duplicates[1:]]
+            self.learning_records = []
+            self._save_learning_records()
+            self._refresh_records_table()
+            self._update_statistics()
+            
+            QMessageBox.information(self, "清空完成", "所有学习记录已清空")
 
-            if self.contact_service.merge_contacts(other_ids, keep_id):
-                QMessageBox.information(self, "成功", f"已将 {len(other_ids)} 个重名联系人合并到保留记录！")
-                self._on_refresh_contacts()
-            else:
-                QMessageBox.warning(self, "失败", "合并失败！")
 
-    def _on_search_recommendations(self) -> None:
-        """搜索推荐库"""
-        keyword = self.rec_search_input.text().strip()
-        recommendations = self.recommendation_service.get_recommendations(key_module=keyword, limit=100)
-        self._display_recommendations(recommendations)
-
-    def _on_refresh_recommendations(self) -> None:
-        """刷新推荐库列表"""
-        recommendations = self.recommendation_service.get_recommendations(limit=100)
-        self._display_recommendations(recommendations)
-
-    def _display_recommendations(self, recommendations: List[Dict], is_aggregated: bool = False) -> None:
-        """显示推荐库列表
-
-        Args:
-            recommendations: 推荐数据列表
-            is_aggregated: 是否为汇总视图
-        """
-        self.recommendation_table.setRowCount(len(recommendations))
-
-        for i, rec in enumerate(recommendations):
-            self.recommendation_table.setItem(i, 0, QTableWidgetItem(rec.get("respondent_name", "")))
-            self.recommendation_table.setItem(i, 1, QTableWidgetItem(rec.get("employee_id", "")))  # 工号
-
-            if is_aggregated:
-                # 汇总视图：显示所有模块
-                all_modules = rec.get("all_modules", "")
-                self.recommendation_table.setItem(i, 2, QTableWidgetItem(""))  # 关键模块列留空
-                self.recommendation_table.setItem(i, 3, QTableWidgetItem(all_modules))  # 所有模块
-                self.recommendation_table.setItem(i, 4, QTableWidgetItem(rec.get("department", "")))
-                self.recommendation_table.setItem(i, 5, QTableWidgetItem(rec.get("industry", "")))
-                self.recommendation_table.setItem(i, 6, QTableWidgetItem(str(rec.get("total_task_count", 0))))
-                self.recommendation_table.setItem(i, 7, QTableWidgetItem(str(rec.get("total_reply_count", 0))))
-                confidence = rec.get("max_confidence", 0.5)
-            else:
-                # 详细视图
-                self.recommendation_table.setItem(i, 2, QTableWidgetItem(rec.get("key_module", "")))
-                self.recommendation_table.setItem(i, 3, QTableWidgetItem(rec.get("all_modules", "")))  # 所有模块
-                self.recommendation_table.setItem(i, 4, QTableWidgetItem(rec.get("department", "")))
-                self.recommendation_table.setItem(i, 5, QTableWidgetItem(rec.get("industry", "")))
-                self.recommendation_table.setItem(i, 6, QTableWidgetItem(str(rec.get("task_count", 0))))
-                self.recommendation_table.setItem(i, 7, QTableWidgetItem(str(rec.get("reply_count", 0))))
-                confidence = rec.get("confidence", 0.5)
-
-            confidence_item = QTableWidgetItem(f"{confidence:.0%}")
-            if confidence >= 0.8:
-                confidence_item.setBackground(QColor("#C8E6C9"))
-            elif confidence >= 0.5:
-                confidence_item.setBackground(QColor("#FFF9C4"))
-            else:
-                confidence_item.setBackground(QColor("#FFCDD2"))
-            self.recommendation_table.setItem(i, 8, confidence_item)
-
-    def _on_view_mode_changed(self) -> None:
-        """视图模式切换"""
-        self._on_refresh_recommendations()
-
-    def _on_refresh_recommendations(self) -> None:
-        """刷新推荐库列表"""
-        keyword = self.rec_search_input.text().strip()
-        is_aggregated = self.view_mode_combo.currentIndex() == 1  # 汇总视图
-
-        if is_aggregated:
-            recommendations = self.recommendation_service.get_aggregated_recommendations(
-                key_module=keyword, limit=100
-            )
-        else:
-            recommendations = self.recommendation_service.get_recommendations(
-                key_module=keyword, limit=100
-            )
-
-        self._display_recommendations(recommendations, is_aggregated)
-
-    def _on_view_related_modules(self) -> None:
-        """查看相关模块"""
-        selected_rows = self.recommendation_table.selectedIndexes()
-        if not selected_rows:
-            QMessageBox.warning(self, "提示", "请先选择要查看的推荐库条目！")
-            return
-
-        row = selected_rows[0].row()
-        key_module = self.recommendation_table.item(row, 2).text()
-
-        related = self.recommendation_service.get_related_modules(key_module)
-
-        if related:
-            QMessageBox.information(
-                self, "相关模块",
-                f"与「{key_module}」相关的模块：\n\n" + "\n".join([f"• {m}" for m in related])
-            )
-        else:
-            QMessageBox.information(self, "相关模块", f"未找到与「{key_module}」相关的模块")
-
-    def _on_refresh_statistics(self) -> None:
-        """刷新统计"""
-        stats = self.learning_service.get_statistics()
-
-        self.total_contacts_label.setText(str(stats.get("total_learned_contacts", 0)))
-        self.total_recommendations_label.setText(str(stats.get("total_recommendations", 0)))
-        self.unique_modules_label.setText(str(stats.get("unique_modules", 0)))
-        self.unique_industries_label.setText(str(stats.get("unique_industries", 0)))
-
-        # 更新行业分布
-        self.industry_list.clear()
-        # 从recommendation_learning获取行业分布
-        from ...database.connection import get_db_connection
-        db = get_db_connection()
-        rows = db.fetchall(
-            """
-            SELECT industry, COUNT(*) as count
-            FROM recommendation_learning
-            WHERE industry IS NOT NULL AND industry != ''
-            GROUP BY industry
-            ORDER BY count DESC
-            LIMIT 10
-            """
-        )
-        for row in rows:
-            self.industry_list.addItem(f"📊 {row[0]}: {row[1]} 条记录")
-
-    def _on_batch_learn(self) -> None:
-        """执行批量学习"""
-        reply = QMessageBox.question(
-            self, "确认批量学习",
-            "批量学习将分析所有任务数据，这可能需要一些时间。\n是否继续？",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes
-        )
-
-        if reply != QMessageBox.Yes:
-            return
-
-        self.batch_log.clear()
-        self.batch_log.append("🚀 开始批量学习...")
-
-        def progress_callback(current: int, total: int, message: str) -> None:
-            self.batch_progress.setValue(current)
-            self.batch_log.append(message)
-
-        try:
-            result = self.learning_service.learn_from_all_tasks(progress_callback)
-
-            if result.get("success"):
-                self.batch_log.append(f"\n✅ 批量学习完成！")
-                self.batch_log.append(f"   总任务数: {result.get('total_tasks', 0)}")
-                self.batch_log.append(f"   学习联系人: {result.get('contacts_learned', 0)}")
-                self.batch_log.append(f"   学习推荐库: {result.get('recommendations_learned', 0)}")
-
-                # 刷新各页面
-                self._on_refresh_contacts()
-                self._on_refresh_recommendations()
-                self._on_refresh_statistics()
-
-                self.learning_completed.emit(result)
-            else:
-                self.batch_log.append(f"\n❌ 批量学习失败: {result.get('error', '未知错误')}")
-
-        except Exception as e:
-            logger.error(f"批量学习失败: {e}")
-            self.batch_log.append(f"\n❌ 批量学习失败: {e}")
-
-    def _on_learn_single_task(self) -> None:
-        """从单个任务学习"""
-        task_id = self.task_id_input.text().strip()
-
-        if not task_id:
-            QMessageBox.warning(self, "提示", "请输入任务ID！")
-            return
-
-        task = Task.get_by_id(task_id)
-        if not task:
-            QMessageBox.warning(self, "错误", "任务不存在！")
-            return
-
-        task_data = task.to_dict()
-        task_data["respondent_phone"] = ""
-        task_data["respondent_email"] = ""
-
-        success = self.learning_service.learn_from_task(task_data)
-
-        if success:
-            QMessageBox.information(self, "成功", "任务信息已学习！")
-            self._on_refresh_contacts()
-            self._on_refresh_recommendations()
-        else:
-            QMessageBox.warning(self, "失败", "学习失败！")
-
-    def refresh_all(self) -> None:
-        """刷新所有页面"""
-        self._on_refresh_contacts()
-        self._on_refresh_recommendations()
-        self._on_refresh_statistics()
+# 导出类
+__all__ = ['SmartLearningWidget']

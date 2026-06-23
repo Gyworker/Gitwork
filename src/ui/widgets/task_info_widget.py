@@ -41,6 +41,7 @@ class TaskInfoWidget(QWidget):
     task_selected = pyqtSignal(str)  # 任务ID
     task_created = pyqtSignal(str)   # 新建任务ID
     task_updated = pyqtSignal(str)    # 更新任务ID
+    task_context_changed = pyqtSignal(str, str)  # V2.0新增：任务ID和关键模块
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         """初始化任务信息组件"""
@@ -258,6 +259,10 @@ class TaskInfoWidget(QWidget):
 
             self.save_btn.setEnabled(True)
             self.delete_btn.setEnabled(True)
+
+            # V2.0新增：发射任务上下文变化信号
+            key_module = task.key_module if task.key_module else ""
+            self.task_context_changed.emit(task_id, key_module)
 
     def _on_new_task(self) -> None:
         """新建任务"""
