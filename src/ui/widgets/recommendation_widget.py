@@ -28,9 +28,9 @@ from PyQt5.QtWidgets import (
     QProgressBar,
 )
 
-from ...database.models import Task, Recommendation
-from ...database.er_diagram import RecommendationLibraryDAO
-from ...utils.logger import get_logger
+from database.models import Task, Recommendation
+from database.er_diagram import RecommendationLibraryDAO
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

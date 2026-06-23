@@ -28,9 +28,9 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
-from ...database.models import Task, init_database
-from ...database.connection import get_db_connection
-from ...utils.logger import get_logger
+from database.models import Task, init_database
+from database.connection import get_db_connection
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 

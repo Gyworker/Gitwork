@@ -27,19 +27,12 @@ from PyQt5.QtWidgets import (
     QToolBar,
 )
 
-from ..config import get_config
-from ..utils.logger import get_logger
-from ..database.models import Task
+from config import get_config
+from utils.logger import get_logger
 from .widgets.task_info_widget import TaskInfoWidget
 from .widgets.task_track_widget import TaskTrackWidget
 from .widgets.recommendation_widget import RecommendationWidget
 from .widgets.notification_widget import NotificationWidget
-from .widgets.import_export_widget import ImportExportWidget
-from .widgets.statistics_widget import StatisticsWidget
-from .widgets.library_widget import LibraryWidget
-from .widgets.learning_widget import LearningWidget
-from .widgets.auto_backup_config_widget import AutoBackupConfigWidget
-from .widgets.theme_config_widget import ThemeConfigWidget
 
 logger = get_logger(__name__)
 
@@ -92,9 +85,6 @@ class MainWindow(QMainWindow):
             "📁 数据导入",
             "📈 统计分析",
             "📚 推荐库",
-            "📚 学习积累",
-            "💾 自动备份",
-            "🎨 主题设置",  # 新增
         ]
 
         for item_text in nav_items:
@@ -109,24 +99,25 @@ class MainWindow(QMainWindow):
         self.task_track_widget = TaskTrackWidget()
         self.recommendation_widget = RecommendationWidget()
         self.notification_widget = NotificationWidget()
-        self.import_export_widget = ImportExportWidget()
-        self.statistics_widget = StatisticsWidget()
-        self.library_widget = LibraryWidget()
-        self.learning_widget = LearningWidget()
-        self.auto_backup_config_widget = AutoBackupConfigWidget()  # 自动备份配置
-        self.theme_config_widget = ThemeConfigWidget()  # 主题配置
+
+        # 占位组件
+        self.import_placeholder = QLabel("📁 数据导入功能开发中...")
+        self.import_placeholder.setAlignment(Qt.AlignCenter)
+
+        self.stats_placeholder = QLabel("📈 统计分析功能开发中...")
+        self.stats_placeholder.setAlignment(Qt.AlignCenter)
+
+        self.library_placeholder = QLabel("📚 推荐库管理功能开发中...")
+        self.library_placeholder.setAlignment(Qt.AlignCenter)
 
         # 添加到工作区
         self.work_area.addWidget(self.task_info_widget)
         self.work_area.addWidget(self.task_track_widget)
         self.work_area.addWidget(self.recommendation_widget)
         self.work_area.addWidget(self.notification_widget)
-        self.work_area.addWidget(self.import_export_widget)
-        self.work_area.addWidget(self.statistics_widget)
-        self.work_area.addWidget(self.library_widget)
-        self.work_area.addWidget(self.learning_widget)
-        self.work_area.addWidget(self.auto_backup_config_widget)  # 自动备份配置
-        self.work_area.addWidget(self.theme_config_widget)  # 主题配置
+        self.work_area.addWidget(self.import_placeholder)
+        self.work_area.addWidget(self.stats_placeholder)
+        self.work_area.addWidget(self.library_placeholder)
 
         # 添加到分割器
         splitter.addWidget(self.nav_list)
@@ -166,20 +157,6 @@ class MainWindow(QMainWindow):
         """任务创建事件"""
         logger.info(f"新任务创建: {task_id}")
         self.statusBar().showMessage(f"新任务创建成功: {task_id}", 3000)
-
-        # 自动学习任务信息
-        try:
-            from ..core.learning_service import get_learning_service
-            task = Task.get_by_id(task_id)
-            if task:
-                task_data = task.to_dict()
-                task_data["respondent_phone"] = ""
-                task_data["respondent_email"] = ""
-                learning_service = get_learning_service()
-                learning_service.learn_from_task(task_data)
-                logger.info(f"任务信息已自动学习: {task_id}")
-        except Exception as e:
-            logger.error(f"自动学习失败: {e}")
 
     def _on_task_updated(self, task_id: str) -> None:
         """任务更新事件"""
@@ -246,34 +223,6 @@ class MainWindow(QMainWindow):
         refresh_action = QAction("刷新(&R)", self)
         refresh_action.setShortcut("F5")
         view_menu.addAction(refresh_action)
-
-        view_menu.addSeparator()
-
-        # 主题切换子菜单
-        theme_menu = QMenu("主题切换(&T)", self)
-        view_menu.addMenu(theme_menu)
-
-        self.light_theme_action = QAction("☀️ 浅色主题", self, checkable=True)
-        self.light_theme_action.triggered.connect(lambda: self._switch_theme("light"))
-        theme_menu.addAction(self.light_theme_action)
-
-        self.dark_theme_action = QAction("🌙 深色主题", self, checkable=True)
-        self.dark_theme_action.triggered.connect(lambda: self._switch_theme("dark"))
-        theme_menu.addAction(self.dark_theme_action)
-
-        theme_menu.addSeparator()
-
-        self.toggle_theme_action = QAction("🔄 切换主题", self)
-        self.toggle_theme_action.setShortcut("Ctrl+T")
-        self.toggle_theme_action.triggered.connect(self._toggle_theme)
-        theme_menu.addAction(self.toggle_theme_action)
-
-        # 设置菜单
-        settings_menu = menubar.addMenu("设置(&S)")
-
-        preferences_action = QAction("偏好设置(&P)...", self)
-        preferences_action.triggered.connect(self._show_preferences)
-        settings_menu.addAction(preferences_action)
 
         # 帮助菜单
         help_menu = menubar.addMenu("帮助(&H)")
@@ -349,40 +298,6 @@ class MainWindow(QMainWindow):
             f"提升团队协作效率",
         )
 
-    def _switch_theme(self, theme_type: str) -> None:
-        """切换主题"""
-        try:
-            from ..core.theme_manager import get_theme_manager, ThemeType
-            theme_manager = get_theme_manager()
-            theme_manager.apply_theme(ThemeType(theme_type))
-            self._update_theme_menu_state(theme_type)
-            logger.info(f"主题已切换: {theme_type}")
-        except Exception as e:
-            logger.error(f"主题切换失败: {e}")
-
-    def _toggle_theme(self) -> None:
-        """切换主题"""
-        try:
-            from ..core.theme_manager import get_theme_manager
-            theme_manager = get_theme_manager()
-            theme_manager.toggle_theme()
-            current_theme = theme_manager.get_current_theme().value
-            self._update_theme_menu_state(current_theme)
-            logger.info(f"主题已切换: {current_theme}")
-        except Exception as e:
-            logger.error(f"主题切换失败: {e}")
-
-    def _update_theme_menu_state(self, current_theme: str) -> None:
-        """更新主题菜单状态"""
-        self.light_theme_action.setChecked(current_theme == "light")
-        self.dark_theme_action.setChecked(current_theme == "dark")
-
-    def _show_preferences(self) -> None:
-        """显示偏好设置"""
-        # 切换到主题设置页面
-        self.nav_list.setCurrentRow(9)  # 主题设置
-        logger.info("打开偏好设置")
-
     def _update_status(self) -> None:
         """更新状态栏"""
         from datetime import datetime
@@ -410,17 +325,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         """关闭事件"""
-        # 关闭时自动备份
-        try:
-            from ..core.auto_backup_service import get_auto_backup_service
-            auto_backup = get_auto_backup_service()
-            if auto_backup.config.get("backup_on_shutdown", True):
-                if auto_backup.config.should_backup_now():
-                    logger.info("执行关闭时自动备份...")
-                    auto_backup.trigger_backup("关闭备份")
-        except Exception as e:
-            logger.error(f"关闭时备份失败: {e}")
-
         self._save_window_state()
         logger.info("应用关闭")
         event.accept()

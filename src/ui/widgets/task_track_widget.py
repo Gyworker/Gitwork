@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 任务跟踪管理模块
 Task Tracking Management Module
@@ -29,8 +29,8 @@ from PyQt5.QtWidgets import (
     QDateTimeEdit,
 )
 
-from ..database.models import Task, TaskTrackRecord
-from ..utils.logger import get_logger
+from database.models import Task, TaskTrackRecord
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
