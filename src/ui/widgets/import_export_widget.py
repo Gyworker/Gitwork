@@ -231,7 +231,7 @@ class ImportExportWidget(QWidget):
         btn_layout.addWidget(clear_btn)
 
         btn_layout.addStretch()
-        layout.addWidget(btn_layout)
+        layout.addLayout(btn_layout)  # V2.1修复：使用addLayout代替addWidget
 
         # 进度条
         self.progress_bar = QProgressBar()
