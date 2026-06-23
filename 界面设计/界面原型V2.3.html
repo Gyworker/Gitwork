@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场咨询任务跟踪工具 V2.3 - 简化界面原型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "宋体", sans-serif;
+            background: #e3e3e3;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #1E88E5;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .v2-2-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        /* 主窗口 */
+        .main-window {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* 标题栏 */
+        .title-bar {
+            background: linear-gradient(to bottom, #1E88E5, #1565C0);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-bar h2 {
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .btn-minimize { background: #FFC107; }
+        .btn-maximize { background: #4CAF50; }
+        .btn-close { background: #F44336; }
+
+        /* 菜单栏 */
+        .menu-bar {
+            background: #f5f5f5;
+            padding: 5px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 20px;
+        }
+
+        .menu-item {
+            color: #333;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        .menu-item:hover {
+            background: #e0e0e0;
+        }
+
+        /* V2.2优化：扩展工具栏 */
+        .toolbar {
+            background: #fafafa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 0 8px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .toolbar-group-label {
+            font-size: 10px;
+            color: #999;
+            margin-right: 4px;
+        }
+
+        .toolbar-btn {
+            padding: 6px 12px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toolbar-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .toolbar-btn.primary {
+            background: #1E88E5;
+            color: white;
+            border-color: #1E88E5;
+        }
+
+        .toolbar-btn.primary:hover {
+            background: #1565C0;
+        }
+
+        .toolbar-btn.blue {
+            background: #1565C0;
+            color: white;
+            border-color: #1565C0;
+        }
+
+        .toolbar-btn.blue:hover {
+            background: #0D47A1;
+        }
+
+        .toolbar-btn.orange {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+
+        .toolbar-btn.orange:hover {
+            background: #F57C00;
+        }
+
+        .toolbar-btn.purple {
+            background: #9C27B0;
+            color: white;
+            border-color: #9C27B0;
+        }
+
+        .toolbar-btn.purple:hover {
+            background: #7B1FA2;
+        }
+
+        .toolbar-btn.green {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .toolbar-btn.green:hover {
+            background: #388E3C;
+        }
+
+        .toolbar-btn.theme-btn {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+        }
+
+        .toolbar-btn.theme-btn.active {
+            background: #9C27B0;
+            color: white;
+            border-color: #9C27B0;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 24px;
+            background: #e0e0e0;
+            margin: 0 8px;
+        }
+
+        /* 主内容区 - V2.2简化：无左侧导航 */
+        .main-content {
+            display: flex;
+            height: 650px;
+        }
+
+        /* 左侧区域 */
+        .left-panel {
+            width: 35%;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-section {
+            overflow-y: auto;
+        }
+
+        /* 内容导入区域 - 固定表头 */
+        .panel-section:first-child {
+            flex: 0 0 180px;
+            padding: 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-import-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .panel-section:last-child {
+            flex: 1;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 任务信息区 - 固定表头 */
+        .task-info-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .section-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            padding: 12px 12px 8px 12px;
+            border-bottom: 2px solid #1E88E5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .section-header .help {
+            font-size: 12px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .task-info-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 12px 12px;
+        }
+
+        .content-import-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 12px 12px;
+        }
+
+        .parse-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+
+        .parse-success {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .parse-error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .form-label.required::after {
+            content: " *";
+            color: #F44336;
+        }
+
+        .form-label.editable::before {
+            content: "📝 ";
+        }
+
+        .form-label.smart::before {
+            content: "🔮 ";
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: "宋体", serif;
+        }
+
+        .form-input.direct-edit {
+            background: #FAFFFE;
+        }
+
+        .form-input.direct-edit:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: "宋体", serif;
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-textarea.large {
+            min-height: 100px;
+        }
+
+        .char-count {
+            font-size: 10px;
+            color: #999;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #1E88E5;
+            box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.1);
+        }
+
+        .contact-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .contact-type-select {
+            width: 50px;
+            padding: 6px 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .contact-input {
+            flex: 1;
+        }
+
+        .form-label-with-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .form-label-with-hint .form-label {
+            margin-bottom: 0;
+        }
+
+        .inline-hint {
+            font-size: 10px;
+            color: #999;
+        }
+
+        /* 导入方式 */
+        .radio-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* 按钮样式 */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 6px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background: #1E88E5;
+            color: white;
+            border-color: #1E88E5;
+        }
+
+        .btn-primary:hover {
+            background: #1565C0;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .btn-success:hover {
+            background: #388E3C;
+        }
+
+        /* 右侧区域 */
+        .right-panel {
+            width: 65%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 任务跟踪区 */
+        .track-section {
+            height: 40%;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .track-section .section-header {
+            flex-shrink: 0;
+        }
+
+        .track-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .track-tabs {
+            display: flex;
+            gap: 2px;
+            padding: 0 12px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .track-tab {
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #666;
+        }
+
+        .track-tab:hover {
+            color: #1E88E5;
+        }
+
+        .track-tab.active {
+            color: #1E88E5;
+            border-bottom-color: #1E88E5;
+        }
+
+        .track-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .track-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .track-table th {
+            background: #f5f5f5;
+            padding: 8px;
+            text-align: left;
+            font-weight: normal;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+
+        .track-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .track-table tr:hover {
+            background: #f8f8f8;
+        }
+
+        .priority-high {
+            color: #F44336;
+            font-weight: bold;
+        }
+
+        .priority-medium {
+            color: #FF9800;
+        }
+
+        .priority-low {
+            color: #4CAF50;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .status-pending {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        .status-progress {
+            background: #E3F2FD;
+            color: #1565C0;
+        }
+
+        .status-done {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        /* 提醒区 */
+        .reminder-section {
+            height: 15%;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .reminder-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .reminder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: #f8f8f8;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .reminder-item .time {
+            color: #1E88E5;
+            font-weight: bold;
+        }
+
+        .reminder-item .task-name {
+            flex: 1;
+            margin: 0 12px;
+            color: #333;
+        }
+
+        .reminder-item .action {
+            color: #666;
+            cursor: pointer;
+        }
+
+        /* 统计区 */
+        .stats-section {
+            height: 45%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .stats-card {
+            flex: 1;
+            background: #f8f8f8;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stats-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1E88E5;
+        }
+
+        .stats-card .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .stats-card .trend {
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .trend-up {
+            color: #4CAF50;
+        }
+
+        .trend-down {
+            color: #F44336;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            background: #f5f5f5;
+            padding: 8px 15px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-right {
+            display: flex;
+            gap: 20px;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 500px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: linear-gradient(to bottom, #1E88E5, #1565C0);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            opacity: 0.8;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* V2.2新增：功能提示 */
+        .feature-notice {
+            background: #E3F2FD;
+            border: 1px solid #1E88E5;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 11px;
+            color: #1565C0;
+        }
+
+        .feature-notice ul {
+            margin: 8px 0 0 20px;
+        }
+
+        .feature-notice li {
+            margin-bottom: 4px;
+        }
+
+        /* 快捷键提示 */
+        .shortcut-hint {
+            font-size: 10px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>市场咨询任务跟踪工具 V2.3 <span class="v2-2-badge">SIMPLIFIED</span> - 简化界面原型</h1>
+            <p>基于PyQt5的Windows桌面应用 - V2.3简化版（去除左侧导航和视图切换组，工具栏更简洁）</p>
+        </div>
+
+        <div class="main-window">
+            <!-- 标题栏 -->
+            <div class="title-bar">
+                <h2>📋 市场咨询任务跟踪工具</h2>
+                <div class="window-controls">
+                    <div class="window-btn btn-minimize"></div>
+                    <div class="window-btn btn-maximize"></div>
+                    <div class="window-btn btn-close"></div>
+                </div>
+            </div>
+
+            <!-- 菜单栏 -->
+            <div class="menu-bar">
+                <div class="menu-item">文件</div>
+                <div class="menu-item">编辑</div>
+                <div class="menu-item">视图</div>
+                <div class="menu-item">任务</div>
+                <div class="menu-item">帮助</div>
+            </div>
+
+            <!-- V2.3优化：简化工具栏（去除重复按钮和视图切换组） -->
+            <div class="toolbar">
+                <!-- 基础操作组 -->
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" onclick="showToast('📋 新建任务')">📋 新建</button>
+                    <button class="toolbar-btn" onclick="showToast('💾 保存任务')">💾 保存</button>
+                    <button class="toolbar-btn" onclick="showToast('🗑️ 删除任务')">🗑️ 删除</button>
+                    <button class="toolbar-btn" onclick="showToast('📤 导出任务')">📤 导出</button>
+                </div>
+
+                <!-- 数据管理组 -->
+                <div class="toolbar-group">
+                    <button class="toolbar-btn primary" onclick="showToast('🔮 打开推荐库')">🔮 推荐库</button>
+                    <button class="toolbar-btn primary" onclick="showToast('📥 导入推荐库')">📥 导入库</button>
+                    <button class="toolbar-btn primary" onclick="showToast('⏰ 提醒周期')">⏰ 周期</button>
+                </div>
+
+                <!-- 智能功能组 -->
+                <div class="toolbar-group">
+                    <button class="toolbar-btn blue" onclick="showToast('🧠 智能学习&应答')">🧠 学习应答</button>
+                    <button class="toolbar-btn orange" onclick="showToast('💾 自动备份')">💾 自动备份</button>
+                    <button class="toolbar-btn purple" onclick="showToast('🎨 切换主题')">🎨 主题</button>
+                </div>
+
+                <!-- 设置组 -->
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" onclick="showToast('⚙️ 系统设置')">⚙️ 设置</button>
+                    <button class="toolbar-btn" onclick="showToast('❓ 帮助')">❓ 帮助</button>
+                </div>
+            </div>
+
+            <!-- 主内容区 - V2.2简化：无左侧导航 -->
+            <div class="main-content">
+                <!-- 左侧区域 -->
+                <div class="left-panel">
+                    <!-- 内容导入区 -->
+                    <div class="panel-section">
+                        <div class="content-import-wrapper">
+                            <div class="section-header">
+                                <span>📥 内容导入</span>
+                                <span class="help">?</span>
+                            </div>
+
+                            <div class="content-import-body">
+                                <div class="form-label">导入方式</div>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" checked onchange="updateParseStatus('text')"> 文本
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('image')"> 图片
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('outlook')"> Outlook
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('wechat')"> 企业微信
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="import-type" onchange="updateParseStatus('msg')"> MSG
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">输入内容</label>
+                                        <span class="inline-hint">📌 图片/Outlook/微信/Msg解析后显示于此</span>
+                                    </div>
+                                    <textarea class="form-textarea" id="inputContent" placeholder="请输入或粘贴内容，或通过图片/Outlook/企业微信/MSG导入...">客户需要产品报价咨询，请尽快提供详细的价格清单，包括标准产品价格、批量采购折扣、交货周期等信息。</textarea>
+                                </div>
+
+                                <span class="parse-status" id="parseStatus">📄 文本模式</span>
+
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="showParseResult()">🔍 解析</button>
+                                    <button class="btn btn-secondary">🗑️ 清除</button>
+                                    <button class="btn btn-secondary">📁 文件</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 任务信息区 -->
+                    <div class="panel-section">
+                        <div class="task-info-wrapper">
+                            <div class="section-header">
+                                <span>📋 任务信息</span>
+                                <span class="help">?</span>
+                            </div>
+
+                            <div class="task-info-content">
+                                <!-- 1. 任务创建时间 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label editable">任务创建时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" value="2026-06-23T10:00:00">
+                                </div>
+
+                                <!-- 2. 预期答复时间 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">预期答复时间</label>
+                                    </div>
+                                    <input type="datetime-local" class="form-input" value="2026-06-24T15:00">
+                                </div>
+
+                                <!-- 3. 任务名称 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">任务名称</label>
+                                    </div>
+                                    <input type="text" class="form-input" value="产品报价咨询" style="width: 80%;">
+                                </div>
+
+                                <!-- 4. 重要程度 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label required">重要程度</label>
+                                    </div>
+                                    <select class="form-select">
+                                        <option selected>高</option>
+                                        <option>中</option>
+                                        <option>低</option>
+                                    </select>
+                                </div>
+
+                                <!-- 5. 任务具体内容 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">任务具体内容</label>
+                                    </div>
+                                    <textarea class="form-textarea large" id="taskContent" maxlength="3000" placeholder="请详细描述任务的具体内容...">客户需要产品报价咨询，请尽快提供详细的价格清单，包括：
+1. 标准产品价格
+2. 批量采购折扣
+3. 交货周期
+4. 售后服务条款
+5. 技术支持方案</textarea>
+                                    <div class="char-count">已输入: <span id="charCount">120</span> / 3000 字符</div>
+                                </div>
+
+                                <!-- 6. 产品型号和板卡 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label smart">产品型号/板卡</label>
+                                        <span class="inline-hint">🔮 智能推荐</span>
+                                    </div>
+                                    <input type="text" class="form-input" placeholder="输入产品型号，自动推荐常用配置">
+                                </div>
+
+                                <!-- 7. 客户联系方式 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">客户联系方式</label>
+                                    </div>
+                                    <div class="contact-input-group">
+                                        <select class="contact-type-select">
+                                            <option>电话</option>
+                                            <option>微信</option>
+                                            <option>邮箱</option>
+                                            <option>QQ</option>
+                                        </select>
+                                        <input type="text" class="form-input contact-input" placeholder="13800138000">
+                                    </div>
+                                </div>
+
+                                <!-- 8. 任务答复 -->
+                                <div class="form-group">
+                                    <div class="form-label-with-hint">
+                                        <label class="form-label">任务答复</label>
+                                        <span class="inline-hint">💡 提供答复参考</span>
+                                    </div>
+                                    <textarea class="form-textarea large" placeholder="请输入任务答复内容..."></textarea>
+                                </div>
+
+                                <!-- 操作按钮 -->
+                                <div class="btn-group">
+                                    <button class="btn btn-primary">💾 保存任务</button>
+                                    <button class="btn btn-success">✅ 完成任务</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧区域 -->
+                <div class="right-panel">
+                    <!-- 任务跟踪区 -->
+                    <div class="track-section">
+                        <div class="section-header">
+                            <span>📊 任务跟踪</span>
+                            <span class="help">?</span>
+                        </div>
+                        <div class="track-tabs">
+                            <div class="track-tab active">全部任务</div>
+                            <div class="track-tab">进行中</div>
+                            <div class="track-tab">已完成</div>
+                            <div class="track-tab">已逾期</div>
+                        </div>
+                        <div class="track-content">
+                            <div class="track-table-wrapper">
+                                <table class="track-table">
+                                    <thead>
+                                        <tr>
+                                            <th>☑</th>
+                                            <th>任务名称</th>
+                                            <th>重要程度</th>
+                                            <th>预期答复时间</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><input type="checkbox"></td>
+                                            <td>产品报价咨询</td>
+                                            <td><span class="priority-high">高</span></td>
+                                            <td>2026-06-24 15:00</td>
+                                            <td><span class="status-badge status-progress">进行中</span></td>
+                                            <td><a href="#">查看</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td><input type="checkbox"></td>
+                                            <td>技术方案评估</td>
+                                            <td><span class="priority-medium">中</span></td>
+                                            <td>2026-06-25 10:00</td>
+                                            <td><span class="status-badge status-pending">待处理</span></td>
+                                            <td><a href="#">查看</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td><input type="checkbox"></td>
+                                            <td>项目进度跟进</td>
+                                            <td><span class="priority-low">低</span></td>
+                                            <td>2026-06-26 18:00</td>
+                                            <td><span class="status-badge status-done">已完成</span></td>
+                                            <td><a href="#">查看</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提醒区 -->
+                    <div class="reminder-section">
+                        <div class="section-header">
+                            <span>🔔 待触发提醒</span>
+                            <span class="help">?</span>
+                        </div>
+                        <div class="reminder-content">
+                            <div class="reminder-item">
+                                <span class="time">10:30</span>
+                                <span class="task-name">产品报价咨询 - 高优先级</span>
+                                <span class="action">⏰ 提醒</span>
+                            </div>
+                            <div class="reminder-item">
+                                <span class="time">14:00</span>
+                                <span class="task-name">技术方案评估 - 中优先级</span>
+                                <span class="action">⏰ 提醒</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 统计区 -->
+                    <div class="stats-section">
+                        <div class="section-header">
+                            <span>📈 今日统计</span>
+                            <span class="help">?</span>
+                        </div>
+                        <div class="stats-content">
+                            <div class="stats-card">
+                                <div class="value">12</div>
+                                <div class="label">总任务数</div>
+                                <div class="trend trend-up">↑ 3</div>
+                            </div>
+                            <div class="stats-card">
+                                <div class="value">5</div>
+                                <div class="label">进行中</div>
+                                <div class="trend trend-up">↑ 2</div>
+                            </div>
+                            <div class="stats-card">
+                                <div class="value">7</div>
+                                <div class="label">已完成</div>
+                                <div class="trend trend-up">↑ 1</div>
+                            </div>
+                            <div class="stats-card">
+                                <div class="value">2</div>
+                                <div class="label">待处理</div>
+                                <div class="trend trend-down">↓ 1</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-left">
+                    <span>📊 总任务: 12</span>
+                    <span>✅ 已完成: 7</span>
+                    <span>🔄 进行中: 5</span>
+                    <span>⚠️ 逾期: 0</span>
+                </div>
+                <div class="status-right">
+                    <span>☀️ 浅色主题</span>
+                    <span>📅 2026-06-23 11:22</span>
+                    <span>v2.2</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- V2.3优化：功能说明 -->
+        <div class="feature-notice" style="margin-top: 20px;">
+            <strong>📢 V2.3 简化界面说明</strong>
+            <ul>
+                <li><strong>去除左侧导航栏</strong> - 原有的10个竖排按钮已移除</li>
+                <li><strong>去除视图切换组</strong> - 移除"任务信息/任务跟踪/统计/通讯录"按钮</li>
+                <li><strong>去除重复按钮</strong> - 移除"通讯录"按钮，避免功能重复</li>
+                <li><strong>功能整合到工具栏</strong> - 所有功能通过顶部工具栏按钮实现</li>
+                <li><strong>分组显示</strong> - 工具栏按功能分组，逻辑更清晰</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // V2.3优化：Toast提示
+        function showToast(message) {
+            alert(message);
+        }
+
+        // 解析状态更新
+        function updateParseStatus(type) {
+            const status = document.getElementById('parseStatus');
+            const statusMap = {
+                'text': '📄 文本模式',
+                'image': '🖼️ 图片模式',
+                'outlook': '📧 Outlook模式',
+                'wechat': '💬 企业微信模式',
+                'msg': '📧 MSG邮件模式'
+            };
+            status.textContent = statusMap[type] || '📄 文本模式';
+        }
+
+        // 显示解析结果
+        function showParseResult() {
+            alert('🔍 正在解析内容...\n\n✅ 解析完成！\n- 任务名称: 产品报价咨询\n- 客户需求: 价格清单、折扣、交货周期\n- 优先级: 高');
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('市场咨询任务跟踪工具 V2.3 - 简化界面原型已加载');
+            console.log('V2.3特点: 去除左侧导航、视图切换组和重复按钮');
+        });
+    </script>
+</body>
+</html>
