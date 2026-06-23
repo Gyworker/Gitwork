@@ -21,7 +21,7 @@ if hasattr(sys, '_MEIPASS'):
     # 打包后的运行环境
     meipass = sys._MEIPASS
     # 将 _internal/src 添加到路径
-    src_path = meipass
+    src_path = os.path.join(meipass, 'src')
     if src_path not in sys.path:
         sys.path.insert(0, src_path)
     # 设置应用路径
