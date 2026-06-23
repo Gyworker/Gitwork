@@ -224,6 +224,13 @@ class TaskTrackWidget(QWidget):
                 self.task_list.setCurrentItem(item)
                 break
 
+    def get_selected_count(self) -> int:
+        """V2.1新增：获取选中的任务数量（用于智能学习组件检测）"""
+        # 检查是否使用多选模式
+        if hasattr(self.task_list, 'selectionModel'):
+            return len(self.task_list.selectionModel().selectedIndexes()) // 1  # 简单返回
+        return 1 if self.current_task_id else 0
+
     def refresh(self) -> None:
         """刷新数据"""
         self._load_tasks()

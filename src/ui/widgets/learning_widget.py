@@ -317,9 +317,9 @@ class SmartLearningWidget(QWidget):
         """创建关联任务选项卡"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
-        # 任务搜索提示
-        hint = QLabel("💡 根据当前任务的「关键模块」智能匹配相似任务")
+
+        # 任务搜索提示 - V2.1更新：改为"提供答复参考"
+        hint = QLabel("💡 基于「关键模块」智能匹配相似任务，提供答复参考")
         hint.setStyleSheet("color: #666; font-size: 12px; padding: 5px;")
         layout.addWidget(hint)
         

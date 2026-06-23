@@ -9,6 +9,7 @@ Main Window Module
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -93,13 +94,13 @@ class MainWindow(QMainWindow):
         self.nav_items_map = {}
         for item_text, item_id in nav_items:
             item = QListWidgetItem(item_text)
-            # 设置不同颜色区分功能模块
+            # 设置不同颜色区分功能模块 - V2.1修复：使用QColor
             if item_id in ["learning"]:
-                item.setForeground(Qt.darkBlue)  # V2.0更新：蓝色强调智能学习功能
+                item.setForeground(QColor("#1565C0"))  # V2.0更新：蓝色强调智能学习功能
             elif item_id in ["backup"]:
-                item.setForeground(Qt.darkOrange)
+                item.setForeground(QColor("#FF9800"))   # 橙色
             elif item_id in ["theme"]:
-                item.setForeground(Qt.darkMagenta)
+                item.setForeground(QColor("#9C27B0"))  # 紫色
             self.nav_list.addItem(item)
             self.nav_items_map[item_text] = item_id
 
@@ -414,11 +415,29 @@ class MainWindow(QMainWindow):
 
     def _on_nav_changed(self, index: int) -> None:
         """
-        导航切换事件
+        导航切换事件 - V2.1更新：检测多选任务
 
         Args:
             index: 当前索引
         """
+        # 检查是否切换到智能学习&应答页面（索引7）
+        if index == 7:  # 智能学习&应答
+            # 检查任务跟踪中选中的任务数量
+            if hasattr(self.task_track_widget, 'get_selected_count'):
+                selected_count = self.task_track_widget.get_selected_count()
+                if selected_count > 1:
+                    from PyQt5.QtWidgets import QMessageBox
+                    QMessageBox.warning(
+                        self,
+                        "无法关联任务",
+                        f"您已选择 {selected_count} 个任务。\n\n"
+                        "「智能学习&应答」功能仅支持关联单个任务，"
+                        "请取消部分选择后重试。"
+                    )
+                    # 切换回任务跟踪页面
+                    self.nav_list.setCurrentRow(1)
+                    return
+
         self.work_area.setCurrentIndex(index)
         logger.info(f"切换到工作区: {index}")
 
