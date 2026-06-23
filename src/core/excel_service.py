@@ -18,8 +18,10 @@ from ..utils.exception_handler import (
     safe_execute,
     handle_file_error,
     FileOperationException,
-    ValidationException
+    ValidationException,
+    DatabaseException
 )
+import sqlite3
 
 logger = get_logger(__name__)
 
@@ -226,7 +228,7 @@ class ExcelExporter:
                               position, key_module, expertise
                        FROM recommendation_library ORDER BY name"""
                 )
-            except Exception:
+            except (DatabaseException, sqlite3.OperationalError):
                 logger.warning("推荐库表不存在，尝试备用表")
                 rows = self.db.fetchall(
                     """SELECT name, employee_id, phone, email, department,

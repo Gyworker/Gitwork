@@ -319,7 +319,7 @@ class AutoBackupConfigWidget(QWidget):
             try:
                 dt = datetime.fromisoformat(last_time)
                 self.status_last_backup.setText(dt.strftime("%Y-%m-%d %H:%M"))
-            except Exception:
+            except ValueError:
                 self.status_last_backup.setText(last_time)
         else:
             self.status_last_backup.setText("从未备份")
@@ -330,7 +330,7 @@ class AutoBackupConfigWidget(QWidget):
             try:
                 dt = datetime.fromisoformat(next_time)
                 self.status_next_backup.setText(dt.strftime("%Y-%m-%d %H:%M"))
-            except Exception:
+            except ValueError:
                 self.status_next_backup.setText(next_time)
         else:
             self.status_next_backup.setText("未计划")
